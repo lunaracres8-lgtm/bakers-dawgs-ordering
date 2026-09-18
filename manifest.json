@@ -1,0 +1,9 @@
+{
+  "name": "Baker's Dawgs Ordering",
+  "short_name": "Baker's Dawgs",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0c0d0e",
+  "theme_color": "#15100b",
+  "description": "Order Baker's Dawgs for pickup in Lenoir, NC."
+}
