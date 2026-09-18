@@ -1,6 +1,14 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#15100b"><title>Baker's Dawgs | Order Pickup</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"></head><body>
-<header><div class="kicker">LENOIR, NORTH CAROLINA</div><h1>BAKER'S <span>DAWGS</span></h1><h2>BEST HOT DAWGS IN TOWN</h2><p>100% BEEF • 1501 Norwood St., Lenoir, NC</p><button class="hero" onclick="goMenu()">ORDER FOR PICKUP</button></header>
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#15100b"><title>Baker's Dawgs | Order Ahead</title>
+<link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><div class="kicker">LENOIR, NORTH CAROLINA</div><h1>BAKER'S <span>DAWGS</span></h1>
+<h2>BEST HOT DAWGS IN TOWN</h2><p>100% BEEF • 1501 Norwood St., Lenoir, NC</p>
+<button class="hero" onclick="goMenu()">ORDER FOR PICKUP</button></header>
 <nav><button onclick="showCat('Hot Dawgs')">🌭 Hot Dawgs</button><button onclick="showCat('Smoked Sausages')">🔥 Sausages</button><button onclick="showCat('Sandwiches')">🥪 Sandwiches</button><button onclick="showCat('Drinks & Sides')">🥤 Drinks & Sides</button></nav>
-<main id="menu"></main><button id="cartBar" class="cartbar" onclick="openCart()">🛒 View Order <b id="cartCount">0</b><span>$<span id="cartTotal">0.00</span></span></button>
+<main id="menu"></main>
+<button id="cartBar" class="cartbar" onclick="openCart()">🛒 View Order <b id="cartCount">0</b><span>$<span id="cartTotal">0.00</span></span></button>
 <div id="modal" class="modal hidden" onclick="backdrop(event)"><section class="sheet"><button class="close" onclick="closeModal()">×</button><div id="modalBody"></div></section></div>
-<footer><b>Baker's Dawgs</b><br>Made fresh. Order ahead. Pick it up hot.</footer><script src="app.js"></script></body></html>
+<footer><b>Baker's Dawgs</b><br>Made fresh. Order ahead. Pick it up hot.</footer>
+<script src="config.js"></script><script src="db.js"></script><script src="app.js"></script></body></html>
