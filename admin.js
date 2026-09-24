@@ -3,6 +3,7 @@ let currentFilter="all";
 let hideCompleted=false;
 let knownOrderIds=new Set();
 let firstOrderLoad=true;
+let orderingOpen=null;
 
 function esc(v=""){
  return String(v).replace(/[&<>"']/g,c=>({
@@ -69,6 +70,34 @@ function showBoard(){
  if(board) board.style.display="block";
 
  loadOrders();
+ loadRestaurantControls();
+}
+
+async function loadRestaurantControls(){
+ try{
+  const settings=await bdGetRestaurantSettings();
+  orderingOpen=settings?.ordering_open!==false;
+  const status=document.querySelector("#orderingStatus");
+  const btn=document.querySelector("#orderingToggle");
+  if(status) status.textContent=orderingOpen?"Customers can place pickup orders":"Ordering is paused";
+  if(btn){ btn.disabled=false; btn.textContent=orderingOpen?"PAUSE ORDERS":"OPEN ORDERS"; btn.classList.toggle("closed",!orderingOpen); }
+ }catch(e){
+  const status=document.querySelector("#orderingStatus");
+  if(status) status.textContent="Controls unavailable";
+ }
+}
+
+async function toggleOrdering(){
+ if(orderingOpen===null) return;
+ const btn=document.querySelector("#orderingToggle");
+ if(btn) btn.disabled=true;
+ try{
+  await bdSetOrderingOpen(!orderingOpen);
+  await loadRestaurantControls();
+ }catch(e){
+  if(btn) btn.disabled=false;
+  alert("Could not change online ordering. Check that restaurant controls are installed in Supabase.");
+ }
 }
 
 async function loadOrders(){
