@@ -292,8 +292,8 @@ setInterval(()=>{
 },5000);
 
 const loginBtn=document.querySelector("#loginBtn");
-if(loginBtn) loginBtn.addEventListener("click",login);
+if(loginBtn){ loginBtn.onclick=async function(e){ e.preventDefault(); await login(); }; }
 const forgotBtn=document.querySelector("#forgotBtn");
-if(forgotBtn) forgotBtn.addEventListener("click",forgotPassword);
+if(forgotBtn){ forgotBtn.onclick=async function(e){ e.preventDefault(); await forgotPassword(); }; }
 const passwordInput=document.querySelector("#password");
 if(passwordInput) passwordInput.addEventListener("keydown",e=>{if(e.key==="Enter") login();});
