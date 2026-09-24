@@ -289,6 +289,8 @@ setInterval(()=>{
  }
 },5000);
 
+const loginBtn=document.querySelector("#loginBtn");
+if(loginBtn) loginBtn.addEventListener("click",login);
 const forgotBtn=document.querySelector("#forgotBtn");
 if(forgotBtn) forgotBtn.addEventListener("click",forgotPassword);
 const passwordInput=document.querySelector("#password");
