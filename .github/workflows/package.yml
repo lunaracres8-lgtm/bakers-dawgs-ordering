@@ -38,7 +38,7 @@ jobs:
           set -e
           make_app() {
             DIR="$1"; PKG="$2"; TITLE="$3"; URL="$4"
-            mkdir -p "$DIR/app/src/main/java/${PKG//.//}" "$DIR/app/src/main/res/values"
+            mkdir -p "$DIR/app/src/main/java/${PKG//.//}" "$DIR/app/src/main/res/values" "$DIR/app/src/main/res/drawable"
             cat > "$DIR/settings.gradle" <<EOF
           pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
           dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
@@ -57,8 +57,17 @@ jobs:
             cat > "$DIR/app/src/main/res/values/styles.xml" <<'EOF'
           <resources><style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:colorAccent">#c80d0d</item></style></resources>
           EOF
+            cat > "$DIR/app/src/main/res/drawable/ic_launcher.xml" <<'EOF'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+            <path android:fillColor="#C8102E" android:pathData="M0,0h108v108h-108z"/>
+            <path android:fillColor="#F2B35E" android:pathData="M14,42c0,-9 7,-16 16,-16h48c9,0 16,7 16,16v24c0,9 -7,16 -16,16h-48c-9,0 -16,-7 -16,-16z"/>
+            <path android:fillColor="#8B2E16" android:pathData="M25,47c0,-7 6,-13 13,-13h32c7,0 13,6 13,13v14c0,7 -6,13 -13,13h-32c-7,0 -13,-6 -13,-13z"/>
+            <path android:strokeColor="#FFD21F" android:strokeWidth="5" android:strokeLineCap="round" android:fillColor="@android:color/transparent" android:pathData="M31,47 C38,39 45,55 52,47 S66,55 76,47"/>
+            <path android:strokeColor="#FFFFFF" android:strokeWidth="3" android:strokeLineCap="round" android:fillColor="@android:color/transparent" android:pathData="M32,60 C40,52 47,68 55,60 S68,68 77,60"/>
+          </vector>
+          EOF
             cat > "$DIR/app/src/main/AndroidManifest.xml" <<EOF
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><application android:theme="@style/AppTheme" android:label="$TITLE"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><application android:theme="@style/AppTheme" android:label="$TITLE" android:icon="@drawable/ic_launcher"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
           EOF
             JAVA="$DIR/app/src/main/java/${PKG//.//}/MainActivity.java"
             cat > "$JAVA" <<EOF
