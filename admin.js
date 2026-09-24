@@ -1,5 +1,6 @@
 const ADMIN_PIN="2468";
 const statuses=["New","Accepted","Cooking","Ready","Completed"];
+let currentFilter="all";
 
 function esc(v=""){
  return String(v).replace(/[&<>"']/g,c=>({
