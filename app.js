@@ -108,6 +108,20 @@ function update(){
  ).toFixed(2);
 }
 
+function pickupOptions(){
+ const now=new Date();
+ now.setMinutes(now.getMinutes()+20);
+ const rounded=Math.ceil(now.getMinutes()/15)*15; now.setMinutes(rounded,0,0);
+ let out=`<option value="">Choose a pickup time</option>`;
+ for(let i=0;i<16;i++){
+  const d=new Date(now.getTime()+i*15*60000);
+  const value=d.toTimeString().slice(0,5);
+  const label=d.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
+  out+=`<option value="${value}">${label}</option>`;
+ }
+ return out;
+}
+
 function openCart(){
  let total=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
 
@@ -138,7 +152,7 @@ function openCart(){
  <input id="phone" class="field" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="828-555-1234">
 
  <label class="label">Pickup time</label>
- <input id="time" class="field" type="time">
+ <select id="time" class="field">${pickupOptions()}</select>
 
  <label class="label">Order notes</label>
  <textarea id="notes" class="field"></textarea>
