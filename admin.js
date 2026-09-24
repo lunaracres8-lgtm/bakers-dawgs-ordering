@@ -8,7 +8,12 @@ function esc(v=""){
  }[c]));
 }
 
-function updateClock(){\n const el=document.querySelector("#clock");\n if(el) el.textContent=new Date().toLocaleString([], {weekday:"short",hour:"numeric",minute:"2-digit"});\n}\n\nasync function login(){
+function updateClock(){
+ const el=document.querySelector("#clock");
+ if(el) el.textContent=new Date().toLocaleString([], {weekday:"short",hour:"numeric",minute:"2-digit"});
+}
+
+async function login(){
  const email=document.querySelector("#email").value.trim();
  const password=document.querySelector("#password").value;
  if(!email||!password){ alert("Enter staff email and password."); return; }
@@ -49,7 +54,9 @@ async function loadOrders(){
    return;
   }
 
-  const visibleOrders=currentFilter==="all"?orders:orders.filter(o=>o.status===currentFilter);\n\n  list.innerHTML=visibleOrders.map(o=>`
+  const visibleOrders=currentFilter==="all"?orders:orders.filter(o=>o.status===currentFilter);
+
+  list.innerHTML=visibleOrders.map(o=>`
    <article class="order">
     <div class="orderTop">
      <div>
@@ -87,6 +94,12 @@ async function loadOrders(){
   `).join("");
 
  }catch(e){
+  if(e.status===401||e.status===403){
+   bdSignOut();
+   alert("Your staff session expired. Please sign in again.");
+   location.reload();
+   return;
+  }
   list.innerHTML="<p>Could not load orders. Check the connection.</p>";
  }
 }
@@ -128,15 +141,9 @@ async function clearCompleted(){
  }
 }
 
-function seedDemo(){
- alert("Use the customer ordering page to submit a test order.");
-}
-
 function filterOrders(status){
- document.querySelectorAll(".order").forEach(card=>{
-  const badge=card.querySelector(".status");
-  card.style.display=(status==="all"||badge?.textContent.trim()===status)?"":"none";
- });
+ currentFilter=status;
+ loadOrders();
 }
 
 if(sessionStorage.getItem("bdAccessToken")){
