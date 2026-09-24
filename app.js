@@ -110,6 +110,9 @@ function update(){
 
 function openCart(){
  let total=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
+ const submitBtn=document.querySelector("#placeOrderBtn");
+ if(submitBtn?.disabled) return;
+ if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent="SENDING ORDER…"; }
 
  modalBody.innerHTML=
  `<h2>Your Pickup Order</h2>
@@ -135,7 +138,7 @@ function openCart(){
  <input id="name" class="field">
 
  <label class="label">Phone number</label>
- <input id="phone" class="field" type="tel">
+ <input id="phone" class="field" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="828-555-1234">
 
  <label class="label">Pickup time</label>
  <input id="time" class="field" type="time">
@@ -143,7 +146,7 @@ function openCart(){
  <label class="label">Order notes</label>
  <textarea id="notes" class="field"></textarea>
 
- <button class="checkout" onclick="placeOrder()">PLACE PICKUP ORDER</button>
+ <button id="placeOrderBtn" class="checkout" onclick="placeOrder()">PLACE PICKUP ORDER</button>
  <p class="notice">Payment at pickup.</p>`;
 
  openModal();
@@ -172,6 +175,8 @@ async function placeOrder(){
 
  if(!name.value.trim()||!phone.value.trim()||!time.value)
   return alert("Enter your name, phone number and pickup time.");
+ const digits=phone.value.replace(/\\D/g,"");
+ if(digits.length<10) return alert("Enter a valid phone number with area code.");
 
  let total=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
 
@@ -200,10 +205,11 @@ async function placeOrder(){
 
   modalBody.innerHTML=
   `<h2>Order Received!</h2>
-  <p>Your Baker’s Dawgs pickup order <b>#${String(saved.id).slice(0,8)}</b>
-  was sent to the restaurant.</p>
+  <p>Your Baker’s Dawgs pickup order <b>#${String(saved.id).slice(0,8)}</b> was sent to the restaurant.</p>
+  <p><b>Pickup:</b> ${time.value}<br><b>Total:</b> ${money(total)}</p>
   <button class="checkout" onclick="closeModal()">DONE</button>`;
  }catch(e){
+  if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent="PLACE PICKUP ORDER"; }
   alert("Order could not be sent. Please try again.");
  }
 }
