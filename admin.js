@@ -49,7 +49,7 @@ async function loadOrders(){
    return;
   }
 
-  list.innerHTML=orders.map(o=>`
+  const visibleOrders=currentFilter==="all"?orders:orders.filter(o=>o.status===currentFilter);\n\n  list.innerHTML=visibleOrders.map(o=>`
    <article class="order">
     <div class="orderTop">
      <div>
