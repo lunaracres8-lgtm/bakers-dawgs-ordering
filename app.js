@@ -31,6 +31,7 @@ let orderingOpen=true;
 let orderingStatusKnown=false;
 let prepMinutes=20;
 let menuAvailability={};
+let lastCustomer=JSON.parse(localStorage.getItem("bdCustomer")||"{}");
 const money=n=>"$"+n.toFixed(2);
 const cats=[...new Set(menu.map(x=>x[0]))];
 
@@ -183,10 +184,10 @@ function openCart(){
  <div class="total">Total <b>${money(total)}</b></div>
 
  <label class="label">Your name</label>
- <input id="name" class="field">
+ <input id="name" class="field" autocomplete="name" value="${String(lastCustomer.name||"").replace(/"/g,"&quot;")}">
 
  <label class="label">Phone number</label>
- <input id="phone" class="field" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="828-555-1234">
+ <input id="phone" class="field" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="828-555-1234" value="${String(lastCustomer.phone||"").replace(/"/g,"&quot;")}">
 
  <label class="label">Pickup time</label>
  <select id="time" class="field">${pickupOptions()}</select>
@@ -219,6 +220,9 @@ function backdrop(e){
 }
 
 async function placeOrder(){
+ const customerName=document.querySelector("#name")?.value.trim()||"";
+ const customerPhone=document.querySelector("#phone")?.value.trim()||"";
+ if(customerName||customerPhone){ lastCustomer={name:customerName,phone:customerPhone}; localStorage.setItem("bdCustomer",JSON.stringify(lastCustomer)); }
  try{
   const settings=await bdGetRestaurantSettings();
   orderingOpen=settings?.ordering_open!==false;
