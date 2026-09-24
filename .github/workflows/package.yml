@@ -82,8 +82,8 @@ jobs:
           make_app admin-apk com.bakersdawgs.admin "Baker's Dawgs Admin" "https://lunaracres8-lgtm.github.io/bakers-dawgs-ordering/admin.html"
       - name: Build APKs
         run: |
-          gradle -p customer-apk --no-daemon assembleDebug
-          gradle -p admin-apk --no-daemon assembleDebug
+          timeout 12m gradle -p customer-apk --no-daemon assembleDebug --stacktrace
+          timeout 12m gradle -p admin-apk --no-daemon assembleDebug --stacktrace
           mkdir -p dist/customer dist/admin
           cp customer-apk/app/build/outputs/apk/debug/app-debug.apk dist/customer/Bakers_Dawgs_Customer.apk
           cp admin-apk/app/build/outputs/apk/debug/app-debug.apk dist/admin/Bakers_Dawgs_Admin.apk
