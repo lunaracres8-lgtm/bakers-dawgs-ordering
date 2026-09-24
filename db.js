@@ -21,6 +21,15 @@ async function bdSignIn(email,password){
  if(data.refresh_token) sessionStorage.setItem("bdRefreshToken",data.refresh_token);
  return data;
 }
+async function bdResetPassword(email){
+ const redirectTo=new URL("admin.html",window.location.href).href;
+ const r=await fetch(`${BD_URL}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,{
+  method:"POST",headers:{"apikey":BD_KEY,"Content-Type":"application/json"},body:JSON.stringify({email})
+ });
+ if(!r.ok) throw new Error(await r.text());
+ return true;
+}
+
 function bdSignOut(){
  sessionStorage.removeItem("bdAccessToken");
  sessionStorage.removeItem("bdRefreshToken");
