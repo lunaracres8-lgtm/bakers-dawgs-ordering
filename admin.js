@@ -201,7 +201,7 @@ async function loadOrders(){
     <div class="orderTop">
      <div>
       <h2>${esc(o.customer_name)}</h2>
-      <div><a class="phoneLink" href="tel:${esc(String(o.phone||\"\").replace(/[^+\\d]/g,\"\"))}">${esc(o.phone)}</a> • Pickup: ${esc(o.pickup_time)} • ${waitTime(o.created_at)}</div>
+      <div><a class="phoneLink" href="tel:${esc(String(o.phone||'').replace(/[^+\d]/g,''))}">${esc(o.phone)}</a> • Pickup: ${esc(o.pickup_time)} • ${waitTime(o.created_at)}</div>
      </div>
      <strong>$${Number(o.total).toFixed(2)}</strong>
     </div>
