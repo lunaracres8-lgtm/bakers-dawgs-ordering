@@ -4,6 +4,7 @@
 create table if not exists public.restaurant_settings (
   id integer primary key default 1 check (id = 1),
   ordering_open boolean not null default true,
+  prep_minutes integer not null default 20 check (prep_minutes between 10 and 120),
   updated_at timestamptz not null default now()
 );
 insert into public.restaurant_settings(id,ordering_open) values (1,true) on conflict (id) do nothing;
