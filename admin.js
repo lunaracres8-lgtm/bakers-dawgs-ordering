@@ -162,3 +162,8 @@ setInterval(()=>{
   loadOrders();
  }
 },5000);
+
+const forgotBtn=document.querySelector("#forgotBtn");
+if(forgotBtn) forgotBtn.addEventListener("click",forgotPassword);
+const passwordInput=document.querySelector("#password");
+if(passwordInput) passwordInput.addEventListener("keydown",e=>{if(e.key==="Enter") login();});
