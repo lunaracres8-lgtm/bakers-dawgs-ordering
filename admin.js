@@ -25,7 +25,7 @@ function logout(){
 
 function showBoard(){
  const loginBox=document.querySelector("#login");
- const board=document.querySelector("#board");
+ const board=document.querySelector("#app");
 
  if(loginBox) loginBox.style.display="none";
  if(board) board.style.display="block";
@@ -128,8 +128,15 @@ async function clearCompleted(){
  }
 }
 
-function demoOrder(){
+function seedDemo(){
  alert("Use the customer ordering page to submit a test order.");
+}
+
+function filterOrders(status){
+ document.querySelectorAll(".order").forEach(card=>{
+  const badge=card.querySelector(".status");
+  card.style.display=(status==="all"||badge?.textContent.trim()===status)?"":"none";
+ });
 }
 
 if(sessionStorage.getItem("bdAdmin")==="1"){
