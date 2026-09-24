@@ -52,8 +52,11 @@ async function bdDeleteOrder(id){
 }
 
 async function bdGetRestaurantSettings(){
- const r=await bdRequest(`${BD_URL}/rest/v1/restaurant_settings?id=eq.1&select=ordering_open`,{headers:bdHeaders()});
- return (await r.json())[0]||{ordering_open:true};
+ const r=await bdRequest(`${BD_URL}/rest/v1/restaurant_settings?id=eq.1&select=ordering_open,prep_minutes`,{headers:bdHeaders()});
+ return (await r.json())[0]||{ordering_open:true,prep_minutes:20};
+}
+async function bdSetPrepMinutes(minutes){
+ await bdRequest(`${BD_URL}/rest/v1/restaurant_settings?id=eq.1`,{method:"PATCH",headers:{...bdHeaders(),"Prefer":"return=minimal"},body:JSON.stringify({prep_minutes:minutes,updated_at:new Date().toISOString()})});
 }
 async function bdSetOrderingOpen(open){
  await bdRequest(`${BD_URL}/rest/v1/restaurant_settings?id=eq.1`,{
