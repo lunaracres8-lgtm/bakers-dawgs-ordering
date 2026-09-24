@@ -42,7 +42,7 @@ jobs:
             cat > "$DIR/settings.gradle" <<EOF
           pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
           dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
-          rootProject.name = \"$TITLE\"
+          rootProject.name = "$TITLE"
           include ':app'
           EOF
             cat > "$DIR/build.gradle" <<'EOF'
