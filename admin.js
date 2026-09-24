@@ -66,6 +66,7 @@ async function login(){
  const email=document.querySelector("#email").value.trim();
  const password=document.querySelector("#password").value;
  if(!email||!password){ alert("Enter staff email and password."); return; }
+ console.log("Admin sign-in tapped", email);
  try{
   await bdSignIn(email,password);
   showBoard();
@@ -75,6 +76,7 @@ async function login(){
 async function forgotPassword(){
  const email=document.querySelector("#email").value.trim();
  if(!email){ alert("Enter the staff email address first."); return; }
+ console.log("Password reset tapped", email);
  try{ await bdResetPassword(email); alert("Password reset email sent. Check the staff email inbox and follow the reset link."); }
  catch(e){ alert("Could not send the reset email. Please try again."); }
 }
