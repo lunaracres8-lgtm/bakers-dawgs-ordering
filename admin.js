@@ -23,6 +23,13 @@ async function login(){
  }catch(e){ alert("Sign-in failed. Check the staff email and password."); }
 }
 
+async function forgotPassword(){
+ const email=document.querySelector("#email").value.trim();
+ if(!email){ alert("Enter the staff email address first."); return; }
+ try{ await bdResetPassword(email); alert("Password reset email sent. Check the staff email inbox and follow the reset link."); }
+ catch(e){ alert("Could not send the reset email. Please try again."); }
+}
+
 function logout(){
  bdSignOut();
  location.reload();
