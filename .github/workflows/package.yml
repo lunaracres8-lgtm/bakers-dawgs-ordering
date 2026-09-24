@@ -73,7 +73,7 @@ jobs:
             cat > "$JAVA" <<EOF
           package $PKG;
           import android.app.Activity; import android.os.Bundle; import android.webkit.WebSettings; import android.webkit.WebView; import android.webkit.WebViewClient;
-          public class MainActivity extends Activity { WebView w; public void onCreate(Bundle b){super.onCreate(b);w=new WebView(this);setContentView(w);WebSettings s=w.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);w.setWebViewClient(new WebViewClient());w.loadUrl("$URL");} @Override public void onBackPressed(){if(w.canGoBack())w.goBack();else super.onBackPressed();} }
+          public class MainActivity extends Activity { WebView w; public void onCreate(Bundle b){super.onCreate(b);w=new WebView(this);setContentView(w);WebSettings s=w.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setDatabaseEnabled(true);s.setAllowContentAccess(true);s.setAllowFileAccess(true);s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);w.setWebViewClient(new WebViewClient());w.clearCache(true);w.loadUrl("$URL");} @Override public void onBackPressed(){if(w.canGoBack())w.goBack();else super.onBackPressed();} }
           EOF
           }
           make_app customer-apk com.bakersdawgs.customer "Baker's Dawgs" "https://lunaracres8-lgtm.github.io/bakers-dawgs-ordering/"
