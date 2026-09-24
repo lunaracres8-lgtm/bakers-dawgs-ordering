@@ -50,3 +50,13 @@ async function bdUpdateOrder(id,changes){
 async function bdDeleteOrder(id){
  const r=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`,{method:"DELETE",headers:bdHeaders()});
 }
+
+async function bdGetRestaurantSettings(){
+ const r=await bdRequest(`${BD_URL}/rest/v1/restaurant_settings?id=eq.1&select=ordering_open`,{headers:bdHeaders()});
+ return (await r.json())[0]||{ordering_open:true};
+}
+async function bdSetOrderingOpen(open){
+ await bdRequest(`${BD_URL}/rest/v1/restaurant_settings?id=eq.1`,{
+  method:"PATCH",headers:{...bdHeaders(),"Prefer":"return=minimal"},body:JSON.stringify({ordering_open:!!open,updated_at:new Date().toISOString()})
+ });
+}
