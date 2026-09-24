@@ -1,5 +1,6 @@
 const statuses=["New","Accepted","Cooking","Ready","Completed"];
 let currentFilter="all";
+let hideCompleted=false;
 let knownOrderIds=new Set();
 let firstOrderLoad=true;
 
@@ -104,7 +105,8 @@ async function loadOrders(){
    return;
   }
 
-  const visibleOrders=currentFilter==="all"?orders:orders.filter(o=>o.status===currentFilter);
+  const visibleOrders=(currentFilter==="all"?orders:orders.filter(o=>o.status===currentFilter))
+    .filter(o=>!hideCompleted||o.status!=="Completed");
 
   list.innerHTML=visibleOrders.map(o=>`
    <article class="order ${o.status==="New"?"new":""} ${isLate(o)?"late":""}">
@@ -174,25 +176,20 @@ async function deleteOrder(id){
  }
 }
 
-async function clearCompleted(){
- if(!confirm("Delete all completed orders?")) return;
-
- try{
-  const orders=await bdGetOrders();
-  const completed=orders.filter(o=>o.status==="Completed");
-
-  for(const order of completed){
-   await bdDeleteOrder(order.id);
-  }
-
-  await loadOrders();
- }catch(e){
-  alert("Could not clear completed orders.");
- }
+function toggleCompleted(){
+ hideCompleted=!hideCompleted;
+ const btn=document.querySelector("#completedToggle");
+ if(btn) btn.textContent=hideCompleted?"Show Completed":"Hide Completed";
+ loadOrders();
 }
 
 function filterOrders(status){
  currentFilter=status;
+ if(status==="Completed"&&hideCompleted){
+  hideCompleted=false;
+  const btn=document.querySelector("#completedToggle");
+  if(btn) btn.textContent="Hide Completed";
+ }
  loadOrders();
 }
 
