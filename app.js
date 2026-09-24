@@ -29,6 +29,7 @@ let cart=JSON.parse(localStorage.getItem("bdCart")||"[]");
 let active=null;
 let orderingOpen=true;
 let orderingStatusKnown=false;
+let menuAvailability={};
 const money=n=>"$"+n.toFixed(2);
 const cats=[...new Set(menu.map(x=>x[0]))];
 
@@ -40,12 +41,12 @@ function render(cat){
  <h2>${c}</h2>
  <div class="grid">${
  menu.map((x,i)=>x[0]===c?
- `<article class="item">
+ `<article class="item ${menuAvailability[x[1]]===false?"soldout":""}">
  <div class="foodIcon">${c==="Hot Dawgs"?"🌭":c==="Smoked Sausages"?"🔥":c==="Sandwiches"?"🥪":"🥤"}</div>
  <h3>${x[1]}</h3>
  <p class="desc">${x[2]}</p>
  <div class="price">${money(x[3])}</div>
- <button class="add" onclick="customize(${i})">Customize & Add</button>
+ ${menuAvailability[x[1]]===false?`<div class="soldoutLabel">SOLD OUT</div><button class="add" disabled>Sold Out</button>`:`<button class="add" onclick="customize(${i})">Customize & Add</button>`}
  </article>`:"").join("")
  }</div></section>`).join("");
 }
@@ -62,6 +63,7 @@ function showCat(c){
 }
 
 function customize(i){
+ if(menuAvailability[menu[i][1]]===false) return alert("Sorry, that item is sold out right now.");
  if(orderingStatusKnown&&!orderingOpen) return showOrderingPaused();
  active=i;
  let x=menu[i];
@@ -129,6 +131,14 @@ function pickupOptions(){
 function showOrderingPaused(){
  modalBody.innerHTML=`<h2>Online Ordering Is Paused</h2><p>Baker’s Dawgs is not accepting online pickup orders right now. Please check back soon.</p><button class="checkout" onclick="closeModal()">OK</button>`;
  openModal();
+}
+
+async function refreshMenuAvailability(){
+ try{
+  const rows=await bdGetMenuAvailability();
+  menuAvailability=Object.fromEntries((rows||[]).map(r=>[r.item_name,r.available!==false]));
+  render();
+ }catch(e){}
 }
 
 async function refreshOrderingStatus(){
@@ -216,6 +226,14 @@ async function placeOrder(){
   return alert("We could not confirm that online ordering is open. Please try again.");
  }
  if(!cart.length)return alert("Add something first.");
+ try{
+  const rows=await bdGetMenuAvailability();
+  const liveAvailability=Object.fromEntries((rows||[]).map(r=>[r.item_name,r.available!==false]));
+  const soldOutInCart=cart.find(x=>liveAvailability[menu[x.i][1]]===false);
+  if(soldOutInCart) return alert(`${menu[soldOutInCart.i][1]} is now sold out. Please remove it from your order.`);
+ }catch(e){
+  return alert("We could not confirm menu availability. Please try again.");
+ }
 
  if(!name.value.trim()||!phone.value.trim()||!time.value)
   return alert("Enter your name, phone number and pickup time.");
@@ -264,4 +282,6 @@ async function placeOrder(){
 render();
 update();
 refreshOrderingStatus();
+refreshMenuAvailability();
 setInterval(refreshOrderingStatus,30000);
+setInterval(refreshMenuAvailability,30000);
