@@ -27,6 +27,8 @@ const toppings=[
 
 let cart=JSON.parse(localStorage.getItem("bdCart")||"[]");
 let active=null;
+let orderingOpen=true;
+let orderingStatusKnown=false;
 const money=n=>"$"+n.toFixed(2);
 const cats=[...new Set(menu.map(x=>x[0]))];
 
@@ -49,6 +51,7 @@ function render(cat){
 }
 
 function goMenu(){
+ if(orderingStatusKnown&&!orderingOpen) return showOrderingPaused();
  render();
  menuEl.scrollIntoView({behavior:"smooth"});
 }
@@ -59,6 +62,7 @@ function showCat(c){
 }
 
 function customize(i){
+ if(orderingStatusKnown&&!orderingOpen) return showOrderingPaused();
  active=i;
  let x=menu[i];
  let food=x[0]==="Hot Dawgs"||x[0]==="Smoked Sausages";
@@ -122,7 +126,28 @@ function pickupOptions(){
  return out;
 }
 
+function showOrderingPaused(){
+ modalBody.innerHTML=`<h2>Online Ordering Is Paused</h2><p>Baker’s Dawgs is not accepting online pickup orders right now. Please check back soon.</p><button class="checkout" onclick="closeModal()">OK</button>`;
+ openModal();
+}
+
+async function refreshOrderingStatus(){
+ try{
+  const settings=await bdGetRestaurantSettings();
+  orderingOpen=settings?.ordering_open!==false;
+  orderingStatusKnown=true;
+  document.body.classList.toggle("ordering-paused",!orderingOpen);
+  const hero=document.querySelector(".hero");
+  if(hero){ hero.textContent=orderingOpen?"ORDER FOR PICKUP":"ONLINE ORDERING PAUSED"; hero.disabled=!orderingOpen; }
+  const banner=document.querySelector("#orderingBanner");
+  if(banner){ banner.classList.toggle("hidden",orderingOpen); }
+ }catch(e){
+  orderingStatusKnown=false;
+ }
+}
+
 function openCart(){
+ if(orderingStatusKnown&&!orderingOpen) return showOrderingPaused();
  let total=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
 
  modalBody.innerHTML=
@@ -182,6 +207,14 @@ function backdrop(e){
 }
 
 async function placeOrder(){
+ try{
+  const settings=await bdGetRestaurantSettings();
+  orderingOpen=settings?.ordering_open!==false;
+  orderingStatusKnown=true;
+  if(!orderingOpen) return showOrderingPaused();
+ }catch(e){
+  return alert("We could not confirm that online ordering is open. Please try again.");
+ }
  if(!cart.length)return alert("Add something first.");
 
  if(!name.value.trim()||!phone.value.trim()||!time.value)
@@ -230,3 +263,5 @@ async function placeOrder(){
 
 render();
 update();
+refreshOrderingStatus();
+setInterval(refreshOrderingStatus,30000);
