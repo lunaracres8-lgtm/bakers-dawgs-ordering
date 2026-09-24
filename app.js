@@ -1,5 +1,5 @@
 const menu=[
-["Hot Dawgs","Carolina Classic Hot Dawg","Mustard, homestyle slaw, chili and onions",3.28],
+["Hot Dawgs","Carolina Classic Hot Dawg","Mustard, homemade homestyle slaw, chili and onions",3.28],
 ["Hot Dawgs","Sauerkraut & Mustard Dawg","Sauerkraut and mustard",3.28],
 ["Hot Dawgs","Chili & Cheez Dawg","Chili and cheese",3.28],
 ["Hot Dawgs","Chili, Onion & Mustard Dawg","Chili, onions and mustard",3.28],
@@ -14,8 +14,8 @@ const menu=[
 ["Sandwiches","Grilled Cheez Quesadilla","Optional chili add-on",4.00],
 ["Drinks & Sides","Bottled Drink / Soda","",2.00],
 ["Drinks & Sides","Bottled Water","",1.50],
-["Drinks & Sides","Sweet Tea with Ice","No refills",1.75],
-["Drinks & Sides","Lemonade Sweet Tea with Ice","No refills",2.75],
+["Drinks & Sides","Sweet Tea with Ice","Homemade sweet tea • No refills",1.75],
+["Drinks & Sides","Lemonade Sweet Tea with Ice","Made with our homemade sweet tea • No refills",2.75],
 ["Drinks & Sides","Chips","",1.80]
 ];
 
