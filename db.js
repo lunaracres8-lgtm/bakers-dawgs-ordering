@@ -16,7 +16,9 @@ async function bdSignIn(email,password){
   method:"POST",headers:{"apikey":BD_KEY,"Content-Type":"application/json"},
   body:JSON.stringify({email,password})
  });
+ if(!r.ok) throw new Error(await r.text());
  const data=await r.json();
+ if(!data.access_token) throw new Error("No access token returned.");
  sessionStorage.setItem("bdAccessToken",data.access_token);
  if(data.refresh_token) sessionStorage.setItem("bdRefreshToken",data.refresh_token);
  return data;
@@ -35,10 +37,12 @@ function bdSignOut(){
  sessionStorage.removeItem("bdRefreshToken");
 }
 async function bdCreateOrder(order){
- const r=await bdRequest(`${BD_URL}/rest/v1/orders`,{method:"POST",headers:{...bdHeaders(),"Prefer":"return=representation"},body:JSON.stringify(order)});\n return (await r.json())[0];
+ const r=await bdRequest(`${BD_URL}/rest/v1/orders`,{method:"POST",headers:{...bdHeaders(),"Prefer":"return=representation"},body:JSON.stringify(order)});
+ return (await r.json())[0];
 }
 async function bdGetOrders(){
- const r=await bdRequest(`${BD_URL}/rest/v1/orders?select=*&order=created_at.desc`,{headers:bdHeaders()});\n return r.json();
+ const r=await bdRequest(`${BD_URL}/rest/v1/orders?select=*&order=created_at.desc`,{headers:bdHeaders()});
+ return r.json();
 }
 async function bdUpdateOrder(id,changes){
  const r=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",headers:bdHeaders(),body:JSON.stringify(changes)});
