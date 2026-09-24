@@ -6,6 +6,7 @@ let firstOrderLoad=true;
 let orderingOpen=null;
 let prepMinutes=20;
 let menuAvailability={};
+let soundEnabled=localStorage.getItem("bdSoundEnabled")!=="false";
 const adminMenuItems=["Carolina Classic Hot Dawg","Sauerkraut & Mustard Dawg","Chili & Cheez Dawg","Chili, Onion & Mustard Dawg","Sweet Relish & Mustard Dawg","Loaded Hot Dawg","Brat / Bratwurst","Classic Plain Smoked Sausage","Cheddar Cheez Smoked Sausage","Jalapeño Smoked Sausage","The Perfect Brat","Grilled Bologna on Toast (cut #5)","Grilled Cheez Quesadilla","Bottled Drink / Soda","Bottled Water","Sweet Tea with Ice","Lemonade Sweet Tea with Ice","Chips"];
 
 function esc(v=""){
@@ -42,7 +43,16 @@ function waitTime(created){
  return mins<1?"just now":mins===1?"1 min ago":`${mins} mins ago`;
 }
 
+function toggleSound(){
+ soundEnabled=!soundEnabled;
+ localStorage.setItem("bdSoundEnabled",String(soundEnabled));
+ const btn=document.querySelector("#soundToggle");
+ if(btn) btn.textContent=soundEnabled?"🔔 Alerts On":"🔕 Alerts Off";
+ if(soundEnabled) playOrderAlert();
+}
+
 function playOrderAlert(){
+ if(!soundEnabled) return;
  try{
   const ctx=new (window.AudioContext||window.webkitAudioContext)();
   const osc=ctx.createOscillator(),gain=ctx.createGain();
@@ -80,6 +90,8 @@ function showBoard(){
 
  if(loginBox) loginBox.style.display="none";
  if(board) board.style.display="block";
+ const soundBtn=document.querySelector("#soundToggle");
+ if(soundBtn) soundBtn.textContent=soundEnabled?"🔔 Alerts On":"🔕 Alerts Off";
 
  loadOrders();
  loadRestaurantControls();
