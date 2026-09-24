@@ -1,0 +1,41 @@
+name: Build Baker's Dawgs software packages
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'app.js'
+      - 'style.css'
+      - 'config.js'
+      - 'db.js'
+      - 'manifest.json'
+      - 'admin.html'
+      - 'admin.js'
+      - 'admin.css'
+      - '.github/workflows/package.yml'
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build customer package
+        run: |
+          mkdir -p dist/customer
+          cp index.html app.js style.css config.js db.js manifest.json dist/customer/
+          cd dist/customer && zip -r ../Bakers_Dawgs_Customer_App.zip .
+      - name: Build admin package
+        run: |
+          mkdir -p dist/admin
+          cp admin.html admin.js admin.css config.js db.js dist/admin/
+          cd dist/admin && zip -r ../Bakers_Dawgs_Admin_Dashboard.zip .
+      - name: Upload customer app
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bakers_Dawgs_Customer_App
+          path: dist/Bakers_Dawgs_Customer_App.zip
+      - name: Upload admin dashboard
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bakers_Dawgs_Admin_Dashboard
+          path: dist/Bakers_Dawgs_Admin_Dashboard.zip
