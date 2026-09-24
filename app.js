@@ -110,9 +110,6 @@ function update(){
 
 function openCart(){
  let total=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
- const submitBtn=document.querySelector("#placeOrderBtn");
- if(submitBtn?.disabled) return;
- if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent="SENDING ORDER…"; }
 
  modalBody.innerHTML=
  `<h2>Your Pickup Order</h2>
@@ -179,6 +176,9 @@ async function placeOrder(){
  if(digits.length<10) return alert("Enter a valid phone number with area code.");
 
  let total=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
+ const submitBtn=document.querySelector("#placeOrderBtn");
+ if(submitBtn?.disabled) return;
+ if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent="SENDING ORDER…"; }
 
  let order={
   customer_name:name.value.trim(),
