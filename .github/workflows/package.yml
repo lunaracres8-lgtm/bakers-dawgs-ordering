@@ -4,38 +4,76 @@ on:
   push:
     branches: [main]
     paths:
+      - '.github/workflows/package.yml'
       - 'index.html'
+      - 'admin.html'
       - 'app.js'
+      - 'admin.js'
       - 'style.css'
+      - 'admin.css'
       - 'config.js'
       - 'db.js'
-      - 'manifest.json'
-      - 'admin.html'
-      - 'admin.js'
-      - 'admin.css'
-      - '.github/workflows/package.yml'
 jobs:
-  package:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build customer package
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Create Android projects
+        shell: bash
         run: |
-          mkdir -p dist/customer
+          set -e
+          make_app() {
+            DIR="$1"; PKG="$2"; TITLE="$3"; URL="$4"
+            mkdir -p "$DIR/app/src/main/java/${PKG//.//}" "$DIR/app/src/main/res/values"
+            cat > "$DIR/settings.gradle" <<EOF
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+          rootProject.name = '$TITLE'
+          include ':app'
+          EOF
+            cat > "$DIR/build.gradle" <<'EOF'
+          plugins { id 'com.android.application' version '8.5.2' apply false }
+          EOF
+            cat > "$DIR/app/build.gradle" <<EOF
+          plugins { id 'com.android.application' }
+          android { namespace '$PKG'; compileSdk 35
+            defaultConfig { applicationId '$PKG'; minSdk 24; targetSdk 35; versionCode 1; versionName '1.0' }
+          }
+          EOF
+            cat > "$DIR/app/src/main/res/values/styles.xml" <<'EOF'
+          <resources><style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:colorAccent">#c80d0d</item></style></resources>
+          EOF
+            cat > "$DIR/app/src/main/AndroidManifest.xml" <<EOF
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><application android:theme="@style/AppTheme" android:label="$TITLE"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
+          EOF
+            JAVA="$DIR/app/src/main/java/${PKG//.//}/MainActivity.java"
+            cat > "$JAVA" <<EOF
+          package $PKG;
+          import android.app.Activity; import android.os.Bundle; import android.webkit.WebSettings; import android.webkit.WebView; import android.webkit.WebViewClient;
+          public class MainActivity extends Activity { WebView w; public void onCreate(Bundle b){super.onCreate(b);w=new WebView(this);setContentView(w);WebSettings s=w.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);w.setWebViewClient(new WebViewClient());w.loadUrl("$URL");} @Override public void onBackPressed(){if(w.canGoBack())w.goBack();else super.onBackPressed();} }
+          EOF
+          }
+          make_app customer-apk com.bakersdawgs.customer "Baker's Dawgs" "https://lunaracres8-lgtm.github.io/bakers-dawgs-ordering/"
+          make_app admin-apk com.bakersdawgs.admin "Baker's Dawgs Admin" "https://lunaracres8-lgtm.github.io/bakers-dawgs-ordering/admin.html"
+      - name: Build APKs
+        run: |
+          gradle -p customer-apk --no-daemon assembleDebug
+          gradle -p admin-apk --no-daemon assembleDebug
+          mkdir -p dist/customer dist/admin
+          cp customer-apk/app/build/outputs/apk/debug/app-debug.apk dist/customer/Bakers_Dawgs_Customer.apk
+          cp admin-apk/app/build/outputs/apk/debug/app-debug.apk dist/admin/Bakers_Dawgs_Admin.apk
           cp index.html app.js style.css config.js db.js manifest.json dist/customer/
-          cd dist/customer && zip -r ../Bakers_Dawgs_Customer_App.zip .
-      - name: Build admin package
-        run: |
-          mkdir -p dist/admin
           cp admin.html admin.js admin.css config.js db.js dist/admin/
-          cd dist/admin && zip -r ../Bakers_Dawgs_Admin_Dashboard.zip .
-      - name: Upload customer app
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: Bakers_Dawgs_Customer_App
-          path: dist/Bakers_Dawgs_Customer_App.zip
-      - name: Upload admin dashboard
-        uses: actions/upload-artifact@v4
+          name: Bakers_Dawgs_Customer_APK
+          path: dist/customer/
+      - uses: actions/upload-artifact@v4
         with:
-          name: Bakers_Dawgs_Admin_Dashboard
-          path: dist/Bakers_Dawgs_Admin_Dashboard.zip
+          name: Bakers_Dawgs_Admin_APK
+          path: dist/admin/
