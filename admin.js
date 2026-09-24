@@ -72,6 +72,11 @@ async function loadOrders(){
   knownOrderIds=new Set(orders.map(o=>o.id));
   firstOrderLoad=false;
 
+  const newCount=document.querySelector("#newCount");
+  const readyCount=document.querySelector("#readyCount");
+  if(newCount) newCount.textContent=orders.filter(o=>o.status==="New").length;
+  if(readyCount) readyCount.textContent=orders.filter(o=>o.status==="Ready").length;
+
   const count=document.querySelector("#openCount");
   if(count){
    count.textContent=orders.filter(o=>o.status!=="Completed").length;
