@@ -1,4 +1,3 @@
-const ADMIN_PIN="2468";
 const statuses=["New","Accepted","Cooking","Ready","Completed"];
 let currentFilter="all";
 
@@ -9,18 +8,18 @@ function esc(v=""){
  }[c]));
 }
 
-function login(){
- const pin=document.querySelector("#pin");
- if(pin.value===ADMIN_PIN){
-  sessionStorage.setItem("bdAdmin","1");
+async function login(){
+ const email=document.querySelector("#email").value.trim();
+ const password=document.querySelector("#password").value;
+ if(!email||!password){ alert("Enter staff email and password."); return; }
+ try{
+  await bdSignIn(email,password);
   showBoard();
- }else{
-  alert("Incorrect PIN");
- }
+ }catch(e){ alert("Sign-in failed. Check the staff email and password."); }
 }
 
 function logout(){
- sessionStorage.removeItem("bdAdmin");
+ bdSignOut();
  location.reload();
 }
 
@@ -140,12 +139,12 @@ function filterOrders(status){
  });
 }
 
-if(sessionStorage.getItem("bdAdmin")==="1"){
+if(sessionStorage.getItem("bdAccessToken")){
  showBoard();
 }
 
 setInterval(()=>{
- if(sessionStorage.getItem("bdAdmin")==="1"){
+ if(sessionStorage.getItem("bdAccessToken")){
   loadOrders();
  }
 },5000);
