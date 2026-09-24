@@ -1,5 +1,7 @@
 const statuses=["New","Accepted","Cooking","Ready","Completed"];
 let currentFilter="all";
+let knownOrderIds=new Set();
+let firstOrderLoad=true;
 
 function esc(v=""){
  return String(v).replace(/[&<>"']/g,c=>({
@@ -11,6 +13,21 @@ function esc(v=""){
 function updateClock(){
  const el=document.querySelector("#clock");
  if(el) el.textContent=new Date().toLocaleString([], {weekday:"short",hour:"numeric",minute:"2-digit"});
+}
+
+function waitTime(created){
+ const mins=Math.max(0,Math.floor((Date.now()-new Date(created).getTime())/60000));
+ return mins<1?"just now":mins===1?"1 min ago":`${mins} mins ago`;
+}
+
+function playOrderAlert(){
+ try{
+  const ctx=new (window.AudioContext||window.webkitAudioContext)();
+  const osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=880; gain.gain.value=.12;
+  osc.start(); setTimeout(()=>{osc.stop();ctx.close();},350);
+ }catch(e){}
+ if(navigator.vibrate) navigator.vibrate([250,100,250]);
 }
 
 async function login(){
@@ -50,6 +67,10 @@ async function loadOrders(){
 
  try{
   const orders=await bdGetOrders();
+  const newIds=orders.filter(o=>o.status==="New"&&!knownOrderIds.has(o.id)).map(o=>o.id);
+  if(!firstOrderLoad&&newIds.length){ playOrderAlert(); }
+  knownOrderIds=new Set(orders.map(o=>o.id));
+  firstOrderLoad=false;
 
   const count=document.querySelector("#openCount");
   if(count){
@@ -68,7 +89,7 @@ async function loadOrders(){
     <div class="orderTop">
      <div>
       <h2>${esc(o.customer_name)}</h2>
-      <div>${esc(o.phone)} • Pickup: ${esc(o.pickup_time)}</div>
+      <div>${esc(o.phone)} • Pickup: ${esc(o.pickup_time)} • ${waitTime(o.created_at)}</div>
      </div>
      <strong>$${Number(o.total).toFixed(2)}</strong>
     </div>
