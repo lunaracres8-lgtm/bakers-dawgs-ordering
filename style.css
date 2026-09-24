@@ -13,3 +13,5 @@ main{max-width:900px;margin:auto;padding:12px}.category h2{color:#ffc21a;font-si
 .directions{display:inline-block;margin:10px 4px 0;padding:13px 18px;border:1px solid #ffc400;border-radius:12px;color:#ffc400;text-decoration:none;font-weight:900;background:#111b}.directions:focus{outline:3px solid #fff;outline-offset:2px}
 
 .orderingBanner{margin:12px auto;padding:14px 18px;max-width:900px;background:#7d0b0b;color:#fff;border:2px solid #ff6b6b;border-radius:12px;text-align:center}.orderingBanner b,.orderingBanner span{display:block}.orderingBanner span{margin-top:4px}.ordering-paused .cartbar{opacity:.55}.hero:disabled{opacity:.7;cursor:not-allowed}
+
+.item.soldout{opacity:.6}.item.soldout .add{background:#555!important;cursor:not-allowed}.soldoutLabel{font-weight:900;color:#b40000;margin-top:8px}
