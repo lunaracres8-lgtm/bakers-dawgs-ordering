@@ -172,7 +172,7 @@ async function placeOrder(){
 
  if(!name.value.trim()||!phone.value.trim()||!time.value)
   return alert("Enter your name, phone number and pickup time.");
- const digits=phone.value.replace(/\\D/g,"");
+ const digits=phone.value.replace(/\D/g,"");
  if(digits.length<10) return alert("Enter a valid phone number with area code.");
 
  let total=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
