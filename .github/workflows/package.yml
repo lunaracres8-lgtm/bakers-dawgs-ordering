@@ -13,6 +13,8 @@ on:
       - 'admin.css'
       - 'config.js'
       - 'db.js'
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -87,6 +89,18 @@ jobs:
           cp admin-apk/app/build/outputs/apk/debug/app-debug.apk dist/admin/Bakers_Dawgs_Admin.apk
           cp index.html app.js style.css config.js db.js manifest.json dist/customer/
           cp admin.html admin.js admin.css config.js db.js dist/admin/
+      - name: Publish permanent APK downloads
+        shell: bash
+        run: |
+          set -e
+          mkdir -p downloads
+          cp dist/customer/Bakers_Dawgs_Customer.apk downloads/Bakers_Dawgs_Customer.apk
+          cp dist/admin/Bakers_Dawgs_Admin.apk downloads/Bakers_Dawgs_Admin.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add downloads/*.apk
+          git commit -m "Publish latest Baker's Dawgs APK downloads" || true
+          git push
       - uses: actions/upload-artifact@v4
         with:
           name: Bakers_Dawgs_Customer_APK
