@@ -29,6 +29,7 @@ let cart=JSON.parse(localStorage.getItem("bdCart")||"[]");
 let active=null;
 let orderingOpen=true;
 let orderingStatusKnown=false;
+let prepMinutes=20;
 let menuAvailability={};
 const money=n=>"$"+n.toFixed(2);
 const cats=[...new Set(menu.map(x=>x[0]))];
@@ -116,7 +117,7 @@ function update(){
 
 function pickupOptions(){
  const now=new Date();
- now.setMinutes(now.getMinutes()+20);
+ now.setMinutes(now.getMinutes()+prepMinutes);
  const rounded=Math.ceil(now.getMinutes()/15)*15; now.setMinutes(rounded,0,0);
  let out=`<option value="">Choose a pickup time</option>`;
  for(let i=0;i<16;i++){
@@ -145,6 +146,7 @@ async function refreshOrderingStatus(){
  try{
   const settings=await bdGetRestaurantSettings();
   orderingOpen=settings?.ordering_open!==false;
+  prepMinutes=Number(settings?.prep_minutes)||20;
   orderingStatusKnown=true;
   document.body.classList.toggle("ordering-paused",!orderingOpen);
   const hero=document.querySelector(".hero");
