@@ -4,6 +4,8 @@ let hideCompleted=false;
 let knownOrderIds=new Set();
 let firstOrderLoad=true;
 let orderingOpen=null;
+let menuAvailability={};
+const adminMenuItems=["Carolina Classic Hot Dawg","Sauerkraut & Mustard Dawg","Chili & Cheez Dawg","Chili, Onion & Mustard Dawg","Sweet Relish & Mustard Dawg","Loaded Hot Dawg","Brat / Bratwurst","Classic Plain Smoked Sausage","Cheddar Cheez Smoked Sausage","Jalapeño Smoked Sausage","The Perfect Brat","Grilled Bologna on Toast (cut #5)","Grilled Cheez Quesadilla","Bottled Drink / Soda","Bottled Water","Sweet Tea with Ice","Lemonade Sweet Tea with Ice","Chips"];
 
 function esc(v=""){
  return String(v).replace(/[&<>"']/g,c=>({
@@ -71,6 +73,7 @@ function showBoard(){
 
  loadOrders();
  loadRestaurantControls();
+ loadMenuAvailability();
 }
 
 async function loadRestaurantControls(){
@@ -85,6 +88,29 @@ async function loadRestaurantControls(){
   const status=document.querySelector("#orderingStatus");
   if(status) status.textContent="Controls unavailable";
  }
+}
+
+async function loadMenuAvailability(){
+ try{
+  const rows=await bdGetMenuAvailability();
+  menuAvailability=Object.fromEntries((rows||[]).map(r=>[r.item_name,r.available!==false]));
+  const box=document.querySelector("#menuAvailabilityControls");
+  if(box) box.innerHTML=adminMenuItems.map(name=>{
+   const available=menuAvailability[name]!==false;
+   return `<button class="${available?"available":"soldout"}" onclick="toggleMenuItem(${JSON.stringify(name)})"><span>${esc(name)}</span><b>${available?"AVAILABLE":"SOLD OUT"}</b></button>`;
+  }).join("");
+ }catch(e){
+  const box=document.querySelector("#menuAvailabilityControls");
+  if(box) box.textContent="Menu controls unavailable.";
+ }
+}
+
+async function toggleMenuItem(name){
+ const available=menuAvailability[name]!==false;
+ try{
+  await bdSetMenuAvailability(name,!available);
+  await loadMenuAvailability();
+ }catch(e){ alert("Could not update that menu item."); }
 }
 
 async function toggleOrdering(){
