@@ -8,7 +8,7 @@ function esc(v=""){
  }[c]));
 }
 
-async function login(){
+function updateClock(){\n const el=document.querySelector("#clock");\n if(el) el.textContent=new Date().toLocaleString([], {weekday:"short",hour:"numeric",minute:"2-digit"});\n}\n\nasync function login(){
  const email=document.querySelector("#email").value.trim();
  const password=document.querySelector("#password").value;
  if(!email||!password){ alert("Enter staff email and password."); return; }
