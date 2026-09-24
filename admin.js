@@ -28,6 +28,15 @@ function isLate(o){
  return Date.now()>due.getTime();
 }
 
+function nextStatus(status){
+ const i=statuses.indexOf(status);
+ return i>=0&&i<statuses.length-1?statuses[i+1]:null;
+}
+
+function statusActionLabel(status){
+ return ({New:"ACCEPT ORDER",Accepted:"START COOKING",Cooking:"MARK READY",Ready:"COMPLETE ORDER"})[status]||"";
+}
+
 function waitTime(created){
  const mins=Math.max(0,Math.floor((Date.now()-new Date(created).getTime())/60000));
  return mins<1?"just now":mins===1?"1 min ago":`${mins} mins ago`;
@@ -178,7 +187,7 @@ async function loadOrders(){
     <div class="orderTop">
      <div>
       <h2>${esc(o.customer_name)}</h2>
-      <div>${esc(o.phone)} • Pickup: ${esc(o.pickup_time)} • ${waitTime(o.created_at)}</div>
+      <div><a class="phoneLink" href="tel:${esc(String(o.phone||\"\").replace(/[^+\\d]/g,\"\"))}">${esc(o.phone)}</a> • Pickup: ${esc(o.pickup_time)} • ${waitTime(o.created_at)}</div>
      </div>
      <strong>$${Number(o.total).toFixed(2)}</strong>
     </div>
