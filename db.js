@@ -60,3 +60,14 @@ async function bdSetOrderingOpen(open){
   method:"PATCH",headers:{...bdHeaders(),"Prefer":"return=minimal"},body:JSON.stringify({ordering_open:!!open,updated_at:new Date().toISOString()})
  });
 }
+
+async function bdGetMenuAvailability(){
+ const r=await bdRequest(`${BD_URL}/rest/v1/menu_availability?select=item_name,available`,{headers:bdHeaders()});
+ return r.json();
+}
+async function bdSetMenuAvailability(itemName,available){
+ await bdRequest(`${BD_URL}/rest/v1/menu_availability?on_conflict=item_name`,{
+  method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},
+  body:JSON.stringify({item_name:itemName,available:!!available,updated_at:new Date().toISOString()})
+ });
+}
