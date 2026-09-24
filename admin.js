@@ -15,6 +15,14 @@ function updateClock(){
  if(el) el.textContent=new Date().toLocaleString([], {weekday:"short",hour:"numeric",minute:"2-digit"});
 }
 
+function isLate(o){
+ if(o.status==="Completed"||!o.pickup_time) return false;
+ const [h,m]=String(o.pickup_time).split(":").map(Number);
+ if(Number.isNaN(h)||Number.isNaN(m)) return false;
+ const due=new Date(o.created_at); due.setHours(h,m,0,0);
+ return Date.now()>due.getTime();
+}
+
 function waitTime(created){
  const mins=Math.max(0,Math.floor((Date.now()-new Date(created).getTime())/60000));
  return mins<1?"just now":mins===1?"1 min ago":`${mins} mins ago`;
@@ -72,6 +80,15 @@ async function loadOrders(){
   knownOrderIds=new Set(orders.map(o=>o.id));
   firstOrderLoad=false;
 
+  const today=new Date().toDateString();
+  const todays=orders.filter(o=>new Date(o.created_at).toDateString()===today);
+  const sales=todays.filter(o=>o.status==="Completed").reduce((s,o)=>s+Number(o.total||0),0);
+  const completed=todays.filter(o=>o.status==="Completed").length;
+  const salesEl=document.querySelector("#salesToday"),ordersEl=document.querySelector("#ordersToday"),avgEl=document.querySelector("#avgTicket");
+  if(salesEl) salesEl.textContent=`${sales.toFixed(2)}`;
+  if(ordersEl) ordersEl.textContent=todays.length;
+  if(avgEl) avgEl.textContent=completed?`${(sales/completed).toFixed(2)}`:"$0.00";
+
   const newCount=document.querySelector("#newCount");
   const readyCount=document.querySelector("#readyCount");
   if(newCount) newCount.textContent=orders.filter(o=>o.status==="New").length;
@@ -90,7 +107,7 @@ async function loadOrders(){
   const visibleOrders=currentFilter==="all"?orders:orders.filter(o=>o.status===currentFilter);
 
   list.innerHTML=visibleOrders.map(o=>`
-   <article class="order">
+   <article class="order ${o.status==="New"?"new":""} ${isLate(o)?"late":""}">
     <div class="orderTop">
      <div>
       <h2>${esc(o.customer_name)}</h2>
