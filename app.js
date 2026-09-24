@@ -16,7 +16,9 @@ const menu=[
 ["Drinks & Sides","Bottled Water","",1.50],
 ["Drinks & Sides","Sweet Tea with Ice","Homemade sweet tea • No refills",1.75],
 ["Drinks & Sides","Lemonade Sweet Tea with Ice","Made with our homemade sweet tea • No refills",2.75],
-["Drinks & Sides","Chips","",1.80]
+["Drinks & Sides","Chips","",1.80],
+["Cakes","German Chocolate Cake","Year-round • $5 per slice",5.00],
+["Cakes","3 Milks Cake","Fall only • evaporated milk • condensed milk • heavy cream",5.00]
 ];
 
 const toppings=[
@@ -44,7 +46,7 @@ function render(cat){
  <div class="grid">${
  menu.map((x,i)=>x[0]===c?
  `<article class="item ${menuAvailability[x[1]]===false?"soldout":""}">
- <div class="foodIcon">${c==="Hot Dawgs"?"🌭":c==="Smoked Sausages"?"🔥":c==="Sandwiches"?"🥪":"🥤"}</div>
+ <div class="foodIcon">${c==="Hot Dawgs"?"🌭":c==="Smoked Sausages"?"🔥":c==="Sandwiches"?"🥪":c==="Cakes"?"🍰":"🥤"}</div>
  <h3>${x[1]}</h3>
  <p class="desc">${x[2]}</p>
  <div class="price">${money(x[3])}</div>
