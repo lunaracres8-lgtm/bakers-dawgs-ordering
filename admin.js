@@ -4,6 +4,7 @@ let hideCompleted=false;
 let knownOrderIds=new Set();
 let firstOrderLoad=true;
 let orderingOpen=null;
+let prepMinutes=20;
 let menuAvailability={};
 const adminMenuItems=["Carolina Classic Hot Dawg","Sauerkraut & Mustard Dawg","Chili & Cheez Dawg","Chili, Onion & Mustard Dawg","Sweet Relish & Mustard Dawg","Loaded Hot Dawg","Brat / Bratwurst","Classic Plain Smoked Sausage","Cheddar Cheez Smoked Sausage","Jalapeño Smoked Sausage","The Perfect Brat","Grilled Bologna on Toast (cut #5)","Grilled Cheez Quesadilla","Bottled Drink / Soda","Bottled Water","Sweet Tea with Ice","Lemonade Sweet Tea with Ice","Chips"];
 
@@ -80,6 +81,8 @@ async function loadRestaurantControls(){
  try{
   const settings=await bdGetRestaurantSettings();
   orderingOpen=settings?.ordering_open!==false;
+  prepMinutes=Number(settings?.prep_minutes)||20;
+  const prep=document.querySelector("#prepMinutes"); if(prep) prep.value=String(prepMinutes);
   const status=document.querySelector("#orderingStatus");
   const btn=document.querySelector("#orderingToggle");
   if(status) status.textContent=orderingOpen?"Customers can place pickup orders":"Ordering is paused";
@@ -111,6 +114,13 @@ async function toggleMenuItem(name){
   await bdSetMenuAvailability(name,!available);
   await loadMenuAvailability();
  }catch(e){ alert("Could not update that menu item."); }
+}
+
+async function changePrepMinutes(value){
+ const minutes=Number(value);
+ if(![15,20,30,45,60].includes(minutes)) return;
+ try{ await bdSetPrepMinutes(minutes); prepMinutes=minutes; }
+ catch(e){ alert("Could not update pickup lead time."); await loadRestaurantControls(); }
 }
 
 async function toggleOrdering(){
