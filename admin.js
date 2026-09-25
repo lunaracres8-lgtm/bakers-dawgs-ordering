@@ -55,11 +55,23 @@ function playOrderAlert(){
  if(!soundEnabled) return;
  try{
   const ctx=new (window.AudioContext||window.webkitAudioContext)();
-  const osc=ctx.createOscillator(),gain=ctx.createGain();
-  osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=880; gain.gain.value=.12;
-  osc.start(); setTimeout(()=>{osc.stop();ctx.close();},350);
+  const master=ctx.createGain();
+  master.gain.value=.9;
+  master.connect(ctx.destination);
+  const ring=(frequency,start,duration)=>{
+   const osc=ctx.createOscillator(),gain=ctx.createGain();
+   osc.type="square"; osc.frequency.value=frequency;
+   gain.gain.setValueAtTime(0,ctx.currentTime+start);
+   gain.gain.linearRampToValueAtTime(.8,ctx.currentTime+start+.02);
+   gain.gain.setValueAtTime(.8,ctx.currentTime+start+duration-.04);
+   gain.gain.linearRampToValueAtTime(0,ctx.currentTime+start+duration);
+   osc.connect(gain); gain.connect(master);
+   osc.start(ctx.currentTime+start); osc.stop(ctx.currentTime+start+duration+.02);
+  };
+  ring(880,0,.35); ring(1175,.42,.35); ring(880,.84,.35); ring(1175,1.26,.5);
+  setTimeout(()=>ctx.close(),2100);
  }catch(e){}
- if(navigator.vibrate) navigator.vibrate([250,100,250]);
+ if(navigator.vibrate) navigator.vibrate([500,150,500,150,700]);
 }
 
 async function login(){
