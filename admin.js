@@ -306,12 +306,12 @@ if(recoveryToken){
    alert("Could not update password. Request a new reset link and try again.");
   }
  };
-}else if(sessionStorage.getItem("bdAccessToken")){
- showBoard();
+}else if(bdHasSavedSession()){
+ (async()=>{ if(await bdRefreshSession()) showBoard(); })();
 }
 
 setInterval(()=>{
- if(sessionStorage.getItem("bdAccessToken")){
+ if(bdHasSavedSession()){
   loadOrders();
  }
 },5000);
