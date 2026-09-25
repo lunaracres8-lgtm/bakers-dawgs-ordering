@@ -1,5 +1,33 @@
 const BD_URL = window.BD_CONFIG.SUPABASE_URL;
 const BD_KEY = window.BD_CONFIG.SUPABASE_ANON_KEY;
+let bdSupabaseClient=null;
+function bdGetSupabaseClient(){
+ if(bdSupabaseClient) return bdSupabaseClient;
+ if(!window.supabase?.createClient) throw new Error("Supabase client library is not loaded.");
+ bdSupabaseClient=window.supabase.createClient(BD_URL,BD_KEY,{
+  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,experimental:{passkey:true}}
+ });
+ return bdSupabaseClient;
+}
+function bdStoreNativeSession(session){
+ if(!session?.access_token) return;
+ localStorage.setItem("bdAccessToken",session.access_token);
+ if(session.refresh_token) localStorage.setItem("bdRefreshToken",session.refresh_token);
+}
+async function bdRegisterPasskey(){
+ const client=bdGetSupabaseClient();
+ const {data,error}=await client.auth.registerPasskey();
+ if(error) throw error;
+ return data;
+}
+async function bdSignInWithPasskey(){
+ const client=bdGetSupabaseClient();
+ const {data,error}=await client.auth.signInWithPasskey();
+ if(error) throw error;
+ bdStoreNativeSession(data?.session);
+ return data;
+}
+
 
 function bdToken(){ return localStorage.getItem("bdAccessToken") || sessionStorage.getItem("bdAccessToken") || BD_KEY; }
 function bdHeaders(){
