@@ -131,7 +131,7 @@ function logout(){
 }
 
 let adminLockTimer=null;
-const ADMIN_AUTO_LOCK_MS=20000;
+const ADMIN_AUTO_LOCK_MS=45000;
 
 function armAdminAutoLock(){
  clearTimeout(adminLockTimer);
