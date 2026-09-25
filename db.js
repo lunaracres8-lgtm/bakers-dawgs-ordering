@@ -37,6 +37,20 @@ async function bdResetPassword(email){
  return true;
 }
 
+function bdRecoveryToken(){
+ const p=new URLSearchParams(location.hash.replace(/^#/,""));
+ return p.get("type")==="recovery" ? p.get("access_token") : null;
+}
+async function bdUpdatePassword(accessToken,password){
+ const r=await fetch(`${BD_URL}/auth/v1/user`,{
+  method:"PUT",
+  headers:{"apikey":BD_KEY,"Authorization":`Bearer ${accessToken}`,"Content-Type":"application/json"},
+  body:JSON.stringify({password})
+ });
+ if(!r.ok) throw new Error(await r.text());
+ return r.json();
+}
+
 function bdSignOut(){
  sessionStorage.removeItem("bdAccessToken");
  sessionStorage.removeItem("bdRefreshToken");
