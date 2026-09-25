@@ -78,7 +78,7 @@ async function forgotPassword(){
  if(!email){ alert("Enter the staff email address first."); return; }
  console.log("Password reset tapped", email);
  try{ await bdResetPassword(email); alert("Password reset email sent. Check the staff email inbox and follow the reset link."); }
- catch(e){ alert("Could not send the reset email. Please try again."); }
+ catch(e){ console.error("Password reset failed",e); alert("Password reset failed: "+(e?.message||"Please try again.")); }
 }
 
 function logout(){
