@@ -88,10 +88,12 @@ function logout(){
 
 function showBoard(){
  const loginBox=document.querySelector("#login");
+ const recoveryBox=document.querySelector("#recovery");
  const board=document.querySelector("#app");
 
  if(loginBox) loginBox.style.display="none";
- if(board) board.style.display="block";
+ if(recoveryBox) recoveryBox.style.display="none";
+ if(board){ board.classList.remove("hidden"); board.style.display="block"; }
  const soundBtn=document.querySelector("#soundToggle");
  if(soundBtn) soundBtn.textContent=soundEnabled?"🔔 Alerts On":"🔕 Alerts Off";
 
