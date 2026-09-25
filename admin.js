@@ -98,6 +98,37 @@ function logout(){
  location.reload();
 }
 
+let adminLockTimer=null;
+const ADMIN_AUTO_LOCK_MS=20000;
+
+function armAdminAutoLock(){
+ clearTimeout(adminLockTimer);
+ if(document.querySelector("#app")?.classList.contains("hidden")) return;
+ adminLockTimer=setTimeout(lockAdminScreen,ADMIN_AUTO_LOCK_MS);
+}
+function lockAdminScreen(){
+ clearTimeout(adminLockTimer);
+ const board=document.querySelector("#app");
+ const loginBox=document.querySelector("#login");
+ if(board){ board.classList.add("hidden"); board.style.display="none"; }
+ if(loginBox){
+  loginBox.style.display="grid";
+  const h=loginBox.querySelector("h2");
+  const p=loginBox.querySelector("p");
+  if(h) h.textContent="Admin Locked";
+  if(p) p.textContent="Use your fingerprint/passkey to unlock, or use the staff password.";
+ }
+ document.body.dataset.adminLocked="true";
+}
+["pointerdown","keydown","touchstart","scroll"].forEach(evt=>{
+ document.addEventListener(evt,()=>{
+  if(document.body.dataset.adminLocked!=="true") armAdminAutoLock();
+ },{passive:true});
+});
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden && !document.querySelector("#app")?.classList.contains("hidden")) lockAdminScreen();
+});
+
 function showBoard(){
  const loginBox=document.querySelector("#login");
  const recoveryBox=document.querySelector("#recovery");
@@ -106,6 +137,8 @@ function showBoard(){
  if(loginBox) loginBox.style.display="none";
  if(recoveryBox) recoveryBox.style.display="none";
  if(board){ board.classList.remove("hidden"); board.style.display="block"; }
+ document.body.dataset.adminLocked="false";
+ armAdminAutoLock();
  const soundBtn=document.querySelector("#soundToggle");
  if(soundBtn) soundBtn.textContent=soundEnabled?"🔔 Alerts On":"🔕 Alerts Off";
 
