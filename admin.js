@@ -142,6 +142,7 @@ function lockAdminScreen(){
  clearTimeout(adminLockTimer);
  document.body.dataset.adminLocked="true";
  sessionStorage.setItem("bdReturnToAdmin","1");
+ // This is UI-only: never pause restaurant ordering here.
  location.replace("index.html?admin_locked=1");
 }
 ["pointerdown","keydown","touchstart","scroll"].forEach(evt=>{
