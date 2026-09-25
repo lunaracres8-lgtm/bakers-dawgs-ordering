@@ -108,17 +108,9 @@ function armAdminAutoLock(){
 }
 function lockAdminScreen(){
  clearTimeout(adminLockTimer);
- const board=document.querySelector("#app");
- const loginBox=document.querySelector("#login");
- if(board){ board.classList.add("hidden"); board.style.display="none"; }
- if(loginBox){
-  loginBox.style.display="grid";
-  const h=loginBox.querySelector("h2");
-  const p=loginBox.querySelector("p");
-  if(h) h.textContent="Admin Locked";
-  if(p) p.textContent="Use your fingerprint/passkey to unlock, or use the staff password.";
- }
  document.body.dataset.adminLocked="true";
+ sessionStorage.setItem("bdReturnToAdmin","1");
+ location.replace("index.html?admin_locked=1");
 }
 ["pointerdown","keydown","touchstart","scroll"].forEach(evt=>{
  document.addEventListener(evt,()=>{
