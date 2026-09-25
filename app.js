@@ -55,6 +55,18 @@ function render(cat){
  }</div></section>`).join("");
 }
 
+
+function returnToAdmin(){
+ sessionStorage.removeItem("bdReturnToAdmin");
+ location.href="admin.html";
+}
+function showStaffReturnIfLocked(){
+ const params=new URLSearchParams(location.search);
+ const locked=params.get("admin_locked")==="1" || sessionStorage.getItem("bdReturnToAdmin")==="1";
+ const box=document.querySelector("#staffReturn");
+ if(box) box.classList.toggle("hidden",!locked);
+}
+
 function goMenu(){
  if(orderingStatusKnown&&!orderingOpen) return showOrderingPaused();
  render();
@@ -289,6 +301,7 @@ async function placeOrder(){
 
 render();
 update();
+showStaffReturnIfLocked();
 refreshOrderingStatus();
 refreshMenuAvailability();
 setInterval(refreshOrderingStatus,30000);
