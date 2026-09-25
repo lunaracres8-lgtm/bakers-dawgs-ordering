@@ -74,6 +74,47 @@ function playOrderAlert(){
  if(navigator.vibrate) navigator.vibrate([500,150,500,150,700]);
 }
 
+
+// Device-bound passkey gate. WebAuthn uses the device's biometric/PIN screen;
+// the Supabase session remains the authorization source for restaurant data.
+const BD_PASSKEY_CHALLENGE=new Uint8Array([66,97,107,101,114,115,68,97,119,103,115,65,100,109,105,110]);
+function bdB64url(bytes){ return btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function bdFromB64url(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); while(s.length%4)s+="="; return Uint8Array.from(atob(s),c=>c.charCodeAt(0)); }
+function bdPasskeyId(){ return localStorage.getItem("bdPasskeyCredentialId")||""; }
+
+async function enrollBiometric(){
+ if(!window.PublicKeyCredential||!navigator.credentials){ alert("This device/browser does not support fingerprint/passkey sign-in."); return; }
+ if(!bdHasSavedSession()){ alert("Sign in with the staff password once before adding a fingerprint/passkey."); return; }
+ try{
+  const cred=await navigator.credentials.create({publicKey:{
+   challenge:crypto.getRandomValues(new Uint8Array(32)),
+   rp:{name:"Baker's Dawgs"},
+   user:{id:crypto.getRandomValues(new Uint8Array(32)),name:"Baker's Dawgs Staff",displayName:"Baker's Dawgs Staff"},
+   pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+   authenticatorSelection:{authenticatorAttachment:"platform",residentKey:"preferred",userVerification:"required"},
+   timeout:60000,attestation:"none"
+  }});
+  localStorage.setItem("bdPasskeyCredentialId",bdB64url(cred.rawId));
+  alert("Fingerprint/passkey added on this device. You can now use it to unlock the Baker's Dawgs admin screen.");
+ }catch(e){ if(e?.name!=="NotAllowedError") alert("Could not add the fingerprint/passkey on this device."); }
+}
+
+async function biometricUnlock(){
+ const id=bdPasskeyId();
+ if(!id){ alert("No fingerprint/passkey is enrolled on this device yet. Sign in once with the staff password, then tap Add this device fingerprint/passkey."); return; }
+ if(!bdHasSavedSession()){ alert("The secure staff session has expired. Sign in with the staff password once, then fingerprint unlock will work again."); return; }
+ try{
+  const assertion=await navigator.credentials.get({publicKey:{
+   challenge:crypto.getRandomValues(new Uint8Array(32)),
+   allowCredentials:[{type:"public-key",id:bdFromB64url(id)}],
+   userVerification:"required",timeout:60000
+  }});
+  if(!assertion) return;
+  if(await bdRefreshSession()){ sessionStorage.removeItem("bdReturnToAdmin"); showBoard(); }
+  else alert("The staff session expired. Sign in with the password once to reconnect this device.");
+ }catch(e){ if(e?.name!=="NotAllowedError") alert("Fingerprint/passkey unlock failed. Please try again."); }
+}
+
 async function login(){
  const email=document.querySelector("#email").value.trim();
  const password=document.querySelector("#password").value;
@@ -82,6 +123,9 @@ async function login(){
  try{
   await bdSignIn(email,password);
   showBoard();
+  if(!bdPasskeyId() && window.PublicKeyCredential){
+   setTimeout(()=>{ if(confirm("Add this device fingerprint/passkey for faster secure unlock?")) enrollBiometric(); },300);
+  }
  }catch(e){ alert("Sign-in failed. Check the staff email and password."); }
 }
 
