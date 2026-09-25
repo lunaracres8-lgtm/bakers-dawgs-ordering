@@ -7,7 +7,7 @@ let orderingOpen=null;
 let prepMinutes=20;
 let menuAvailability={};
 let soundEnabled=localStorage.getItem("bdSoundEnabled")!=="false";
-const adminMenuItems=["Carolina Classic Hot Dawg","Sauerkraut & Mustard Dawg","Chili & Cheez Dawg","Chili, Onion & Mustard Dawg","Sweet Relish & Mustard Dawg","Loaded Hot Dawg","Brat / Bratwurst","Classic Plain Smoked Sausage","Cheddar Cheez Smoked Sausage","Jalapeño Smoked Sausage","The Perfect Brat","Grilled Bologna on Toast (cut #5)","Grilled Cheez Quesadilla","Bottled Drink / Soda","Bottled Water","Sweet Tea with Ice","Lemonade Sweet Tea with Ice","Chips"];
+const adminMenuItems=["Carolina Classic Hot Dawg","Sauerkraut & Mustard Dawg","Chili & Cheez Dawg","Chili, Onion & Mustard Dawg","Sweet Relish & Mustard Dawg","Loaded Hot Dawg","Brat / Bratwurst","Classic Plain Smoked Sausage","Cheddar Cheez Smoked Sausage","Jalapeño Smoked Sausage","The Perfect Brat","Grilled Bologna on Toast (cut #5)","Grilled Cheez Quesadilla","Bottled Drink / Soda","Bottled Water","Sweet Tea with Ice","Lemonade Sweet Tea with Ice","Chips","German Chocolate Cake","3 Milks Cake"];
 
 function esc(v=""){
  return String(v).replace(/[&<>"']/g,c=>({
@@ -281,7 +281,30 @@ function filterOrders(status){
  loadOrders();
 }
 
-if(sessionStorage.getItem("bdAccessToken")){
+const recoveryToken=bdRecoveryToken();
+if(recoveryToken){
+ const loginBox=document.querySelector("#login");
+ const recoveryBox=document.querySelector("#recovery");
+ if(loginBox) loginBox.style.display="none";
+ if(recoveryBox) recoveryBox.style.display="block";
+ const save=document.querySelector("#savePasswordBtn");
+ if(save) save.onclick=async function(){
+  const p=document.querySelector("#newPassword").value;
+  const c=document.querySelector("#confirmPassword").value;
+  if(p.length<8){ alert("Use at least 8 characters."); return; }
+  if(p!==c){ alert("Passwords do not match."); return; }
+  save.disabled=true;
+  try{
+   await bdUpdatePassword(recoveryToken,p);
+   history.replaceState(null,"",location.pathname);
+   alert("Password updated. Sign in with your new password.");
+   location.reload();
+  }catch(e){
+   save.disabled=false;
+   alert("Could not update password. Request a new reset link and try again.");
+  }
+ };
+}else if(sessionStorage.getItem("bdAccessToken")){
  showBoard();
 }
 
