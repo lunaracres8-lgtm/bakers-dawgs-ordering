@@ -24,10 +24,15 @@ async function bdSignIn(email,password){
  return data;
 }
 async function bdResetPassword(email){
- const redirectTo=new URL("admin.html",window.location.href).href;
- const r=await fetch(`${BD_URL}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,{
-  method:"POST",headers:{"apikey":BD_KEY,"Content-Type":"application/json"},body:JSON.stringify({email})
- });
+ const headers={"apikey":BD_KEY,"Content-Type":"application/json"};
+ const body=JSON.stringify({email});
+ const redirectTo="https://lunaracres8-lgtm.github.io/bakers-dawgs-ordering/admin.html";
+ let r=await fetch(`${BD_URL}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,{method:"POST",headers,body});
+ if(!r.ok){
+  // Older WebViews and projects without an allow-listed redirect can reject redirect_to.
+  // Retry using the Supabase project's configured Site URL instead.
+  r=await fetch(`${BD_URL}/auth/v1/recover`,{method:"POST",headers,body});
+ }
  if(!r.ok) throw new Error(await r.text());
  return true;
 }
