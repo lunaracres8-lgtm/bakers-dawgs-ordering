@@ -286,7 +286,7 @@ if(recoveryToken){
  const loginBox=document.querySelector("#login");
  const recoveryBox=document.querySelector("#recovery");
  if(loginBox) loginBox.style.display="none";
- if(recoveryBox) recoveryBox.style.display="block";
+ if(recoveryBox){ recoveryBox.classList.remove("hidden"); recoveryBox.style.display="grid"; }
  const save=document.querySelector("#savePasswordBtn");
  if(save) save.onclick=async function(){
   const p=document.querySelector("#newPassword").value;
