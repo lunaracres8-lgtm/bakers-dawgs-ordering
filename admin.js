@@ -125,7 +125,7 @@ async function loadMenuAvailability(){
   const box=document.querySelector("#menuAvailabilityControls");
   if(box) box.innerHTML=adminMenuItems.map(name=>{
    const available=menuAvailability[name]!==false;
-   return `<button class="${available?"available":"soldout"}" onclick="toggleMenuItem(${JSON.stringify(name)})"><span>${esc(name)}</span><b>${available?"AVAILABLE":"SOLD OUT"}</b></button>`;
+   return `<button type="button" class="${available?"available":"soldout"}" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(name)}\'))"><span>${esc(name)}</span><b>${available?"AVAILABLE":"SOLD OUT"}</b></button>`;
   }).join("");
  }catch(e){
   const box=document.querySelector("#menuAvailabilityControls");
