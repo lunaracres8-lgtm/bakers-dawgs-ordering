@@ -1,7 +1,7 @@
 const BD_URL = window.BD_CONFIG.SUPABASE_URL;
 const BD_KEY = window.BD_CONFIG.SUPABASE_ANON_KEY;
 
-function bdToken(){ return sessionStorage.getItem("bdAccessToken") || BD_KEY; }
+function bdToken(){ return localStorage.getItem("bdAccessToken") || sessionStorage.getItem("bdAccessToken") || BD_KEY; }
 function bdHeaders(){
  return {"apikey":BD_KEY,"Authorization":`Bearer ${bdToken()}`,"Content-Type":"application/json"};
 }
@@ -19,8 +19,8 @@ async function bdSignIn(email,password){
  if(!r.ok) throw new Error(await r.text());
  const data=await r.json();
  if(!data.access_token) throw new Error("No access token returned.");
- sessionStorage.setItem("bdAccessToken",data.access_token);
- if(data.refresh_token) sessionStorage.setItem("bdRefreshToken",data.refresh_token);
+ localStorage.setItem("bdAccessToken",data.access_token);
+ if(data.refresh_token) localStorage.setItem("bdRefreshToken",data.refresh_token);
  return data;
 }
 async function bdResetPassword(email){
@@ -54,7 +54,24 @@ async function bdUpdatePassword(accessToken,password){
  return r.json();
 }
 
+async function bdRefreshSession(){
+ const refreshToken=localStorage.getItem("bdRefreshToken") || sessionStorage.getItem("bdRefreshToken");
+ if(!refreshToken) return false;
+ const r=await fetch(`${BD_URL}/auth/v1/token?grant_type=refresh_token`,{
+  method:"POST",headers:{"apikey":BD_KEY,"Content-Type":"application/json"},
+  body:JSON.stringify({refresh_token:refreshToken})
+ });
+ if(!r.ok){ bdSignOut(); return false; }
+ const data=await r.json();
+ if(!data.access_token) return false;
+ localStorage.setItem("bdAccessToken",data.access_token);
+ if(data.refresh_token) localStorage.setItem("bdRefreshToken",data.refresh_token);
+ return true;
+}
+function bdHasSavedSession(){ return !!(localStorage.getItem("bdRefreshToken") || sessionStorage.getItem("bdRefreshToken")); }
 function bdSignOut(){
+ localStorage.removeItem("bdAccessToken");
+ localStorage.removeItem("bdRefreshToken");
  sessionStorage.removeItem("bdAccessToken");
  sessionStorage.removeItem("bdRefreshToken");
 }
