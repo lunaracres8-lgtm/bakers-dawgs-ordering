@@ -38,8 +38,11 @@ async function bdResetPassword(email){
 }
 
 function bdRecoveryToken(){
- const p=new URLSearchParams(location.hash.replace(/^#/,""));
- return p.get("type")==="recovery" ? p.get("access_token") : null;
+ const hash=new URLSearchParams(location.hash.replace(/^#/,""));
+ const query=new URLSearchParams(location.search);
+ const type=hash.get("type")||query.get("type");
+ const token=hash.get("access_token")||query.get("access_token");
+ return type==="recovery" ? token : null;
 }
 async function bdUpdatePassword(accessToken,password){
  const r=await fetch(`${BD_URL}/auth/v1/user`,{
