@@ -376,8 +376,14 @@ if(recoveryToken){
   }
  };
 }else if(bdHasSavedSession()){
- // Keep the admin board locked after reload/restart. A passkey or password must unlock it.
- (async()=>{ await bdRefreshSession(); })();
+ // On devices without a usable passkey, keep the trusted Supabase session signed in
+ // so staff do not have to re-enter the password every time the app opens.
+ (async()=>{
+  if(await bdRefreshSession()){
+   sessionStorage.removeItem("bdReturnToAdmin");
+   showBoard();
+  }
+ })();
 }
 
 setInterval(()=>{
