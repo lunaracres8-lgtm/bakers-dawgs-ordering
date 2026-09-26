@@ -94,32 +94,46 @@ function playOrderAlert(){
 }
 
 
-// Native Supabase passkeys: the passkey itself creates the authenticated session.
-async function enrollBiometric(){
- if(!window.PublicKeyCredential){ alert("This device/browser does not support passkeys."); return; }
- if(!bdHasSavedSession()){ alert("Sign in with the staff password once before adding this device's fingerprint/passkey."); return; }
- try{
-  if(!(await bdRefreshSession())) throw new Error("Staff session expired");
-  await bdRegisterPasskey();
-  localStorage.setItem("bdNativePasskeyEnrolled","1");
-  alert("Fingerprint/passkey registered with Baker's Dawgs. It can now sign you in after a restart.");
- }catch(e){
-  console.error("Passkey registration failed",e);
-  alert("Could not register the fingerprint/passkey: "+(e?.message||"Please try again."));
+// Fingerprint unlock opens a saved staff session; first sign-in still requires a password.
+async function onNativeBiometricSuccess(purpose){
+ if(purpose==="enroll"){
+  localStorage.setItem("bdNativeBiometricEnrolled","1");
+  alert("Fingerprint unlock is enabled on this device. Your staff PIN still works.");
+  return;
  }
+ if(!localStorage.getItem("bdNativeBiometricEnrolled")){alert("Sign in and add this device's fingerprint first.");return;}
+ try{
+  if(!await bdRefreshSession())throw new Error("Staff session expired. Sign in with your password again.");
+  document.querySelector("#pinGate")?.classList.add("hidden");
+  showBoard();
+ }catch(e){alert(e.message||"Please sign in with your staff password.");location.reload();}
 }
-
+function onNativeBiometricError(message){alert("Fingerprint unavailable: "+message+" You can use your staff PIN.");}
+async function enrollBiometric(){
+ if(!bdHasSavedSession()){alert("Sign in with the staff email and password first.");return;}
+ if(window.BakersDawgsAndroid?.authenticateBiometric){
+  window.BakersDawgsAndroid.authenticateBiometric("enroll");return;
+ }
+ if(!window.PublicKeyCredential){alert("This browser does not support passkeys.");return;}
+ try{
+  if(!await bdRefreshSession())throw new Error("Staff session expired");
+  await bdRegisterPasskey();
+  localStorage.setItem("bdWebPasskeyEnrolled","1");
+  alert("Passkey registered. You can use it to sign in from this browser.");
+ }catch(e){alert("Could not register the passkey: "+(e?.message||"Please try again."));}
+}
 async function biometricUnlock(){
- if(!window.PublicKeyCredential){ alert("This device/browser does not support passkeys."); return; }
+ if(window.BakersDawgsAndroid?.authenticateBiometric){
+  if(!bdHasSavedSession()){alert("Sign in with your staff email and password once on this phone, then add its fingerprint.");return;}
+  if(!localStorage.getItem("bdNativeBiometricEnrolled")){alert("Sign in and tap 'Add this device fingerprint/passkey' before using fingerprint unlock. You can use your staff PIN now.");return;}
+  window.BakersDawgsAndroid.authenticateBiometric("unlock");return;
+ }
+ if(!window.PublicKeyCredential){alert("This browser does not support passkeys.");return;}
  try{
   const data=await bdSignInWithPasskey();
-  if(!data?.session) throw new Error("No authenticated session was returned.");
-  sessionStorage.removeItem("bdReturnToAdmin");
-  showBoard();
- }catch(e){
-  console.error("Passkey sign-in failed",e);
-  if(e?.name!=="NotAllowedError") alert("Fingerprint/passkey sign-in failed: "+(e?.message||"Please try again."));
- }
+  if(!data?.session)throw new Error("No authenticated session was returned.");
+  sessionStorage.removeItem("bdReturnToAdmin");showBoard();
+ }catch(e){if(e?.name!=="NotAllowedError")alert("Passkey sign-in failed: "+(e?.message||"Please try again."));}
 }
 
 async function login(){
@@ -130,7 +144,7 @@ async function login(){
  try{
   await bdSignIn(email,password);
   showBoard();
-  if(!localStorage.getItem("bdNativePasskeyEnrolled") && window.PublicKeyCredential){
+  if((window.BakersDawgsAndroid?.authenticateBiometric && !localStorage.getItem("bdNativeBiometricEnrolled")) || (!window.BakersDawgsAndroid && window.PublicKeyCredential && !localStorage.getItem("bdWebPasskeyEnrolled"))){
    setTimeout(()=>{ if(confirm("Add this device fingerprint/passkey so you can sign in after a restart?")) enrollBiometric(); },300);
   }
  }catch(e){ alert("Sign-in failed. Check the staff email and password."); }

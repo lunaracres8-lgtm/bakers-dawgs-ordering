@@ -1,6 +1,10 @@
 package com.bakersdawgs.admin;
 
 import android.Manifest;
+import android.hardware.biometrics.BiometricPrompt;
+import android.os.Build;
+import android.os.CancellationSignal;
+import android.content.DialogInterface;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -23,6 +27,7 @@ public class MainActivity extends Activity {
   private TextToSpeech tts;
   private SpeechRecognizer recognizer;
   private boolean listening;
+  private CancellationSignal biometricCancellation;
   private final Intent recognitionIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
 
   @Override public void onCreate(Bundle state) {
@@ -104,7 +109,36 @@ public class MainActivity extends Activity {
     }
   }
 
+  private void authenticateBiometric(String purpose) {
+    if (Build.VERSION.SDK_INT < 28) {
+      callback("onNativeBiometricError", "This Android version does not support the app fingerprint prompt.");
+      return;
+    }
+    try {
+      if (biometricCancellation != null) biometricCancellation.cancel();
+      biometricCancellation = new CancellationSignal();
+      BiometricPrompt.Builder builder = new BiometricPrompt.Builder(this)
+          .setTitle("Baker's Dawgs Admin")
+          .setSubtitle(purpose.equals("enroll") ? "Enable fingerprint unlock" : "Unlock the order board")
+          .setNegativeButton("Cancel", getMainExecutor(), (dialog, which) -> {});
+      builder.build().authenticate(biometricCancellation, getMainExecutor(), new BiometricPrompt.AuthenticationCallback() {
+        @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+          callback("onNativeBiometricSuccess", purpose);
+        }
+        @Override public void onAuthenticationError(int code, CharSequence message) {
+          if (code != BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED && code != BiometricPrompt.BIOMETRIC_ERROR_NEGATIVE_BUTTON)
+            callback("onNativeBiometricError", message.toString());
+        }
+      });
+    } catch (Exception error) {
+      callback("onNativeBiometricError", "Fingerprint is unavailable. Set up a fingerprint in Android Settings, or use the staff PIN.");
+    }
+  }
+
   private class VoiceBridge {
+    @JavascriptInterface public void authenticateBiometric(String purpose) {
+      runOnUiThread(() -> MainActivity.this.authenticateBiometric("enroll".equals(purpose) ? "enroll" : "unlock"));
+    }
     @JavascriptInterface public void speak(String text) {
       runOnUiThread(() -> {
         if (tts != null) { tts.stop(); tts.setSpeechRate(1.0f); tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "kitchen-order"); }
@@ -119,6 +153,7 @@ public class MainActivity extends Activity {
 
   @Override protected void onDestroy() {
     listening = false;
+    if (biometricCancellation != null) biometricCancellation.cancel();
     if (recognizer != null) recognizer.destroy();
     if (tts != null) { tts.stop(); tts.shutdown(); }
     web.destroy();
