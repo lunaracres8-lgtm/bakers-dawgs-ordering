@@ -35,6 +35,9 @@ let prepMinutes=20;
 let menuAvailability={};
 let lastCustomer=JSON.parse(localStorage.getItem("bdCustomer")||"{}");
 const money=n=>"$"+n.toFixed(2);
+const TAX_RATE=0.0675;
+const taxFor=subtotal=>Math.round(subtotal*TAX_RATE*100)/100;
+const totalWithTax=subtotal=>Math.round((subtotal+taxFor(subtotal))*100)/100;
 const cats=[...new Set(menu.map(x=>x[0]))];
 
 const menuEl=document.querySelector("#menu");
@@ -49,7 +52,7 @@ function render(cat){
  <div class="foodIcon">${c==="Hot Dawgs"?"🌭":c==="Smoked Sausages"?"🔥":c==="Sandwiches"?"🥪":c==="Cakes"?"🍰":"🥤"}</div>
  <h3>${x[1]}</h3>
  <p class="desc">${x[2]}</p>
- <div class="price">${money(x[3])}</div>
+ <div class="price">${money(x[3])} <small>+ tax</small></div>
  ${menuAvailability[x[1]]===false?`<div class="soldoutLabel">SOLD OUT</div><button class="add" disabled>Sold Out</button>`:`<button class="add" onclick="customize(${i})">Customize & Add</button>`}
  </article>`:"").join("")
  }</div></section>`).join("");
@@ -88,7 +91,7 @@ function customize(i){
 
  modalBody.innerHTML=
  `<h2>${x[1]}</h2>
- <div class="bigprice">${money(x[3])}</div>
+ <div class="bigprice">${money(x[3])} <small>+ tax</small></div>
  <p>${x[2]}</p>
  ${food?`<h3>Toppings</h3>
  <div class="checks">${
@@ -125,9 +128,8 @@ function save(){
 
 function update(){
  cartCount.textContent=cart.length;
- cartTotal.textContent=cart.reduce(
-  (s,x)=>s+menu[x.i][3]+(x.extra||0),0
- ).toFixed(2);
+ const subtotal=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
+ cartTotal.textContent=totalWithTax(subtotal).toFixed(2);
 }
 
 function pickupOptions(){
@@ -175,7 +177,9 @@ async function refreshOrderingStatus(){
 
 function openCart(){
  if(orderingStatusKnown&&!orderingOpen) return showOrderingPaused();
- let total=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
+ let subtotal=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
+ let tax=taxFor(subtotal);
+ let total=totalWithTax(subtotal);
 
  modalBody.innerHTML=
  `<h2>Your Pickup Order</h2>
@@ -195,7 +199,9 @@ function openCart(){
  </div>`).join("")
  :"<p>Your order is empty.</p>"}
 
- <div class="total">Total <b>${money(total)}</b></div>
+ <div class="total" style="padding-bottom:4px">Subtotal <b>${money(subtotal)}</b></div>
+ <div class="total" style="padding-top:4px;padding-bottom:4px">NC sales tax (6.75%) <b>${money(tax)}</b></div>
+ <div class="total" style="padding-top:8px">Total <b>${money(total)}</b></div>
 
  <label class="label">Your name</label>
  <input id="name" class="field" autocomplete="name" value="${String(lastCustomer.name||"").replace(/"/g,"&quot;")}">
@@ -260,7 +266,9 @@ async function placeOrder(){
  const digits=phone.value.replace(/\D/g,"");
  if(digits.length<10) return alert("Enter a valid phone number with area code.");
 
- let total=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
+ let subtotal=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
+ let tax=taxFor(subtotal);
+ let total=totalWithTax(subtotal);
  const submitBtn=document.querySelector("#placeOrderBtn");
  if(submitBtn?.disabled) return;
  if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent="SENDING ORDER…"; }
@@ -291,7 +299,7 @@ async function placeOrder(){
   modalBody.innerHTML=
   `<h2>Order Received!</h2>
   <p>Your Baker’s Dawgs pickup order <b>#${String(saved.id).slice(0,8)}</b> was sent to the restaurant.</p>
-  <p><b>Pickup:</b> ${time.value}<br><b>Total:</b> ${money(total)}</p>
+  <p><b>Pickup:</b> ${time.value}<br><b>Subtotal:</b> ${money(subtotal)}<br><b>NC sales tax (6.75%):</b> ${money(tax)}<br><b>Total:</b> ${money(total)}</p>
   <button class="checkout" onclick="closeModal()">DONE</button>`;
  }catch(e){
   if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent="PLACE PICKUP ORDER"; }
