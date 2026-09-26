@@ -365,9 +365,15 @@ function bestKitchenVoice(){
 function speakKitchenOrder(id,itemIndex=null){
  const o=(window.bdCurrentOrders||[]).find(x=>String(x.id)===String(id));
  if(!o){alert("Order is no longer on the board.");return;}
+ const text=orderSpeechText(o,itemIndex);
+ if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.speak==="function"){
+  window.BakersDawgsAndroid.speak(text);
+  lastSpokenOrderId=o.id;
+  return;
+ }
  if(!("speechSynthesis" in window)){alert("This device does not support spoken order read-back.");return;}
  speechSynthesis.cancel();
- const u=new SpeechSynthesisUtterance(orderSpeechText(o,itemIndex));
+ const u=new SpeechSynthesisUtterance(text);
  const voice=bestKitchenVoice(); if(voice){u.voice=voice;u.lang=voice.lang||"en-US";}
  u.rate=.88; u.pitch=1; u.volume=1;
  speechSynthesis.speak(u);
@@ -377,7 +383,7 @@ function repeatLastOrder(){
  if(!lastSpokenOrderId){alert("Tap Read Order on an order first.");return;}
  speakKitchenOrder(lastSpokenOrderId);
 }
-function stopOrderSpeech(){ if("speechSynthesis" in window) speechSynthesis.cancel(); }
+function stopOrderSpeech(){ if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.stopSpeaking==="function") window.BakersDawgsAndroid.stopSpeaking(); if("speechSynthesis" in window) speechSynthesis.cancel(); }
 let kitchenRecognition=null,kitchenListening=false,kitchenPauseTimer=null;
 function voiceStatus(msg){const el=document.querySelector("#voiceAssistantStatus");if(el)el.textContent=msg;}
 function startKitchenListening(){
