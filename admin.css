@@ -17,3 +17,6 @@
 
 /* Spoken kitchen order controls */
 .speechActions{display:flex;flex-wrap:wrap;gap:7px;margin:10px}.speechActions button{background:#1d5f8f;color:#fff;border:0;border-radius:8px;padding:11px 13px;font-weight:900;font-size:15px}.speechActions button:first-child{background:#126f3a;flex:1 1 100%;font-size:17px;padding:14px}.speechActions button:active{transform:translateY(1px)}
+
+/* Opt-in kitchen voice assistant */
+.voiceAssistant{margin:12px;padding:14px 16px;background:#1a1c1e;border:1px solid #444;border-radius:12px}.voiceAssistant b{display:block;font-size:18px}.voiceAssistant small{display:block;color:#bbb;margin:5px 0 10px}.voiceButtons{display:flex;flex-wrap:wrap;gap:8px}.voiceButtons button{border:0;border-radius:8px;padding:11px 13px;font-weight:900;background:#292c2f;color:#fff}.voiceButtons button:first-child{background:#16803b}.voiceButtons button:last-child{background:#8d1717}
