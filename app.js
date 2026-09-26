@@ -16,11 +16,11 @@ async function applyBusinessBranding(){
 }
 
 const menu=[
-["Hot Dawgs","Carolina Classic Hot Dawg","Mustard, homemade homestyle slaw, chili and onions",3.28],
-["Hot Dawgs","Sauerkraut & Mustard Dawg","Sauerkraut and mustard",3.28],
-["Hot Dawgs","Chili & Cheez Dawg","Chili and cheese",3.28],
-["Hot Dawgs","Chili, Onion & Mustard Dawg","Chili, onions and mustard",3.28],
-["Hot Dawgs","Sweet Relish & Mustard Dawg","Sweet relish and mustard",3.28],
+["Hot Dawgs","Carolina Classic Hot Dawg","Mustard, homemade homestyle slaw, chili and onions",3.27],
+["Hot Dawgs","Sauerkraut & Mustard Dawg","Sauerkraut and mustard",3.27],
+["Hot Dawgs","Chili & Cheez Dawg","Chili and cheese",3.27],
+["Hot Dawgs","Chili, Onion & Mustard Dawg","Chili, onions and mustard",3.27],
+["Hot Dawgs","Sweet Relish & Mustard Dawg","Sweet relish and mustard",3.27],
 ["Hot Dawgs","Loaded Hot Dawg","Choose 6–8 toppings",4.25],
 ["Smoked Sausages","Brat / Bratwurst","German smoked sausage",6.00],
 ["Smoked Sausages","Classic Plain Smoked Sausage","Johnsonville smoked sausage",6.00],

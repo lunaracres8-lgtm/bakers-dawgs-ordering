@@ -406,28 +406,37 @@ function repeatLastOrder(){
 function stopOrderSpeech(){ if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.stopSpeaking==="function") window.BakersDawgsAndroid.stopSpeaking(); if("speechSynthesis" in window) speechSynthesis.cancel(); }
 let kitchenRecognition=null,kitchenListening=false,kitchenPauseTimer=null;
 function voiceStatus(msg){const el=document.querySelector("#voiceAssistantStatus");if(el)el.textContent=msg;}
+function onNativeVoiceStatus(msg){voiceStatus(msg);}
+function onNativeVoiceError(msg){kitchenListening=false;voiceStatus(msg);}
+function onNativeVoiceCommand(transcript){handleKitchenCommand(transcript);}
+function handleKitchenCommand(transcript){
+ const said=String(transcript||"").toLowerCase().trim();
+ if(/stop listening|pause baker|baker pause|pause assistant/.test(said)){stopKitchenListening("Voice assistant paused.");return;}
+ if(/(?:pause|stop) (?:for )?(10|ten|30|thirty) minutes?/.test(said)){
+  pauseKitchenListening(/30|thirty/.test(said)?30:10);return;
+ }
+ if(/repeat (that|last) order|repeat order|read (the )?order|repeat everything/.test(said)){repeatLastOrder();return;}
+ const m=said.match(/(?:read|repeat) (?:item|hot dog|hot dawg) (one|two|three|four|five|\d+)/);
+ if(m&&lastSpokenOrderId){const words={one:1,two:2,three:3,four:4,five:5};const n=words[m[1]]||Number(m[1]);speakKitchenOrder(lastSpokenOrderId,n-1);}
+}
 function startKitchenListening(){
- const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!SR){alert("Voice commands are not supported by this browser. The Read Order buttons still work.");return;}
  clearTimeout(kitchenPauseTimer);
+ if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.startListening==="function"){
+  kitchenListening=true;voiceStatus("Starting microphone…");window.BakersDawgsAndroid.startListening();return;
+ }
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){voiceStatus("Voice commands are unavailable in this browser. Read Order buttons may still work.");return;}
  if(!kitchenRecognition){
   kitchenRecognition=new SR(); kitchenRecognition.lang="en-US"; kitchenRecognition.continuous=true; kitchenRecognition.interimResults=false;
-  kitchenRecognition.onresult=e=>{
-   const said=Array.from(e.results).slice(e.resultIndex).map(r=>r[0].transcript).join(" ").toLowerCase().trim();
-   if(/stop listening|pause baker|baker pause|pause assistant/.test(said)){stopKitchenListening("Voice assistant paused.");return;}
-   if(/repeat (that|last) order|repeat order/.test(said)){repeatLastOrder();return;}
-   if(/read (the )?order|repeat everything/.test(said)){repeatLastOrder();return;}
-   const m=said.match(/(?:read|repeat) (?:item|hot dog|hot dawg) (one|two|three|four|five|\d+)/);
-   if(m&&lastSpokenOrderId){const words={one:1,two:2,three:3,four:4,five:5};const n=words[m[1]]||Number(m[1]);speakKitchenOrder(lastSpokenOrderId,n-1);}
-  };
+  kitchenRecognition.onresult=e=>Array.from(e.results).slice(e.resultIndex).forEach(r=>handleKitchenCommand(r[0].transcript));
   kitchenRecognition.onend=()=>{if(kitchenListening){try{kitchenRecognition.start();}catch(e){}}};
   kitchenRecognition.onerror=e=>{if(e.error==="not-allowed"){kitchenListening=false;voiceStatus("Microphone permission is off.");}};
  }
- kitchenListening=true; try{kitchenRecognition.start();}catch(e){}
- voiceStatus("Listening for kitchen commands");
+ kitchenListening=true;try{kitchenRecognition.start();voiceStatus("Listening for kitchen commands");}catch(e){voiceStatus("Could not start microphone: "+e.message);}
 }
 function stopKitchenListening(message="Voice assistant paused."){
- kitchenListening=false; clearTimeout(kitchenPauseTimer);
+ kitchenListening=false;clearTimeout(kitchenPauseTimer);
+ if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.stopListening==="function")window.BakersDawgsAndroid.stopListening();
  if(kitchenRecognition){try{kitchenRecognition.stop();}catch(e){}}
  voiceStatus(message);
 }

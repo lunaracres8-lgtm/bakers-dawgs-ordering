@@ -9,6 +9,7 @@ on:
       - 'admin.html'
       - 'app.js'
       - 'admin.js'
+      - 'android-admin/MainActivity.java'
       - 'daily-closeout.js'
       - 'style.css'
       - 'admin.css'
@@ -81,6 +82,13 @@ jobs:
           }
           make_app customer-apk com.bakersdawgs.customer "Baker's Dawgs" "https://lunaracres8-lgtm.github.io/bakers-dawgs-ordering/"
           make_app admin-apk com.bakersdawgs.admin "Baker's Dawgs Admin" "https://lunaracres8-lgtm.github.io/bakers-dawgs-ordering/admin.html"
+          cp android-admin/MainActivity.java admin-apk/app/src/main/java/com/bakersdawgs/admin/MainActivity.java
+          python3 - <<'MANIFEST'
+          from pathlib import Path
+          p=Path('admin-apk/app/src/main/AndroidManifest.xml')
+          s=p.read_text().replace('<application ', '<uses-permission android:name="android.permission.RECORD_AUDIO"/><queries><intent><action android:name="android.speech.RecognitionService"/></intent></queries><application ')
+          p.write_text(s)
+          MANIFEST
       - name: Build APKs
         run: |
           timeout 12m gradle -p customer-apk --no-daemon assembleDebug --stacktrace
