@@ -356,13 +356,20 @@ function orderSpeechText(o, itemIndex=null){
  });
  return [itemIndex===null?`Order for ${o.customer_name||"customer"}.`:"", ...lines, itemIndex===null&&o.notes?`Order note: ${o.notes}`:""].filter(Boolean).join(". ");
 }
+function bestKitchenVoice(){
+ const voices=speechSynthesis.getVoices();
+ const english=voices.filter(v=>/^en(-|_)/i.test(v.lang||""));
+ const naturalHints=/natural|neural|enhanced|premium|google|samsung|microsoft|siri/i;
+ return english.find(v=>naturalHints.test(v.name||""))||english.find(v=>/en-US/i.test(v.lang||""))||english[0]||voices[0]||null;
+}
 function speakKitchenOrder(id,itemIndex=null){
  const o=(window.bdCurrentOrders||[]).find(x=>String(x.id)===String(id));
  if(!o){alert("Order is no longer on the board.");return;}
  if(!("speechSynthesis" in window)){alert("This device does not support spoken order read-back.");return;}
  speechSynthesis.cancel();
  const u=new SpeechSynthesisUtterance(orderSpeechText(o,itemIndex));
- u.rate=.9; u.pitch=1; u.volume=1;
+ const voice=bestKitchenVoice(); if(voice){u.voice=voice;u.lang=voice.lang||"en-US";}
+ u.rate=.88; u.pitch=1; u.volume=1;
  speechSynthesis.speak(u);
  lastSpokenOrderId=o.id;
 }
