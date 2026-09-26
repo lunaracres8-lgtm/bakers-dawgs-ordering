@@ -9,6 +9,7 @@ on:
       - 'admin.html'
       - 'app.js'
       - 'admin.js'
+      - 'daily-closeout.js'
       - 'style.css'
       - 'admin.css'
       - 'config.js'
@@ -88,7 +89,7 @@ jobs:
           cp customer-apk/app/build/outputs/apk/debug/app-debug.apk dist/customer/Bakers_Dawgs_Customer.apk
           cp admin-apk/app/build/outputs/apk/debug/app-debug.apk dist/admin/Bakers_Dawgs_Admin.apk
           cp index.html app.js style.css config.js db.js manifest.json dist/customer/
-          cp admin.html admin.js admin.css config.js db.js dist/admin/
+          cp admin.html admin.js daily-closeout.js admin.css config.js db.js dist/admin/
       - name: Publish permanent APK downloads
         shell: bash
         run: |
