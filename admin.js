@@ -97,21 +97,28 @@ function playOrderAlert(){
 // Fingerprint unlock opens a saved staff session; first sign-in still requires a password.
 async function onNativeBiometricSuccess(purpose){
  if(purpose==="enroll"){
-  localStorage.setItem("bdNativeBiometricEnrolled","1");
-  alert("Fingerprint unlock is enabled on this device. Your staff PIN still works.");
+  try{
+   const user=await bdCurrentStaffUser();
+   localStorage.setItem("bdNativeBiometricUserId",user.id);
+   alert("Fingerprint unlock is enabled for this staff account on this device. Your staff PIN still works.");
+  }catch(e){alert("Could not link fingerprint to your staff account. Sign in again and retry.");}
   return;
  }
- if(!localStorage.getItem("bdNativeBiometricEnrolled")){alert("Sign in and add this device's fingerprint first.");return;}
+ if(!localStorage.getItem("bdNativeBiometricUserId")){alert("Sign in and enable fingerprint unlock for this staff account first.");return;}
  try{
   if(!await bdRefreshSession())throw new Error("Staff session expired. Sign in with your password again.");
+  const user=await bdCurrentStaffUser();
+  if(user.id!==localStorage.getItem("bdNativeBiometricUserId"))throw new Error("This fingerprint unlock belongs to a different staff account. Sign in with your own password.");
   document.querySelector("#pinGate")?.classList.add("hidden");
   showBoard();
  }catch(e){alert(e.message||"Please sign in with your staff password.");location.reload();}
 }
 function onNativeBiometricError(message){alert("Fingerprint unavailable: "+message+" You can use your staff PIN.");}
 async function enrollBiometric(){
- if(!bdHasSavedSession()){alert("Sign in with the staff email and password first.");return;}
+ if(!bdHasSavedSession()){alert("Sign in with your own staff email and password first.");return;}
  if(window.BakersDawgsAndroid?.authenticateBiometric){
+  try{if(!await bdRefreshSession())throw new Error("Session expired");await bdCurrentStaffUser();}
+  catch(e){alert("Your staff session expired. Sign in again.");return;}
   window.BakersDawgsAndroid.authenticateBiometric("enroll");return;
  }
  if(!window.PublicKeyCredential){alert("This browser does not support passkeys.");return;}
@@ -125,7 +132,7 @@ async function enrollBiometric(){
 async function biometricUnlock(){
  if(window.BakersDawgsAndroid?.authenticateBiometric){
   if(!bdHasSavedSession()){alert("Sign in with your staff email and password once on this phone, then add its fingerprint.");return;}
-  if(!localStorage.getItem("bdNativeBiometricEnrolled")){alert("Sign in and tap 'Add this device fingerprint/passkey' before using fingerprint unlock. You can use your staff PIN now.");return;}
+  if(!localStorage.getItem("bdNativeBiometricUserId")){alert("Sign in and tap 'Enable fingerprint for this account' first. You can use your staff PIN now.");return;}
   window.BakersDawgsAndroid.authenticateBiometric("unlock");return;
  }
  if(!window.PublicKeyCredential){alert("This browser does not support passkeys.");return;}
@@ -144,7 +151,8 @@ async function login(){
  try{
   await bdSignIn(email,password);
   showBoard();
-  if((window.BakersDawgsAndroid?.authenticateBiometric && !localStorage.getItem("bdNativeBiometricEnrolled")) || (!window.BakersDawgsAndroid && window.PublicKeyCredential && !localStorage.getItem("bdWebPasskeyEnrolled"))){
+  const staffUser=await bdCurrentStaffUser();
+  if((window.BakersDawgsAndroid?.authenticateBiometric && localStorage.getItem("bdNativeBiometricUserId")!==staffUser.id) || (!window.BakersDawgsAndroid && window.PublicKeyCredential && !localStorage.getItem("bdWebPasskeyEnrolled"))){
    setTimeout(()=>{ if(confirm("Add this device fingerprint/passkey so you can sign in after a restart?")) enrollBiometric(); },300);
   }
  }catch(e){ alert("Sign-in failed. Check the staff email and password."); }
@@ -159,6 +167,11 @@ async function forgotPassword(){
 }
 
 function logout(){
+ bdSignOut();
+ location.reload();
+}
+function switchEmployee(){
+ if(!confirm("Sign out this staff account so another employee can sign in?"))return;
  bdSignOut();
  location.reload();
 }

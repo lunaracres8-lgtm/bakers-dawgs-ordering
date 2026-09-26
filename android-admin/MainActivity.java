@@ -126,7 +126,7 @@ public class MainActivity extends Activity {
           callback("onNativeBiometricSuccess", purpose);
         }
         @Override public void onAuthenticationError(int code, CharSequence message) {
-          if (code != BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED && code != BiometricPrompt.BIOMETRIC_ERROR_NEGATIVE_BUTTON)
+          if (code != BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED)
             callback("onNativeBiometricError", message.toString());
         }
       });

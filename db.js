@@ -96,6 +96,12 @@ async function bdRefreshSession(){
  if(data.refresh_token) localStorage.setItem("bdRefreshToken",data.refresh_token);
  return true;
 }
+async function bdCurrentStaffUser(){
+ const r=await bdRequest(`${BD_URL}/auth/v1/user`,{headers:bdHeaders()});
+ const user=await r.json();
+ if(!user?.id)throw new Error("Staff session is invalid.");
+ return user;
+}
 function bdHasSavedSession(){ return !!(localStorage.getItem("bdRefreshToken") || sessionStorage.getItem("bdRefreshToken")); }
 function bdSignOut(){
  localStorage.removeItem("bdAccessToken");
