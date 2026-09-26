@@ -16,12 +16,17 @@ async function applyBusinessBranding(){
 }
 
 const menu=[
-["Hot Dawgs","Carolina Classic Hot Dawg","Mustard, homemade homestyle slaw, chili and onions",3.27],
-["Hot Dawgs","Sauerkraut & Mustard Dawg","Sauerkraut and mustard",3.27],
-["Hot Dawgs","Chili & Cheez Dawg","Chili and cheese",3.27],
-["Hot Dawgs","Chili, Onion & Mustard Dawg","Chili, onions and mustard",3.27],
-["Hot Dawgs","Sweet Relish & Mustard Dawg","Sweet relish and mustard",3.27],
+["Hot Dawgs","Carolina Classic Hot Dawg","Mustard, homemade homestyle slaw, chili and onions",3.28],
+["Hot Dawgs","Sauerkraut & Mustard Dawg","Sauerkraut and mustard",3.28],
+["Hot Dawgs","Chili & Cheez Dawg","Chili and cheese",3.28],
+["Hot Dawgs","Chili, Onion & Mustard Dawg","Chili, onions and mustard",3.28],
+["Hot Dawgs","Sweet Relish & Mustard Dawg","Sweet relish and mustard",3.28],
 ["Hot Dawgs","Loaded Hot Dawg","Choose 6–8 toppings",4.25],
+ ["Hot Dawg Combos","Carolina Classic Hot Dawg Combo","Hot Dawg, bag of chips, and drink - $7.00 total with tax",6.56],
+["Hot Dawg Combos","Sauerkraut & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink - $7.00 total with tax",6.56],
+["Hot Dawg Combos","Chili & Cheez Dawg Combo","Hot Dawg, bag of chips, and drink - $7.00 total with tax",6.56],
+["Hot Dawg Combos","Chili, Onion & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink - $7.00 total with tax",6.56],
+["Hot Dawg Combos","Sweet Relish & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink - $7.00 total with tax",6.56],
 ["Smoked Sausages","Brat / Bratwurst","German smoked sausage",6.00],
 ["Smoked Sausages","Classic Plain Smoked Sausage","Johnsonville smoked sausage",6.00],
 ["Smoked Sausages","Cheddar Cheez Smoked Sausage","Cheddar cheese smoked sausage",6.00],
