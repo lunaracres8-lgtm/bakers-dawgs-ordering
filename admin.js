@@ -322,7 +322,7 @@ async function loadOrders(){
 
     <div class="speechActions"><button type="button" onclick="speakKitchenOrder(\'${o.id}\')">🔊 READ ORDER</button>${(o.items||[]).map((i,n)=>`<button type="button" onclick="speakKitchenOrder(\'${o.id}\',${n})">Read Item ${n+1}</button>`).join("")}</div>
 
-    ${nextStatus(o.status)?`<button class="nextStatus" onclick="changeStatus('${o.id}','${nextStatus(o.status)}')">${statusActionLabel(o.status)}</button>`:""}
+    ${typeof bdPaymentSelector==="function"?bdPaymentSelector(o):""}\n    ${nextStatus(o.status)?`<button class="nextStatus" onclick="changeStatus('${o.id}','${nextStatus(o.status)}')">${statusActionLabel(o.status)}</button>`:""}
 
     <select onchange="changeStatus('${o.id}',this.value)">
      ${statuses.map(s=>
