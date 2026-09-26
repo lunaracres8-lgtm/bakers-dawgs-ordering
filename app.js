@@ -302,7 +302,7 @@ async function placeOrder(){
 
   modalBody.innerHTML=
   `<div class="orderSuccess"><div class="successCheck">✓</div><h2>Order Received!</h2>
-  <p class="successLead">Your order is in the kitchen.</p>
+  <p class="successLead">Your order is in the kitchen.</p><p><b>PAY AT PICKUP</b><br>No online payment was taken. Please pay at the restaurant when you pick up your order.</p>
   ${saved.id?`<div class="orderNumber">ORDER #${String(saved.id).slice(0,8).toUpperCase()}</div>`:""}</div>
   <p><b>Pickup:</b> ${timeEl.value}<br><b>Subtotal:</b> ${money(subtotal)}<br><b>NC sales tax (6.75%):</b> ${money(tax)}<br><b>Total:</b> ${money(total)}</p>
   <button class="checkout" onclick="closeModal()">DONE</button>`;
