@@ -1,6 +1,6 @@
 const statuses=["New","Accepted","Cooking","Ready","Completed"];
 let currentFilter="all";
-let hideCompleted=false;
+let hideCompleted=true;
 let knownOrderIds=new Set();
 let firstOrderLoad=true;
 let orderingOpen=null;
