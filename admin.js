@@ -260,6 +260,7 @@ async function loadOrders(){
 
  try{
   const orders=await bdGetOrders();
+  window.bdCurrentOrders=orders;
   const newIds=orders.filter(o=>o.status==="New"&&!knownOrderIds.has(o.id)).map(o=>o.id);
   if(!firstOrderLoad&&newIds.length){ playOrderAlert(); }
   knownOrderIds=new Set(orders.map(o=>o.id));
@@ -319,6 +320,8 @@ async function loadOrders(){
 
     ${o.notes?`<p><b>Order note:</b> ${esc(o.notes)}</p>`:""}
 
+    <div class="speechActions"><button type="button" onclick="speakKitchenOrder(\'${o.id}\')">🔊 READ ORDER</button>${(o.items||[]).map((i,n)=>`<button type="button" onclick="speakKitchenOrder(\'${o.id}\',${n})">Read Item ${n+1}</button>`).join("")}</div>
+
     ${nextStatus(o.status)?`<button class="nextStatus" onclick="changeStatus('${o.id}','${nextStatus(o.status)}')">${statusActionLabel(o.status)}</button>`:""}
 
     <select onchange="changeStatus('${o.id}',this.value)">
@@ -341,6 +344,33 @@ async function loadOrders(){
   list.innerHTML="<p>Could not load orders. Check the connection.</p>";
  }
 }
+
+
+let lastSpokenOrderId=null;
+function orderSpeechText(o, itemIndex=null){
+ const items=Array.isArray(o.items)?o.items:[];
+ const chosen=itemIndex===null?items:(items[itemIndex]?[items[itemIndex]]:[]);
+ const lines=chosen.map((i,n)=>{
+  const label=itemIndex===null?`Item ${n+1}`:`Item ${itemIndex+1}`;
+  return [label, i.name, i.options?`with ${i.options}`:"", i.notes?`Note: ${i.notes}`:""].filter(Boolean).join(". ");
+ });
+ return [itemIndex===null?`Order for ${o.customer_name||"customer"}.`:"", ...lines, itemIndex===null&&o.notes?`Order note: ${o.notes}`:""].filter(Boolean).join(". ");
+}
+function speakKitchenOrder(id,itemIndex=null){
+ const o=(window.bdCurrentOrders||[]).find(x=>String(x.id)===String(id));
+ if(!o){alert("Order is no longer on the board.");return;}
+ if(!("speechSynthesis" in window)){alert("This device does not support spoken order read-back.");return;}
+ speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(orderSpeechText(o,itemIndex));
+ u.rate=.9; u.pitch=1; u.volume=1;
+ speechSynthesis.speak(u);
+ lastSpokenOrderId=o.id;
+}
+function repeatLastOrder(){
+ if(!lastSpokenOrderId){alert("Tap Read Order on an order first.");return;}
+ speakKitchenOrder(lastSpokenOrderId);
+}
+function stopOrderSpeech(){ if("speechSynthesis" in window) speechSynthesis.cancel(); }
 
 async function changeStatus(id,status){
  try{
