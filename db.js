@@ -104,8 +104,11 @@ function bdSignOut(){
  sessionStorage.removeItem("bdRefreshToken");
 }
 async function bdCreateOrder(order){
- const r=await bdRequest(`${BD_URL}/rest/v1/orders`,{method:"POST",headers:{...bdHeaders(),"Prefer":"return=representation"},body:JSON.stringify(order)});
- return (await r.json())[0];
+ // Customer checkout must always use the public key, never a stale staff token
+ // left in this browser from an earlier admin login.
+ const headers={"apikey":BD_KEY,"Authorization":`Bearer ${BD_KEY}`,"Content-Type":"application/json","Prefer":"return=minimal"};
+ await bdRequest(`${BD_URL}/rest/v1/orders`,{method:"POST",headers,body:JSON.stringify(order)});
+ return {submitted:true};
 }
 async function bdGetOrders(){
  const r=await bdRequest(`${BD_URL}/rest/v1/orders?select=*&order=created_at.desc`,{headers:bdHeaders()});
