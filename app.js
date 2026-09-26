@@ -215,6 +215,13 @@ function openCart(){
  <label class="label">Order notes</label>
  <textarea id="notes" class="field"></textarea>
 
+ <div class="botCheck" style="margin:16px 0;padding:14px;border:2px solid #ddd;border-radius:10px">
+  <label style="display:flex;gap:10px;align-items:center;font-weight:800">
+   <input id="humanCheck" type="checkbox" style="width:22px;height:22px"> I’m a real person placing this order
+  </label>
+  <small style="display:block;margin-top:7px">Required before the order can be sent.</small>
+ </div>
+ <input id="websiteField" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0">
  <button id="placeOrderBtn" class="checkout" onclick="placeOrder()">PLACE PICKUP ORDER</button>
  <p class="notice">Payment at pickup.</p>`;
 
@@ -265,10 +272,14 @@ async function placeOrder(){
  const phoneEl=document.querySelector("#phone");
  const timeEl=document.querySelector("#time");
  const notesEl=document.querySelector("#notes");
+ const humanEl=document.querySelector("#humanCheck");
+ const honeypot=document.querySelector("#websiteField");
+ if(honeypot?.value) return alert("Order verification failed. Please refresh and try again.");
  if(!nameEl?.value.trim()||!phoneEl?.value.trim()||!timeEl?.value)
   return alert("Enter your name, phone number and pickup time.");
  const digits=phoneEl.value.replace(/\D/g,"");
  if(digits.length<10) return alert("Enter a valid phone number with area code.");
+ if(!humanEl?.checked) return alert("Please confirm that you’re a real person before placing the order.");
 
  let subtotal=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
  let tax=taxFor(subtotal);
