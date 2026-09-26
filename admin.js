@@ -1,3 +1,20 @@
+
+const BD_BRAND_DEFAULTS={businessName:"Baker's Dawgs",tagline:"Made fresh. Order ahead. Pick it up hot.",phone:"8282051139",email:"dawgsbakers@gmail.com",logo:"",background:"",primary:"#15100b",accent:"#ffc21a"};
+function getBusinessBranding(){try{return {...BD_BRAND_DEFAULTS,...JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}")};}catch(e){return {...BD_BRAND_DEFAULTS};}}
+function loadBusinessBrandingForm(){
+ const b=getBusinessBranding(), map={brandBusinessName:"businessName",brandTagline:"tagline",brandPhone:"phone",brandEmail:"email",brandLogo:"logo",brandBackground:"background",brandPrimary:"primary",brandAccent:"accent"};
+ Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=b[key]||"";});
+}
+function saveBusinessBranding(){
+ const val=id=>(document.getElementById(id)?.value||"").trim();
+ const b={businessName:val("brandBusinessName")||BD_BRAND_DEFAULTS.businessName,tagline:val("brandTagline")||BD_BRAND_DEFAULTS.tagline,phone:val("brandPhone"),email:val("brandEmail"),logo:val("brandLogo"),background:val("brandBackground"),primary:document.getElementById("brandPrimary")?.value||BD_BRAND_DEFAULTS.primary,accent:document.getElementById("brandAccent")?.value||BD_BRAND_DEFAULTS.accent};
+ localStorage.setItem("bdBusinessBranding",JSON.stringify(b));
+ const s=document.getElementById("brandingStatus");if(s)s.textContent="Branding saved on this installation.";
+ alert("Business branding saved. Open Preview Customer Screen to see it.");
+}
+function previewBusinessBranding(){saveBusinessBranding();window.open("index.html?brand_preview=1","_blank");}
+function resetBusinessBranding(){if(!confirm("Reset business branding to the installed defaults?"))return;localStorage.removeItem("bdBusinessBranding");loadBusinessBrandingForm();const s=document.getElementById("brandingStatus");if(s)s.textContent="Branding reset to installed defaults.";}
+
 const statuses=["New","Accepted","Cooking","Ready","Completed"];
 let currentFilter="all";
 let hideCompleted=true;
@@ -194,6 +211,7 @@ function showBoard(){
  loadOrders();
  loadRestaurantControls();
  loadMenuAvailability();
+ loadBusinessBrandingForm();
 }
 
 async function loadRestaurantControls(){
