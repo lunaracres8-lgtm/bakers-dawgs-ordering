@@ -14,3 +14,6 @@
 .order>button.nextStatus{display:block;width:calc(100% - 20px);margin:12px 10px 4px;background:#16803b;border:0;color:#fff;font-size:17px;padding:14px;letter-spacing:.2px}
 .order>button.nextStatus:hover,.order>button.nextStatus:focus{filter:brightness(1.12)}
 .order>button.nextStatus:active{transform:translateY(1px)}
+
+/* Spoken kitchen order controls */
+.speechActions{display:flex;flex-wrap:wrap;gap:7px;margin:10px}.speechActions button{background:#1d5f8f;color:#fff;border:0;border-radius:8px;padding:11px 13px;font-weight:900;font-size:15px}.speechActions button:first-child{background:#126f3a;flex:1 1 100%;font-size:17px;padding:14px}.speechActions button:active{transform:translateY(1px)}
