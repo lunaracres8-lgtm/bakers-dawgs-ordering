@@ -261,9 +261,13 @@ async function placeOrder(){
   return alert("We could not confirm menu availability. Please try again.");
  }
 
- if(!name.value.trim()||!phone.value.trim()||!time.value)
+ const nameEl=document.querySelector("#name");
+ const phoneEl=document.querySelector("#phone");
+ const timeEl=document.querySelector("#time");
+ const notesEl=document.querySelector("#notes");
+ if(!nameEl?.value.trim()||!phoneEl?.value.trim()||!timeEl?.value)
   return alert("Enter your name, phone number and pickup time.");
- const digits=phone.value.replace(/\D/g,"");
+ const digits=phoneEl.value.replace(/\D/g,"");
  if(digits.length<10) return alert("Enter a valid phone number with area code.");
 
  let subtotal=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
@@ -274,10 +278,10 @@ async function placeOrder(){
  if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent="SENDING ORDER…"; }
 
  let order={
-  customer_name:name.value.trim(),
-  phone:phone.value.trim(),
-  pickup_time:time.value,
-  notes:notes.value.trim(),
+  customer_name:nameEl.value.trim(),
+  phone:phoneEl.value.trim(),
+  pickup_time:timeEl.value,
+  notes:notesEl?.value.trim()||"",
   items:cart.map(x=>({
    name:menu[x.i][1],
    options:[
@@ -299,7 +303,7 @@ async function placeOrder(){
   modalBody.innerHTML=
   `<h2>Order Received!</h2>
   <p>Your Baker’s Dawgs pickup order <b>#${String(saved.id).slice(0,8)}</b> was sent to the restaurant.</p>
-  <p><b>Pickup:</b> ${time.value}<br><b>Subtotal:</b> ${money(subtotal)}<br><b>NC sales tax (6.75%):</b> ${money(tax)}<br><b>Total:</b> ${money(total)}</p>
+  <p><b>Pickup:</b> ${timeEl.value}<br><b>Subtotal:</b> ${money(subtotal)}<br><b>NC sales tax (6.75%):</b> ${money(tax)}<br><b>Total:</b> ${money(total)}</p>
   <button class="checkout" onclick="closeModal()">DONE</button>`;
  }catch(e){
   if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent="PLACE PICKUP ORDER"; }
