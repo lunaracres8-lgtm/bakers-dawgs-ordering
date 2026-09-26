@@ -378,6 +378,38 @@ function repeatLastOrder(){
  speakKitchenOrder(lastSpokenOrderId);
 }
 function stopOrderSpeech(){ if("speechSynthesis" in window) speechSynthesis.cancel(); }
+let kitchenRecognition=null,kitchenListening=false,kitchenPauseTimer=null;
+function voiceStatus(msg){const el=document.querySelector("#voiceAssistantStatus");if(el)el.textContent=msg;}
+function startKitchenListening(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){alert("Voice commands are not supported by this browser. The Read Order buttons still work.");return;}
+ clearTimeout(kitchenPauseTimer);
+ if(!kitchenRecognition){
+  kitchenRecognition=new SR(); kitchenRecognition.lang="en-US"; kitchenRecognition.continuous=true; kitchenRecognition.interimResults=false;
+  kitchenRecognition.onresult=e=>{
+   const said=Array.from(e.results).slice(e.resultIndex).map(r=>r[0].transcript).join(" ").toLowerCase().trim();
+   if(/stop listening|pause baker|baker pause|pause assistant/.test(said)){stopKitchenListening("Voice assistant paused.");return;}
+   if(/repeat (that|last) order|repeat order/.test(said)){repeatLastOrder();return;}
+   if(/read (the )?order|repeat everything/.test(said)){repeatLastOrder();return;}
+   const m=said.match(/(?:read|repeat) (?:item|hot dog|hot dawg) (one|two|three|four|five|\d+)/);
+   if(m&&lastSpokenOrderId){const words={one:1,two:2,three:3,four:4,five:5};const n=words[m[1]]||Number(m[1]);speakKitchenOrder(lastSpokenOrderId,n-1);}
+  };
+  kitchenRecognition.onend=()=>{if(kitchenListening){try{kitchenRecognition.start();}catch(e){}}};
+  kitchenRecognition.onerror=e=>{if(e.error==="not-allowed"){kitchenListening=false;voiceStatus("Microphone permission is off.");}};
+ }
+ kitchenListening=true; try{kitchenRecognition.start();}catch(e){}
+ voiceStatus("Listening for kitchen commands");
+}
+function stopKitchenListening(message="Voice assistant paused."){
+ kitchenListening=false; clearTimeout(kitchenPauseTimer);
+ if(kitchenRecognition){try{kitchenRecognition.stop();}catch(e){}}
+ voiceStatus(message);
+}
+function pauseKitchenListening(minutes){
+ stopKitchenListening(`Paused for ${minutes} minutes`);
+ kitchenPauseTimer=setTimeout(()=>startKitchenListening(),minutes*60000);
+}
+
 
 async function changeStatus(id,status){
  try{
