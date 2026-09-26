@@ -56,11 +56,11 @@ function playOrderAlert(){
  try{
   const ctx=new (window.AudioContext||window.webkitAudioContext)();
   const master=ctx.createGain();
-  master.gain.value=.9;
+  master.gain.value=.45;
   master.connect(ctx.destination);
   const ring=(frequency,start,duration)=>{
    const osc=ctx.createOscillator(),gain=ctx.createGain();
-   osc.type="square"; osc.frequency.value=frequency;
+   osc.type="sine"; osc.frequency.value=frequency;
    gain.gain.setValueAtTime(0,ctx.currentTime+start);
    gain.gain.linearRampToValueAtTime(.8,ctx.currentTime+start+.02);
    gain.gain.setValueAtTime(.8,ctx.currentTime+start+duration-.04);
@@ -68,10 +68,10 @@ function playOrderAlert(){
    osc.connect(gain); gain.connect(master);
    osc.start(ctx.currentTime+start); osc.stop(ctx.currentTime+start+duration+.02);
   };
-  ring(880,0,.35); ring(1175,.42,.35); ring(880,.84,.35); ring(1175,1.26,.5);
-  setTimeout(()=>ctx.close(),2100);
+  ring(659,0,.18); ring(784,.20,.18); ring(988,.40,.28);
+  setTimeout(()=>ctx.close(),1000);
  }catch(e){}
- if(navigator.vibrate) navigator.vibrate([500,150,500,150,700]);
+ if(navigator.vibrate) navigator.vibrate([180,80,260]);
 }
 
 
