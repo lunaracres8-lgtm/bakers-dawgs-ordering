@@ -1,19 +1,21 @@
 
 const BD_BRAND_DEFAULTS={businessName:"Baker's Dawgs",tagline:"Made fresh. Order ahead. Pick it up hot.",phone:"8282051139",email:"dawgsbakers@gmail.com",logo:"",background:"",primary:"#15100b",accent:"#ffc21a"};
 function getBusinessBranding(){try{return {...BD_BRAND_DEFAULTS,...JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}")};}catch(e){return {...BD_BRAND_DEFAULTS};}}
-function loadBusinessBrandingForm(){
- const b=getBusinessBranding(), map={brandBusinessName:"businessName",brandTagline:"tagline",brandPhone:"phone",brandEmail:"email",brandLogo:"logo",brandBackground:"background",brandPrimary:"primary",brandAccent:"accent"};
+async function loadBusinessBrandingForm(){
+ let b={...BD_BRAND_DEFAULTS};
+ try{const cloud=await bdGetBusinessBranding();if(cloud)b={businessName:cloud.business_name,tagline:cloud.tagline,phone:cloud.phone,email:cloud.email,logo:cloud.logo_url,background:cloud.background_url,primary:cloud.primary_color,accent:cloud.accent_color};}catch(e){try{b={...b,...JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}")};}catch(_){}}
+ localStorage.setItem("bdBusinessBranding",JSON.stringify(b));
+ const map={brandBusinessName:"businessName",brandTagline:"tagline",brandPhone:"phone",brandEmail:"email",brandLogo:"logo",brandBackground:"background",brandPrimary:"primary",brandAccent:"accent"};
  Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=b[key]||"";});
 }
-function saveBusinessBranding(){
+async function saveBusinessBranding(){
  const val=id=>(document.getElementById(id)?.value||"").trim();
  const b={businessName:val("brandBusinessName")||BD_BRAND_DEFAULTS.businessName,tagline:val("brandTagline")||BD_BRAND_DEFAULTS.tagline,phone:val("brandPhone"),email:val("brandEmail"),logo:val("brandLogo"),background:val("brandBackground"),primary:document.getElementById("brandPrimary")?.value||BD_BRAND_DEFAULTS.primary,accent:document.getElementById("brandAccent")?.value||BD_BRAND_DEFAULTS.accent};
- localStorage.setItem("bdBusinessBranding",JSON.stringify(b));
- const s=document.getElementById("brandingStatus");if(s)s.textContent="Branding saved on this installation.";
- alert("Business branding saved. Open Preview Customer Screen to see it.");
+ const s=document.getElementById("brandingStatus");if(s)s.textContent="Saving branding to all devices…";
+ try{await bdSaveBusinessBranding(b);localStorage.setItem("bdBusinessBranding",JSON.stringify(b));if(s)s.textContent="Saved — customer website/app will use these settings.";alert("Business branding saved for all devices.");return true;}catch(e){console.error(e);if(s)s.textContent="Could not save branding to the cloud.";alert("Could not save branding. Make sure you are signed in as staff.");return false;}
 }
-function previewBusinessBranding(){saveBusinessBranding();window.open("index.html?brand_preview=1","_blank");}
-function resetBusinessBranding(){if(!confirm("Reset business branding to the installed defaults?"))return;localStorage.removeItem("bdBusinessBranding");loadBusinessBrandingForm();const s=document.getElementById("brandingStatus");if(s)s.textContent="Branding reset to installed defaults.";}
+async function previewBusinessBranding(){if(await saveBusinessBranding())window.open("index.html?brand_preview=1","_blank");}
+async function resetBusinessBranding(){if(!confirm("Reset business branding to the installed defaults?"))return;const map={brandBusinessName:"businessName",brandTagline:"tagline",brandPhone:"phone",brandEmail:"email",brandLogo:"logo",brandBackground:"background",brandPrimary:"primary",brandAccent:"accent"};Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=BD_BRAND_DEFAULTS[key]||"";});await saveBusinessBranding();}
 
 const statuses=["New","Accepted","Cooking","Ready","Completed"];
 let currentFilter="all";
