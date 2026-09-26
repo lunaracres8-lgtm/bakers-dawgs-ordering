@@ -131,7 +131,32 @@ function logout(){
 }
 
 let adminLockTimer=null;
-const ADMIN_AUTO_LOCK_MS=45000;
+const ADMIN_AUTO_LOCK_MS=5*60*1000;
+const DEFAULT_STAFF_PIN_HASH="f3e055913a0b1eb0f07317896f9a1bc466b9a50db85a7f882f3ffde9ffb23aca";
+let pinFailures=0, pinBlockedUntil=0;
+async function hashPin(pin){
+ const bytes=new TextEncoder().encode(pin);
+ const digest=await crypto.subtle.digest("SHA-256",bytes);
+ return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+async function unlockWithPin(){
+ const input=document.querySelector("#staffPin"), msg=document.querySelector("#pinMessage");
+ if(Date.now()<pinBlockedUntil){if(msg)msg.textContent="Too many attempts. Try again in a moment.";return;}
+ const expected=localStorage.getItem("bdStaffPinHash")||DEFAULT_STAFF_PIN_HASH;
+ if(await hashPin((input?.value||"").trim())===expected){
+  pinFailures=0;if(input)input.value="";document.querySelector("#pinGate")?.classList.add("hidden");showBoard();return;
+ }
+ pinFailures++;if(input)input.value="";
+ if(pinFailures>=5){pinBlockedUntil=Date.now()+30000;pinFailures=0;}
+ if(msg)msg.textContent=pinBlockedUntil>Date.now()?"Too many attempts. Locked for 30 seconds.":"Incorrect PIN. Try again.";
+}
+function showPinGate(){
+ const login=document.querySelector("#login"),recovery=document.querySelector("#recovery"),board=document.querySelector("#app"),gate=document.querySelector("#pinGate");
+ if(login)login.style.display="none";if(recovery)recovery.style.display="none";
+ if(board){board.classList.add("hidden");board.style.display="none";}
+ if(gate){gate.classList.remove("hidden");gate.style.display="grid";}
+ setTimeout(()=>document.querySelector("#staffPin")?.focus(),50);
+}
 
 function armAdminAutoLock(){
  clearTimeout(adminLockTimer);
@@ -141,9 +166,8 @@ function armAdminAutoLock(){
 function lockAdminScreen(){
  clearTimeout(adminLockTimer);
  document.body.dataset.adminLocked="true";
- sessionStorage.setItem("bdReturnToAdmin","1");
- // This is UI-only: never pause restaurant ordering here.
- location.replace("index.html?admin_locked=1");
+ if(bdHasSavedSession()){showPinGate();return;}
+ location.reload();
 }
 ["pointerdown","keydown","touchstart","scroll"].forEach(evt=>{
  document.addEventListener(evt,()=>{
@@ -382,7 +406,7 @@ if(recoveryToken){
  (async()=>{
   if(await bdRefreshSession()){
    sessionStorage.removeItem("bdReturnToAdmin");
-   showBoard();
+   showPinGate();
   }
  })();
 }
@@ -399,3 +423,8 @@ const forgotBtn=document.querySelector("#forgotBtn");
 if(forgotBtn){ forgotBtn.onclick=async function(e){ e.preventDefault(); await forgotPassword(); }; }
 const passwordInput=document.querySelector("#password");
 if(passwordInput) passwordInput.addEventListener("keydown",e=>{if(e.key==="Enter") login();});
+
+const pinUnlockBtn=document.querySelector("#pinUnlockBtn");
+if(pinUnlockBtn)pinUnlockBtn.onclick=unlockWithPin;
+const staffPinInput=document.querySelector("#staffPin");
+if(staffPinInput)staffPinInput.addEventListener("keydown",e=>{if(e.key==="Enter")unlockWithPin();});
