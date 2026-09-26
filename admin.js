@@ -319,6 +319,8 @@ async function loadOrders(){
 
     ${o.notes?`<p><b>Order note:</b> ${esc(o.notes)}</p>`:""}
 
+    ${nextStatus(o.status)?`<button class="nextStatus" onclick="changeStatus('${o.id}','${nextStatus(o.status)}')">${statusActionLabel(o.status)}</button>`:""}
+
     <select onchange="changeStatus('${o.id}',this.value)">
      ${statuses.map(s=>
       `<option value="${s}" ${o.status===s?"selected":""}>${s}</option>`
