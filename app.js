@@ -1,3 +1,21 @@
+
+function applyBusinessBranding(){
+ let b={};try{b=JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}");}catch(e){}
+ if(!b||!Object.keys(b).length)return;
+ const name=b.businessName||"Baker's Dawgs";
+ const title=document.getElementById("brandBusinessNameDisplay");if(title)title.textContent=name.toUpperCase();
+ const foot=document.getElementById("brandFooterName");if(foot)foot.textContent=name;
+ if(b.primary)document.documentElement.style.setProperty("--brand-primary",b.primary);
+ if(b.accent)document.documentElement.style.setProperty("--brand-accent",b.accent);
+ if(b.background){document.body.style.backgroundImage='linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.28)),url("'+String(b.background).replace(/["']/g,"")+'")';document.body.style.backgroundSize="cover";document.body.style.backgroundAttachment="fixed";}
+ if(b.logo){
+  let logo=document.getElementById("customBrandLogo");
+  if(!logo){logo=document.createElement("img");logo.id="customBrandLogo";logo.alt=name+" logo";logo.style.cssText="max-width:140px;max-height:100px;object-fit:contain;display:block;margin:0 auto 8px";document.querySelector("header")?.prepend(logo);}
+  logo.src=b.logo;
+ }
+ document.title=name+" | Order Ahead";
+}
+
 const menu=[
 ["Hot Dawgs","Carolina Classic Hot Dawg","Mustard, homemade homestyle slaw, chili and onions",3.28],
 ["Hot Dawgs","Sauerkraut & Mustard Dawg","Sauerkraut and mustard",3.28],
@@ -323,6 +341,7 @@ async function placeOrder(){
  }
 }
 
+applyBusinessBranding();
 render();
 update();
 showStaffReturnIfLocked();
