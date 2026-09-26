@@ -412,6 +412,11 @@ function pauseKitchenListening(minutes){
 
 
 async function changeStatus(id,status){
+ const order=(window.bdCurrentOrders||[]).find(o=>String(o.id)===String(id));
+ if(status==="Completed" && order && !order.payment_method){
+  alert("Select how the customer paid before completing this order.");
+  return;
+ }
  try{
   await bdUpdateOrder(id,{status});
   await loadOrders();
