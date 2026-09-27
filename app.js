@@ -12,8 +12,9 @@ async function applyBusinessBranding(){
  if(b.accent)document.documentElement.style.setProperty("--brand-accent",b.accent);
  if(b.background){document.body.style.backgroundImage='linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.28)),url("'+String(b.background).replace(/["']/g,"")+'")';document.body.style.backgroundSize="cover";document.body.style.backgroundAttachment="fixed";}
  if(b.logo){let logo=document.getElementById("customBrandLogo");if(!logo){logo=document.createElement("img");logo.id="customBrandLogo";logo.alt=name+" logo";logo.style.cssText="max-width:140px;max-height:100px;object-fit:contain;display:block;margin:0 auto 8px";document.querySelector("header")?.prepend(logo);}logo.src=b.logo;}
- const existingSpecial=document.getElementById("customTodaySpecial");const rawSpecial=String(b.specialMessage||"");const schedule=rawSpecial.match(/\n?\[\[BD_DAY:(every|[0-6])\]\]$/);const specialMessage=rawSpecial.replace(/\n?\[\[BD_DAY:(every|[0-6])\]\]$/,"");const scheduledToday=!schedule||schedule[1]==="every"||Number(schedule[1])===new Date().getDay();if(b.specialEnabled&&scheduledToday&&(b.specialTitle||specialMessage)){const card=existingSpecial||document.createElement("div");card.id="customTodaySpecial";card.className="cakePromo customTodaySpecial";card.innerHTML=`<b>${String(b.specialTitle||"Today’s Special").replace(/[<>&]/g,"")}</b><span>${specialMessage.replace(/[<>&]/g,"")}</span>`;if(!existingSpecial)document.querySelector(".deliveryNotice")?.insertAdjacentElement("afterend",card);}else existingSpecial?.remove();
+ const existingSpecial=document.getElementById("customTodaySpecial");const rawSpecial=String(b.specialMessage||"");const schedule=rawSpecial.match(/\[\[BD_DAY:(every|[0-6])\]\]/),hours=rawSpecial.match(/\[\[BD_HOURS:(manual|standard|daily)\]\]/);const specialMessage=rawSpecial.replace(/\n?\[\[BD_DAY:(every|[0-6])\]\]/,"").replace(/\n?\[\[BD_HOURS:(manual|standard|daily)\]\]/,"").trim();window.bdAutoHours=hours?hours[1]:"manual";const scheduledToday=!schedule||schedule[1]==="every"||Number(schedule[1])===new Date().getDay();if(b.specialEnabled&&scheduledToday&&(b.specialTitle||specialMessage)){const card=existingSpecial||document.createElement("div");card.id="customTodaySpecial";card.className="cakePromo customTodaySpecial";card.innerHTML=`<b>${String(b.specialTitle||"Today’s Special").replace(/[<>&]/g,"")}</b><span>${specialMessage.replace(/[<>&]/g,"")}</span>`;if(!existingSpecial)document.querySelector(".deliveryNotice")?.insertAdjacentElement("afterend",card);}else existingSpecial?.remove();
  document.title=name+" | Order Ahead";
+ if(typeof refreshOrderingStatus==="function")refreshOrderingStatus();
 }
 
 const defaultMenu=[
@@ -55,6 +56,14 @@ let cart=JSON.parse(localStorage.getItem("bdCart")||"[]");
 let active=null;
 let orderingOpen=true;
 let orderingStatusKnown=false;
+function isWithinAutoHours(){
+ const mode=window.bdAutoHours||"manual";if(mode==="manual")return true;
+ const now=new Date(),day=now.getDay(),minutes=now.getHours()*60+now.getMinutes(),inRange=(start,end)=>minutes>=start&&minutes<end;
+ if(mode==="daily")return inRange(660,840);
+ if(day>=1&&day<=3)return inRange(660,840);
+ if(day===4||day===5)return inRange(660,840)||inRange(1020,1200);
+ return false;
+}
 let prepMinutes=20;
 let menuAvailability={};
 let lastCustomer=JSON.parse(localStorage.getItem("bdCustomer")||"{}");
@@ -196,7 +205,7 @@ async function loadEditableMenu(){
 async function refreshOrderingStatus(){
  try{
   const settings=await bdGetRestaurantSettings();
-  orderingOpen=settings?.ordering_open!==false;
+  orderingOpen=settings?.ordering_open!==false&&isWithinAutoHours();
   prepMinutes=Number(settings?.prep_minutes)||20;
   orderingStatusKnown=true;
   document.body.classList.toggle("ordering-paused",!orderingOpen);
@@ -293,7 +302,7 @@ async function placeOrder(){
  if(customerName||customerPhone){ lastCustomer={name:customerName,phone:customerPhone}; localStorage.setItem("bdCustomer",JSON.stringify(lastCustomer)); }
  try{
   const settings=await bdGetRestaurantSettings();
-  orderingOpen=settings?.ordering_open!==false;
+  orderingOpen=settings?.ordering_open!==false&&isWithinAutoHours();
   orderingStatusKnown=true;
   if(!orderingOpen) return showOrderingPaused();
  }catch(e){
