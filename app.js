@@ -1,7 +1,7 @@
 
 async function applyBusinessBranding(){
  let b=null;
- try{const cloud=await bdGetBusinessBranding();if(cloud)b={businessName:cloud.business_name,tagline:cloud.tagline,phone:cloud.phone,email:cloud.email,logo:cloud.logo_url,background:cloud.background_url,primary:cloud.primary_color,accent:cloud.accent_color};}catch(e){}
+ try{const cloud=await bdGetBusinessBranding();if(cloud)b={businessName:cloud.business_name,tagline:cloud.tagline,phone:cloud.phone,email:cloud.email,logo:cloud.logo_url,background:cloud.background_url,primary:cloud.primary_color,accent:cloud.accent_color,specialEnabled:cloud.special_enabled,specialTitle:cloud.special_title,specialMessage:cloud.special_message};}catch(e){}
  if(!b){try{b=JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}");}catch(e){b={};}}
  if(!b||!Object.keys(b).length)return;
  localStorage.setItem("bdBusinessBranding",JSON.stringify(b));
@@ -12,21 +12,22 @@ async function applyBusinessBranding(){
  if(b.accent)document.documentElement.style.setProperty("--brand-accent",b.accent);
  if(b.background){document.body.style.backgroundImage='linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.28)),url("'+String(b.background).replace(/["']/g,"")+'")';document.body.style.backgroundSize="cover";document.body.style.backgroundAttachment="fixed";}
  if(b.logo){let logo=document.getElementById("customBrandLogo");if(!logo){logo=document.createElement("img");logo.id="customBrandLogo";logo.alt=name+" logo";logo.style.cssText="max-width:140px;max-height:100px;object-fit:contain;display:block;margin:0 auto 8px";document.querySelector("header")?.prepend(logo);}logo.src=b.logo;}
+ const existingSpecial=document.getElementById("customTodaySpecial");if(b.specialEnabled&&(b.specialTitle||b.specialMessage)){const card=existingSpecial||document.createElement("div");card.id="customTodaySpecial";card.className="cakePromo customTodaySpecial";card.innerHTML=`<b>${String(b.specialTitle||"Today’s Special").replace(/[<>&]/g,"")}</b><span>${String(b.specialMessage||"").replace(/[<>&]/g,"")}</span>`;if(!existingSpecial)document.querySelector(".deliveryNotice")?.insertAdjacentElement("afterend",card);}else existingSpecial?.remove();
  document.title=name+" | Order Ahead";
 }
 
-const menu=[
+const defaultMenu=[
 ["Hot Dawgs","Carolina Classic Hot Dawg","Mustard, homemade homestyle slaw, chili and onions",3.28],
 ["Hot Dawgs","Sauerkraut & Mustard Dawg","Sauerkraut and mustard",3.28],
 ["Hot Dawgs","Chili & Cheez Dawg","Chili and cheese",3.28],
 ["Hot Dawgs","Chili, Onion & Mustard Dawg","Chili, onions and mustard",3.28],
 ["Hot Dawgs","Sweet Relish & Mustard Dawg","Sweet relish and mustard",3.28],
 ["Hot Dawgs","Loaded Hot Dawg","Choose 6–8 toppings",4.25],
- ["Hot Dawg Combos","Carolina Classic Hot Dawg Combo","Hot Dawg, bag of chips, and drink - $7.00 total with tax",6.56],
-["Hot Dawg Combos","Sauerkraut & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink - $7.00 total with tax",6.56],
-["Hot Dawg Combos","Chili & Cheez Dawg Combo","Hot Dawg, bag of chips, and drink - $7.00 total with tax",6.56],
-["Hot Dawg Combos","Chili, Onion & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink - $7.00 total with tax",6.56],
-["Hot Dawg Combos","Sweet Relish & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink - $7.00 total with tax",6.56],
+["Hot Dawg Combos","Carolina Classic Hot Dawg Combo","Hot Dawg, bag of chips, and drink • $7.00 total with tax",6.56],
+["Hot Dawg Combos","Sauerkraut & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink • $7.00 total with tax",6.56],
+["Hot Dawg Combos","Chili & Cheez Dawg Combo","Hot Dawg, bag of chips, and drink • $7.00 total with tax",6.56],
+["Hot Dawg Combos","Chili, Onion & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink • $7.00 total with tax",6.56],
+["Hot Dawg Combos","Sweet Relish & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink • $7.00 total with tax",6.56],
 ["Smoked Sausages","Brat / Bratwurst","German smoked sausage",6.00],
 ["Smoked Sausages","Classic Plain Smoked Sausage","Johnsonville smoked sausage",6.00],
 ["Smoked Sausages","Cheddar Cheez Smoked Sausage","Cheddar cheese smoked sausage",6.00],
@@ -42,6 +43,7 @@ const menu=[
 ["Cakes","German Chocolate Cake","Year-round • $5 per slice",5.00],
 ["Cakes","3 Milks Cake","Fall only • evaporated milk • condensed milk • heavy cream",5.00]
 ];
+let menu=defaultMenu.map(item=>[...item]);
 
 const toppings=[
 "Yellow Mustard","Spicy Mustard","Chili","Cheese",
@@ -60,7 +62,7 @@ const money=n=>"$"+n.toFixed(2);
 const TAX_RATE=0.0675;
 const taxFor=subtotal=>Math.round(subtotal*TAX_RATE*100)/100;
 const totalWithTax=subtotal=>Math.round((subtotal+taxFor(subtotal))*100)/100;
-const cats=[...new Set(menu.map(x=>x[0]))];
+let cats=[...new Set(menu.map(x=>x[0]))];
 
 const menuEl=document.querySelector("#menu");
 
@@ -71,7 +73,7 @@ function render(cat){
  <div class="grid">${
  menu.map((x,i)=>x[0]===c?
  `<article class="item ${menuAvailability[x[1]]===false?"soldout":""}">
- <div class="foodIcon">${c==="Hot Dawgs"?"🌭":c==="Smoked Sausages"?"🔥":c==="Sandwiches"?"🥪":c==="Cakes"?"🍰":"🥤"}</div>
+ <div class="foodIcon">${(c==="Hot Dawgs"||c==="Hot Dawg Combos")?"🌭":c==="Smoked Sausages"?"🔥":c==="Sandwiches"?"🥪":c==="Cakes"?"🍰":"🥤"}</div>
  <h3>${x[1]}</h3>
  <p class="desc">${x[2]}</p>
  <div class="price">${money(x[3])} <small>+ tax</small></div>
@@ -178,6 +180,16 @@ async function refreshMenuAvailability(){
   const rows=await bdGetMenuAvailability();
   menuAvailability=Object.fromEntries((rows||[]).map(r=>[r.item_name,r.available!==false]));
   render();
+ }catch(e){}
+}
+async function loadEditableMenu(){
+ try{
+  const rows=await bdGetMenuItems();
+  if(!rows?.length)return;
+  menu=rows.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[x.category,x.item_name,x.description||"",Number(x.price)]);
+  cats=[...new Set(menu.map(x=>x[0]))];
+  menuAvailability=Object.fromEntries(rows.map(x=>[x.item_name,x.available!==false]));
+  render();update();
  }catch(e){}
 }
 
@@ -351,5 +363,7 @@ update();
 showStaffReturnIfLocked();
 refreshOrderingStatus();
 refreshMenuAvailability();
+loadEditableMenu();
 setInterval(refreshOrderingStatus,30000);
 setInterval(refreshMenuAvailability,30000);
+setInterval(loadEditableMenu,30000);
