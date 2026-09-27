@@ -12,7 +12,7 @@ async function applyBusinessBranding(){
  if(b.accent)document.documentElement.style.setProperty("--brand-accent",b.accent);
  if(b.background){document.body.style.backgroundImage='linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.28)),url("'+String(b.background).replace(/["']/g,"")+'")';document.body.style.backgroundSize="cover";document.body.style.backgroundAttachment="fixed";}
  if(b.logo){let logo=document.getElementById("customBrandLogo");if(!logo){logo=document.createElement("img");logo.id="customBrandLogo";logo.alt=name+" logo";logo.style.cssText="max-width:140px;max-height:100px;object-fit:contain;display:block;margin:0 auto 8px";document.querySelector("header")?.prepend(logo);}logo.src=b.logo;}
- const existingSpecial=document.getElementById("customTodaySpecial");if(b.specialEnabled&&(b.specialTitle||b.specialMessage)){const card=existingSpecial||document.createElement("div");card.id="customTodaySpecial";card.className="cakePromo customTodaySpecial";card.innerHTML=`<b>${String(b.specialTitle||"Today’s Special").replace(/[<>&]/g,"")}</b><span>${String(b.specialMessage||"").replace(/[<>&]/g,"")}</span>`;if(!existingSpecial)document.querySelector(".deliveryNotice")?.insertAdjacentElement("afterend",card);}else existingSpecial?.remove();
+ const existingSpecial=document.getElementById("customTodaySpecial");const rawSpecial=String(b.specialMessage||"");const schedule=rawSpecial.match(/\n?\[\[BD_DAY:(every|[0-6])\]\]$/);const specialMessage=rawSpecial.replace(/\n?\[\[BD_DAY:(every|[0-6])\]\]$/,"");const scheduledToday=!schedule||schedule[1]==="every"||Number(schedule[1])===new Date().getDay();if(b.specialEnabled&&scheduledToday&&(b.specialTitle||specialMessage)){const card=existingSpecial||document.createElement("div");card.id="customTodaySpecial";card.className="cakePromo customTodaySpecial";card.innerHTML=`<b>${String(b.specialTitle||"Today’s Special").replace(/[<>&]/g,"")}</b><span>${specialMessage.replace(/[<>&]/g,"")}</span>`;if(!existingSpecial)document.querySelector(".deliveryNotice")?.insertAdjacentElement("afterend",card);}else existingSpecial?.remove();
  document.title=name+" | Order Ahead";
 }
 
@@ -276,6 +276,13 @@ function closeModal(){
  modal.classList.add("hidden");
 }
 
+function printLastCustomerReceipt(){
+ const r=JSON.parse(localStorage.getItem("bdLastCustomerReceipt")||"null");if(!r)return;
+ const rows=r.items.map(i=>`<tr><td>${String(i.name).replace(/[<>&]/g,"")}</td><td>$${Number(i.price||0).toFixed(2)}</td></tr>`).join("");
+ const w=window.open("","_blank");if(!w){alert("Allow pop-ups to print your receipt.");return;}
+ w.document.write(`<main style="font:16px Arial;max-width:360px;margin:20px auto"><h1>Baker's Dawgs</h1><h2>Order #${r.ticket}</h2><p>Pickup: ${String(r.pickup).replace(/[<>&]/g,"")}</p><table style="width:100%">${rows}</table><hr><h2>Total: $${Number(r.total).toFixed(2)}</h2><p>Pay at pickup. Thank you!</p></main>`);w.document.close();w.focus();w.print();
+}
+
 function backdrop(e){
  if(e.target.id==="modal")closeModal();
 }
@@ -322,7 +329,9 @@ async function placeOrder(){
  if(submitBtn?.disabled) return;
  if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent="SENDING ORDER…"; }
 
+ const customerTicket="BD"+Date.now().toString(36).toUpperCase();
  let order={
+  id:customerTicket,
   customer_name:nameEl.value.trim(),
   phone:phoneEl.value.trim(),
   pickup_time:timeEl.value,
@@ -341,16 +350,17 @@ async function placeOrder(){
  };
 
  try{
-  let saved=await bdCreateOrder(order);
+ let saved=await bdCreateOrder(order);
+  localStorage.setItem("bdLastCustomerReceipt",JSON.stringify({ticket:customerTicket,pickup:timeEl.value,total,items:order.items}));
   cart=[];
   save();
 
   modalBody.innerHTML=
   `<div class="orderSuccess"><div class="successCheck">✓</div><h2>Order Received!</h2>
   <p class="successLead">Your order is in the kitchen.</p><p><b>PAY AT PICKUP</b><br>No online payment was taken. Please pay at the restaurant when you pick up your order.</p>
-  ${saved.id?`<div class="orderNumber">ORDER #${String(saved.id).slice(0,8).toUpperCase()}</div>`:""}</div>
+  <div class="orderNumber">ORDER #${customerTicket}</div></div>
   <p><b>Pickup:</b> ${timeEl.value}<br><b>Subtotal:</b> ${money(subtotal)}<br><b>NC sales tax (6.75%):</b> ${money(tax)}<br><b>Total:</b> ${money(total)}</p>
-  <button class="checkout" onclick="closeModal()">DONE</button>`;
+  <button class="checkout" onclick="printLastCustomerReceipt()">PRINT RECEIPT</button><button class="checkout" onclick="closeModal()">DONE</button>`;
  }catch(e){
   if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent="PLACE PICKUP ORDER"; }
   alert("Order could not be sent. Please try again.");
