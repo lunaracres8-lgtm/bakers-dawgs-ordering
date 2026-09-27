@@ -55,7 +55,7 @@ async function uploadBrandImage(input,targetId){
  const field=document.getElementById(targetId);if(field)field.value=data;if(status)status.textContent="Artwork ready — press Save Brand Look to publish it.";
 }
 
-const statuses=["New","Accepted","Cooking","Ready","Completed"];
+const statuses=["New","Accepted","Cooking","Ready","Completed","Voided"];
 let currentFilter="all";
 let hideCompleted=true;
 let knownOrderIds=new Set();
@@ -150,7 +150,7 @@ function isLate(o){
 
 function nextStatus(status){
  const i=statuses.indexOf(status);
- return i>=0&&i<statuses.length-1?statuses[i+1]:null;
+ return i>=0&&i<3?statuses[i+1]:null;
 }
 
 function statusActionLabel(status){
@@ -359,22 +359,36 @@ function setupAdminViews(){
  windowSale.className="windowSale";
  windowSale.dataset.adminView="window";
  app.append(windowSale);
+ const kitchen=document.createElement("section");
+ kitchen.id="kitchenDisplay";
+ kitchen.className="kitchenDisplay";
+ kitchen.dataset.adminView="kitchen";
+ app.append(kitchen);
  const orders=[app.querySelector(".restaurantControls"),app.querySelector(".toolbar"),app.querySelector(".voiceAssistant"),app.querySelector("#dailyCloseout"),app.querySelector(".metrics"),app.querySelector("nav"),app.querySelector("#orders")];
  orders.forEach(el=>{if(el)el.dataset.adminView="orders";});
  if(menu)menu.dataset.adminView="menu";
  if(owner)owner.dataset.adminView="owner";
  const tabs=document.createElement("nav");
  tabs.className="adminViewTabs";
- tabs.innerHTML=`<button type="button" data-view="orders" onclick="setAdminView('orders')">ORDERS</button><button type="button" data-view="window" onclick="setAdminView('window')">WINDOW SALE</button><button type="button" data-view="menu" onclick="setAdminView('menu')">MENU</button><button type="button" data-view="owner" onclick="setAdminView('owner')">OWNER</button>`;
+ tabs.innerHTML=`<button type="button" data-view="orders" onclick="setAdminView('orders')">ORDERS</button><button type="button" data-view="kitchen" onclick="setAdminView('kitchen')">KITCHEN</button><button type="button" data-view="window" onclick="setAdminView('window')">WINDOW SALE</button><button type="button" data-view="menu" onclick="setAdminView('menu')">MENU</button><button type="button" data-view="owner" onclick="setAdminView('owner')">OWNER</button>`;
  app.prepend(tabs);
  setAdminView(activeAdminView);
 }
 function setAdminView(view){
- activeAdminView=["orders","window","menu","owner"].includes(view)?view:"orders";
+ activeAdminView=["orders","kitchen","window","menu","owner"].includes(view)?view:"orders";
  document.body.dataset.adminView=activeAdminView;
  localStorage.setItem("bdAdminView",activeAdminView);
  document.querySelectorAll(".adminViewTabs button").forEach(button=>button.classList.toggle("active",button.dataset.view===activeAdminView));
  if(activeAdminView==="window")renderWindowOrder();
+ if(activeAdminView==="kitchen")renderKitchenDisplay();
+}
+
+function renderKitchenDisplay(){
+ const box=document.getElementById("kitchenDisplay");if(!box)return;
+ const active=(window.bdCurrentOrders||[]).filter(order=>!["Completed","Voided"].includes(order.status));
+ const rank={New:0,Accepted:1,Cooking:2,Ready:3};active.sort((a,b)=>(rank[a.status]??9)-(rank[b.status]??9)||new Date(a.created_at)-new Date(b.created_at));
+ const cards=active.map(order=>`<article class="kitchenTicket ${String(order.status||"").toLowerCase()}"><header><span>Ticket #${ticketCode(order)}</span><b>${esc(order.status)}</b></header><h2>${esc(order.customer_name||"Customer")}</h2><p>Pickup: ${esc(order.pickup_time||"Now")} • <span class="${isLate(order)?"lateTimer":""}">${isLate(order)?"OVERDUE • ":""}${waitTime(order.created_at)}</span></p><ul>${(order.items||[]).map(item=>`<li><b>${Number(item.quantity||1)>1?`${Number(item.quantity)} × `:""}${esc(item.name)}</b>${item.options?`<small>${esc(item.options)}</small>`:""}${item.notes?`<small>Note: ${esc(item.notes)}</small>`:""}</li>`).join("")}</ul>${order.notes?`<p class="kitchenNote">${esc(order.notes)}</p>`:""}${nextStatus(order.status)?`<button type="button" onclick="changeStatus('${order.id}','${nextStatus(order.status)}')">${statusActionLabel(order.status)}</button>`:""}</article>`).join("");
+ box.innerHTML=`<div class="kitchenHeader"><div><span class="eyebrow">KITCHEN DISPLAY</span><b>${active.length?`${active.length} active ticket${active.length===1?"":"s"}`:"Kitchen is clear"}</b><small>Large, simple tickets for cooking. This screen refreshes automatically.</small></div><button type="button" class="secondaryButton" onclick="setAdminView('orders')">ORDER BOARD</button></div><div class="kitchenTickets">${cards||"<div class='kitchenEmpty'>No active orders right now.</div>"}</div>`;
 }
 
 function windowMenuItems(){return editableMenuItems.filter(item=>item.available!==false&&menuAvailability[item.item_name]!==false);}
@@ -541,6 +555,7 @@ async function loadOrders(){
   if(avgEl) avgEl.textContent=completed?`${(sales/completed).toFixed(2)}`:"$0.00";
   if(typeof renderCloseout==="function")renderCloseout();
   renderInventoryPanel();
+  if(activeAdminView==="kitchen")renderKitchenDisplay();
 
   const newCount=document.querySelector("#newCount");
   const readyCount=document.querySelector("#readyCount");
@@ -597,7 +612,7 @@ async function loadOrders(){
      ).join("")}
     </select>
 
-    <div class="orderUtility"><button type="button" onclick="printOrderReceipt('${o.id}')">PRINT RECEIPT</button><button type="button" onclick="repeatOrderAtWindow('${o.id}')">REPEAT AT WINDOW</button><button onclick="deleteOrder('${o.id}')">Delete Order</button></div>
+    <div class="orderUtility"><button type="button" onclick="printOrderReceipt('${o.id}')">PRINT RECEIPT</button><button type="button" onclick="repeatOrderAtWindow('${o.id}')">REPEAT AT WINDOW</button>${o.status==="Completed"?`<button type="button" class="voidOrder" onclick="voidOrder('${o.id}')">VOID / REFUND</button>`:""}<button onclick="deleteOrder('${o.id}')">Delete Order</button></div>
    </article>
   `).join("");
 
@@ -708,6 +723,7 @@ function pauseKitchenListening(minutes){
 
 async function changeStatus(id,status){
  const order=(window.bdCurrentOrders||[]).find(o=>String(o.id)===String(id));
+ if(status==="Voided"){await voidOrder(id);return;}
  if(status==="Completed" && order && !order.payment_method){
   alert("Select how the customer paid before completing this order.");
   return;
@@ -718,6 +734,15 @@ async function changeStatus(id,status){
  }catch(e){
   alert("Could not update order.");
  }
+}
+
+async function voidOrder(id){
+ const order=(window.bdCurrentOrders||[]).find(o=>String(o.id)===String(id));if(!order)return;
+ if(!await requireManagerApproval("void or refund this order"))return;
+ const reason=prompt("Why is this order being voided or refunded? (Required)");if(!reason?.trim()){alert("A reason is required so the closeout remains clear.");return;}
+ if(!confirm(`Void ticket #${ticketCode(order)}? It will stay in the record but will no longer count as completed sales.`))return;
+ try{await bdUpdateOrder(id,{status:"Voided",notes:`${order.notes||""}${order.notes?" • ":""}VOID / REFUND: ${reason.trim()}`});await loadOrders();}
+ catch(e){alert("Could not void this order.");}
 }
 
 async function deleteOrder(id){
