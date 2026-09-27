@@ -60,7 +60,7 @@ jobs:
             cat > "$DIR/app/build.gradle" <<EOF
           plugins { id 'com.android.application' }
           android { namespace '$PKG'; compileSdk 35
-            defaultConfig { applicationId '$PKG'; minSdk 21; targetSdk 35; versionCode 3; versionName '1.2' }
+            defaultConfig { applicationId '$PKG'; minSdk 21; targetSdk 35; versionCode 4; versionName '1.3' }
           }
           EOF
             cat > "$DIR/app/src/main/res/values/styles.xml" <<'EOF'
