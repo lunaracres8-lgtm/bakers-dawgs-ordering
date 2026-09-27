@@ -277,9 +277,33 @@ function showBoard(){
 
  loadOrders();
  loadRestaurantControls();
+ setupAdminViews();
  upgradeCustomizationUI();
  loadMenuAvailability();
  loadBusinessBrandingForm();
+}
+
+let activeAdminView=localStorage.getItem("bdAdminView")||"orders";
+function setupAdminViews(){
+ const app=document.getElementById("app");if(!app||app.dataset.viewsReady)return;
+ app.dataset.viewsReady="1";
+ const owner=app.querySelector(".ownerBranding");
+ const menu=[...app.querySelectorAll(".menuControls")].find(section=>section!==owner);
+ const orders=[app.querySelector(".restaurantControls"),app.querySelector(".toolbar"),app.querySelector(".voiceAssistant"),app.querySelector("#dailyCloseout"),app.querySelector(".metrics"),app.querySelector("nav"),app.querySelector("#orders")];
+ orders.forEach(el=>{if(el)el.dataset.adminView="orders";});
+ if(menu)menu.dataset.adminView="menu";
+ if(owner)owner.dataset.adminView="owner";
+ const tabs=document.createElement("nav");
+ tabs.className="adminViewTabs";
+ tabs.innerHTML=`<button type="button" data-view="orders" onclick="setAdminView('orders')">ORDERS</button><button type="button" data-view="menu" onclick="setAdminView('menu')">MENU</button><button type="button" data-view="owner" onclick="setAdminView('owner')">OWNER</button>`;
+ app.prepend(tabs);
+ setAdminView(activeAdminView);
+}
+function setAdminView(view){
+ activeAdminView=["orders","menu","owner"].includes(view)?view:"orders";
+ document.body.dataset.adminView=activeAdminView;
+ localStorage.setItem("bdAdminView",activeAdminView);
+ document.querySelectorAll(".adminViewTabs button").forEach(button=>button.classList.toggle("active",button.dataset.view===activeAdminView));
 }
 
 async function loadRestaurantControls(){
