@@ -53,7 +53,8 @@ public class MainActivity extends Activity {
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
-    web.loadUrl(PAGE + "?v=26");
+    // New build marker makes the installed Admin app fetch the current order-board code.
+    web.loadUrl(PAGE + "?v=53");
   }
 
   private void callback(String method, String value) {
