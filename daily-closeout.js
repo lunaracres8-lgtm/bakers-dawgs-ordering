@@ -70,9 +70,10 @@ function printDailyReport(){
  w.document.write("<pre style='white-space:pre-wrap;font:14px Arial;padding:24px'>"+bdReportText().replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+"</pre>");
  w.document.close();w.focus();w.print();
 }
-function archiveDayLocally(){
+async function archiveDayLocally(){
  const s=bdDailySummary();
  if(!confirm("Close and archive "+s.day+"? This does NOT delete the orders."))return;
+ if(typeof requireManagerApproval==="function" && !await requireManagerApproval("close today’s books"))return;
  localStorage.setItem("bdCloseout:"+s.day,JSON.stringify({closed_at:new Date().toISOString(),summary:s,report:bdReportText()}));
  alert("Day archived on this tablet. Orders were not deleted. You can also Save Daily File or Print / Save PDF.");
 }
