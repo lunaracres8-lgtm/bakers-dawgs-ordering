@@ -123,6 +123,11 @@ async function bdCreateOrder(order){
  await bdRequest(`${BD_URL}/rest/v1/orders`,{method:"POST",headers,body:JSON.stringify(order)});
  return {submitted:true};
 }
+async function bdCreateStaffOrder(order){
+ // Walk-up sales are made by signed-in staff and may be completed immediately.
+ await bdRequest(`${BD_URL}/rest/v1/orders`,{method:"POST",headers:{...bdHeaders(),"Prefer":"return=minimal"},body:JSON.stringify(order)});
+ return {submitted:true};
+}
 async function bdGetOrders(){
  const r=await bdRequest(`${BD_URL}/rest/v1/orders?select=*&order=created_at.desc`,{headers:bdHeaders()});
  return r.json();
