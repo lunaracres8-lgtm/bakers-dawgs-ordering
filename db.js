@@ -16,6 +16,13 @@ function bdStoreNativeSession(session){
 }
 async function bdRegisterPasskey(){
  const client=bdGetSupabaseClient();
+ // The staff sign-in flow stores REST tokens itself. Sync that existing
+ // session into the Supabase client before passkey registration.
+ const access_token=localStorage.getItem("bdAccessToken")||sessionStorage.getItem("bdAccessToken");
+ const refresh_token=localStorage.getItem("bdRefreshToken")||sessionStorage.getItem("bdRefreshToken");
+ if(!access_token||!refresh_token)throw new Error("Sign in with the staff email and password first.");
+ const {error:sessionError}=await client.auth.setSession({access_token,refresh_token});
+ if(sessionError)throw sessionError;
  const {data,error}=await client.auth.registerPasskey();
  if(error) throw error;
  return data;
@@ -150,13 +157,26 @@ async function bdSetMenuAvailability(itemName,available){
   body:JSON.stringify({item_name:itemName,available:!!available,updated_at:new Date().toISOString()})
  });
 }
+async function bdGetMenuItems(){
+ const r=await bdRequest(`${BD_URL}/rest/v1/menu_items?select=id,category,item_name,description,price,available,sort_order&order=sort_order.asc`,{headers:bdHeaders()});
+ return r.json();
+}
+async function bdSaveMenuItem(item){
+ const payload={id:item.id,category:item.category,item_name:item.item_name,description:item.description||"",price:Number(item.price),available:item.available!==false,sort_order:Number(item.sort_order)||0,updated_at:new Date().toISOString()};
+ await bdRequest(`${BD_URL}/rest/v1/menu_items?on_conflict=id`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(payload)});
+}
+async function bdDeleteMenuItem(id){
+ await bdRequest(`${BD_URL}/rest/v1/menu_items?id=eq.${encodeURIComponent(id)}`,{method:"DELETE",headers:bdHeaders()});
+}
 
 async function bdGetBusinessBranding(){
  const headers={"apikey":BD_KEY,"Authorization":`Bearer ${BD_KEY}`,"Content-Type":"application/json"};
- const r=await bdRequest(`${BD_URL}/rest/v1/business_branding?id=eq.1&select=business_name,tagline,phone,email,logo_url,background_url,primary_color,accent_color`,{headers});
+ const r=await bdRequest(`${BD_URL}/rest/v1/business_branding?id=eq.1&select=*`,{headers});
  return (await r.json())[0]||null;
 }
 async function bdSaveBusinessBranding(b){
- const payload={id:1,business_name:b.businessName,tagline:b.tagline,phone:b.phone,email:b.email,logo_url:b.logo,background_url:b.background,primary_color:b.primary,accent_color:b.accent,updated_at:new Date().toISOString()};
- await bdRequest(`${BD_URL}/rest/v1/business_branding?on_conflict=id`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(payload)});
+ const base={id:1,business_name:b.businessName,tagline:b.tagline,phone:b.phone,email:b.email,logo_url:b.logo,background_url:b.background,primary_color:b.primary,accent_color:b.accent,updated_at:new Date().toISOString()};
+ const payload={...base,special_enabled:!!b.specialEnabled,special_title:b.specialTitle||"",special_message:b.specialMessage||""};
+ try{await bdRequest(`${BD_URL}/rest/v1/business_branding?on_conflict=id`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(payload)});}
+ catch(e){await bdRequest(`${BD_URL}/rest/v1/business_branding?on_conflict=id`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(base)});}
 }
