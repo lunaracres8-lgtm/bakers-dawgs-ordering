@@ -1,21 +1,57 @@
 
-const BD_BRAND_DEFAULTS={businessName:"Baker's Dawgs",tagline:"Made fresh. Order ahead. Pick it up hot.",phone:"8282051139",email:"dawgsbakers@gmail.com",logo:"",background:"",primary:"#15100b",accent:"#ffc21a"};
+const BD_BRAND_DEFAULTS={businessName:"Baker's Dawgs",tagline:"Made fresh. Order ahead. Pick it up hot.",phone:"8282051139",email:"dawgsbaker@gmail.com",logo:"",background:"",primary:"#15100b",accent:"#ffc21a",specialEnabled:false,specialTitle:"",specialMessage:""};
 function getBusinessBranding(){try{return {...BD_BRAND_DEFAULTS,...JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}")};}catch(e){return {...BD_BRAND_DEFAULTS};}}
 async function loadBusinessBrandingForm(){
  let b={...BD_BRAND_DEFAULTS};
- try{const cloud=await bdGetBusinessBranding();if(cloud)b={businessName:cloud.business_name,tagline:cloud.tagline,phone:cloud.phone,email:cloud.email,logo:cloud.logo_url,background:cloud.background_url,primary:cloud.primary_color,accent:cloud.accent_color};}catch(e){try{b={...b,...JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}")};}catch(_){}}
+ try{const cloud=await bdGetBusinessBranding();if(cloud)b={...b,businessName:cloud.business_name,tagline:cloud.tagline,phone:cloud.phone,email:cloud.email,logo:cloud.logo_url,background:cloud.background_url,primary:cloud.primary_color,accent:cloud.accent_color,specialEnabled:cloud.special_enabled,specialTitle:cloud.special_title,specialMessage:cloud.special_message};}catch(e){try{b={...b,...JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}")};}catch(_){}}
  localStorage.setItem("bdBusinessBranding",JSON.stringify(b));
- const map={brandBusinessName:"businessName",brandTagline:"tagline",brandPhone:"phone",brandEmail:"email",brandLogo:"logo",brandBackground:"background",brandPrimary:"primary",brandAccent:"accent"};
+ const map={brandBusinessName:"businessName",brandTagline:"tagline",brandPhone:"phone",brandEmail:"email",brandLogo:"logo",brandBackground:"background",brandPrimary:"primary",brandAccent:"accent",brandSpecialTitle:"specialTitle",brandSpecialMessage:"specialMessage"};
  Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=b[key]||"";});
+ const special=document.getElementById("brandSpecialEnabled");if(special)special.checked=b.specialEnabled===true;
+ updateBrandPreview();updateSetupChecklist();
 }
 async function saveBusinessBranding(){
  const val=id=>(document.getElementById(id)?.value||"").trim();
- const b={businessName:val("brandBusinessName")||BD_BRAND_DEFAULTS.businessName,tagline:val("brandTagline")||BD_BRAND_DEFAULTS.tagline,phone:val("brandPhone"),email:val("brandEmail"),logo:val("brandLogo"),background:val("brandBackground"),primary:document.getElementById("brandPrimary")?.value||BD_BRAND_DEFAULTS.primary,accent:document.getElementById("brandAccent")?.value||BD_BRAND_DEFAULTS.accent};
+ const b={businessName:val("brandBusinessName")||BD_BRAND_DEFAULTS.businessName,tagline:val("brandTagline")||BD_BRAND_DEFAULTS.tagline,phone:val("brandPhone"),email:val("brandEmail"),logo:val("brandLogo"),background:val("brandBackground"),primary:document.getElementById("brandPrimary")?.value||BD_BRAND_DEFAULTS.primary,accent:document.getElementById("brandAccent")?.value||BD_BRAND_DEFAULTS.accent,specialEnabled:!!document.getElementById("brandSpecialEnabled")?.checked,specialTitle:val("brandSpecialTitle"),specialMessage:val("brandSpecialMessage")};
  const s=document.getElementById("brandingStatus");if(s)s.textContent="Saving branding to all devices…";
  try{await bdSaveBusinessBranding(b);localStorage.setItem("bdBusinessBranding",JSON.stringify(b));if(s)s.textContent="Saved — customer website/app will use these settings.";alert("Business branding saved for all devices.");return true;}catch(e){console.error(e);if(s)s.textContent="Could not save branding to the cloud.";alert("Could not save branding. Make sure you are signed in as staff.");return false;}
 }
 async function previewBusinessBranding(){if(await saveBusinessBranding())window.open("index.html?brand_preview=1","_blank");}
-async function resetBusinessBranding(){if(!confirm("Reset business branding to the installed defaults?"))return;const map={brandBusinessName:"businessName",brandTagline:"tagline",brandPhone:"phone",brandEmail:"email",brandLogo:"logo",brandBackground:"background",brandPrimary:"primary",brandAccent:"accent"};Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=BD_BRAND_DEFAULTS[key]||"";});await saveBusinessBranding();}
+async function resetBusinessBranding(){if(!confirm("Reset business branding to the installed defaults?"))return;const map={brandBusinessName:"businessName",brandTagline:"tagline",brandPhone:"phone",brandEmail:"email",brandLogo:"logo",brandBackground:"background",brandPrimary:"primary",brandAccent:"accent",brandSpecialTitle:"specialTitle",brandSpecialMessage:"specialMessage"};Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=BD_BRAND_DEFAULTS[key]||"";});const special=document.getElementById("brandSpecialEnabled");if(special)special.checked=false;updateBrandPreview();await saveBusinessBranding();}
+
+function upgradeCustomizationUI(){
+ const branding=document.querySelector(".ownerBranding");
+ if(branding&&!branding.dataset.upgraded){
+  branding.dataset.upgraded="1";
+  branding.innerHTML=`<div class="sectionTitle"><div><span class="eyebrow">OWNER SETTINGS</span><b>Customize your business</b><small>Give this template its own name, colors, and artwork. No source code needed.</small></div><div class="brandPreview" id="brandPreview"><span>LIVE LOOK</span><strong id="brandPreviewName">Baker's Dawgs</strong></div></div><div class="brandingFields"><label>Business name<input id="brandBusinessName" type="text" placeholder="Your Restaurant" oninput="updateBrandPreview()"></label><label>Tagline<input id="brandTagline" type="text" placeholder="Order ahead. Pick it up hot."></label><label>Phone<input id="brandPhone" type="tel" placeholder="555-555-5555"></label><label>Email<input id="brandEmail" type="email" placeholder="orders@example.com"></label><label>Primary color<input id="brandPrimary" type="color" value="#15100b" oninput="updateBrandPreview()"></label><label>Accent color<input id="brandAccent" type="color" value="#ffc21a" oninput="updateBrandPreview()"></label></div><div class="artworkUpload"><div><b>Logo artwork</b><small>Upload a logo from this phone or tablet, or paste an image link.</small><input id="brandLogo" type="url" placeholder="Paste logo image link"><input id="brandLogoUpload" type="file" accept="image/*"></div><button type="button" class="secondaryButton" onclick="document.getElementById('brandLogoUpload').click()">UPLOAD LOGO</button></div><div class="artworkUpload"><div><b>Full background artwork</b><small>Use a food photo, texture, or your own branded background.</small><input id="brandBackground" type="url" placeholder="Paste background image link"><input id="brandBackgroundUpload" type="file" accept="image/*"></div><button type="button" class="secondaryButton" onclick="document.getElementById('brandBackgroundUpload').click()">UPLOAD BACKGROUND</button></div><div class="buttonRow"><button type="button" onclick="saveBusinessBranding()">SAVE BRAND LOOK</button><button type="button" class="secondaryButton" onclick="previewBusinessBranding()">PREVIEW CUSTOMER SCREEN</button><button type="button" class="textButton" onclick="resetBusinessBranding()">RESET</button></div><small id="brandingStatus">Changes save to the restaurant template.</small>`;
+  branding.insertAdjacentHTML("afterbegin",`<div class="setupChecklist"><div><span class="eyebrow">SETUP CHECKLIST</span><b>Ready to launch?</b></div><div id="setupSteps" class="setupSteps"></div></div>`);
+  document.getElementById("brandPreview")?.insertAdjacentHTML("afterend",`<div class="previewSwitch"><span>Preview</span><button type="button" class="active" onclick="setPreviewMode('phone',this)">PHONE</button><button type="button" onclick="setPreviewMode('tablet',this)">TABLET</button></div>`);
+  branding.querySelector(".buttonRow")?.insertAdjacentHTML("beforebegin",`<div class="specialEditor"><span class="eyebrow">OPTIONAL DAILY SPECIAL</span><label class="specialToggle"><input id="brandSpecialEnabled" type="checkbox"> Show a special on the customer menu</label><label>Special headline<input id="brandSpecialTitle" type="text" maxlength="45" placeholder="Today’s Special"></label><label>Special message<input id="brandSpecialMessage" type="text" maxlength="120" placeholder="Example: Free cake slice with a meal today."></label></div>`);
+  document.getElementById("brandLogoUpload")?.addEventListener("change",e=>uploadBrandImage(e.target,"brandLogo"));
+  document.getElementById("brandBackgroundUpload")?.addEventListener("change",e=>uploadBrandImage(e.target,"brandBackground"));
+ }
+ const manager=document.querySelector("#menuAvailabilityControls")?.closest(".menuControls");
+ if(manager&&!manager.dataset.upgraded){
+  manager.dataset.upgraded="1";
+  manager.classList.add("menuManager");
+  manager.querySelector("div")?.replaceWith(Object.assign(document.createElement("div"),{className:"sectionTitle",innerHTML:`<div><span class="eyebrow">MENU BUILDER</span><b>Menu items</b><small>Edit prices and descriptions, add an item, or remove one before handing this template to the next owner.</small></div><button type="button" onclick="openMenuItemEditor()">＋ ADD MENU ITEM</button>`}));
+  manager.insertAdjacentHTML("beforeend",`<div id="menuBuilderFooter" class="menuBuilderFooter"><button type="button" class="secondaryButton" onclick="restoreSampleMenu()">RESTORE SAMPLE MENU</button><small>Menu changes save immediately and update the customer screen.</small></div>`);
+  manager.querySelector(".sectionTitle")?.insertAdjacentHTML("afterend",`<div id="menuFilterTabs" class="menuFilterTabs"></div>`);
+ }
+}
+function updateBrandPreview(){const name=document.getElementById("brandBusinessName")?.value||"Your Restaurant";const primary=document.getElementById("brandPrimary")?.value||"#15100b";const accent=document.getElementById("brandAccent")?.value||"#ffc21a";const p=document.getElementById("brandPreview"),t=document.getElementById("brandPreviewName");if(p){p.style.background=primary;p.style.borderColor=accent;}if(t){t.textContent=name;t.style.color=accent;}}
+function setPreviewMode(mode,button){previewMode=mode;document.querySelector(".brandPreview")?.classList.toggle("tabletPreview",mode==="tablet");document.querySelectorAll(".previewSwitch button").forEach(b=>b.classList.toggle("active",b===button));}
+function updateSetupChecklist(){const box=document.getElementById("setupSteps");if(!box)return;const checks=[["Business details",!!document.getElementById("brandBusinessName")?.value&&!!document.getElementById("brandPhone")?.value],["Brand colors",!!document.getElementById("brandPrimary")?.value&&!!document.getElementById("brandAccent")?.value],["Artwork",!!document.getElementById("brandLogo")?.value||!!document.getElementById("brandBackground")?.value],["Menu",editableMenuItems.length>0]];box.innerHTML=checks.map(([label,done])=>`<span class="${done?"done":""}">${done?"✓":"○"} ${label}</span>`).join("");}
+async function uploadBrandImage(input,targetId){
+ const file=input?.files?.[0];if(!file)return;
+ if(!file.type.startsWith("image/")){alert("Please choose an image file.");return;}
+ const status=document.getElementById("brandingStatus");if(status)status.textContent="Preparing artwork…";
+ const source=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});
+ const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=source;});
+ const max=1600,scale=Math.min(1,max/Math.max(img.width,img.height));const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+ const data=canvas.toDataURL("image/jpeg",.88);if(data.length>1800000){alert("That image is still too large. Please choose a smaller photo.");return;}
+ const field=document.getElementById(targetId);if(field)field.value=data;if(status)status.textContent="Artwork ready — press Save Brand Look to publish it.";
+}
 
 const statuses=["New","Accepted","Cooking","Ready","Completed"];
 let currentFilter="all";
@@ -27,6 +63,9 @@ let prepMinutes=20;
 let menuAvailability={};
 let soundEnabled=localStorage.getItem("bdSoundEnabled")!=="false";
 const adminMenuItems=["Carolina Classic Hot Dawg","Sauerkraut & Mustard Dawg","Chili & Cheez Dawg","Chili, Onion & Mustard Dawg","Sweet Relish & Mustard Dawg","Loaded Hot Dawg","Brat / Bratwurst","Classic Plain Smoked Sausage","Cheddar Cheez Smoked Sausage","Jalapeño Smoked Sausage","The Perfect Brat","Grilled Bologna on Toast (cut #5)","Grilled Cheez Quesadilla","Bottled Drink / Soda","Bottled Water","Sweet Tea with Ice","Lemonade Sweet Tea with Ice","Chips","German Chocolate Cake","3 Milks Cake"];
+let editableMenuItems=[];
+let currentMenuCategory="All";
+let previewMode="phone";
 
 function esc(v=""){
  return String(v).replace(/[&<>"']/g,c=>({
@@ -239,6 +278,7 @@ function showBoard(){
 
  loadOrders();
  loadRestaurantControls();
+ upgradeCustomizationUI();
  loadMenuAvailability();
  loadBusinessBrandingForm();
 }
@@ -261,17 +301,55 @@ async function loadRestaurantControls(){
 
 async function loadMenuAvailability(){
  try{
-  const rows=await bdGetMenuAvailability();
+  let items=[];
+  try{items=await bdGetMenuItems();}catch(_){items=[];}
+  if(items.length){editableMenuItems=items;if(!localStorage.getItem("bdSampleMenuTemplate"))localStorage.setItem("bdSampleMenuTemplate",JSON.stringify(items));}
+  const rows=items.length?items:await bdGetMenuAvailability();
   menuAvailability=Object.fromEntries((rows||[]).map(r=>[r.item_name,r.available!==false]));
   const box=document.querySelector("#menuAvailabilityControls");
-  if(box) box.innerHTML=adminMenuItems.map(name=>{
-   const available=menuAvailability[name]!==false;
-   return `<button type="button" class="${available?"available":"soldout"}" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(name)}\'))"><span>${esc(name)}</span><b>${available?"AVAILABLE":"SOLD OUT"}</b></button>`;
-  }).join("");
+  const displayItems=editableMenuItems.length?editableMenuItems:adminMenuItems.map((name,index)=>({id:"legacy-"+index,item_name:name,category:"Current menu",description:"",price:"",available:menuAvailability[name]!==false,sort_order:index}));
+  const tabs=document.getElementById("menuFilterTabs");const categories=["All",...new Set(displayItems.map(x=>x.category||"Menu item"))];if(!categories.includes(currentMenuCategory))currentMenuCategory="All";
+  if(tabs)tabs.innerHTML=categories.map(category=>`<button type="button" class="${category===currentMenuCategory?"active":""}" onclick="setMenuCategory(decodeURIComponent(\'${encodeURIComponent(category)}\'))">${esc(category)}</button>`).join("");
+  const visibleItems=displayItems.filter(item=>currentMenuCategory==="All"||item.category===currentMenuCategory);
+  if(box) box.innerHTML=visibleItems.map(item=>{
+   const available=item.available!==false&&menuAvailability[item.item_name]!==false;
+   const price=Number.isFinite(Number(item.price))&&item.price!==""?`$${Number(item.price).toFixed(2)}`:"";
+   return `<article class="menuAdminItem ${available?"available":"soldout"}"><div><span class="menuCategory">${esc(item.category||"Menu item")}</span><strong>${esc(item.item_name)}</strong>${item.description?`<small>${esc(item.description)}</small>`:""}</div><div class="menuItemActions"><b>${price}</b><button type="button" class="availabilityButton" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(item.item_name)}\'))">${available?"AVAILABLE":"SOLD OUT"}</button><button type="button" class="editItemButton" onclick="openMenuItemEditor(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">EDIT</button><button type="button" class="editItemButton" onclick="duplicateMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">DUPLICATE</button><button type="button" class="editItemButton" onclick="moveMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'),-1)">↑</button><button type="button" class="editItemButton" onclick="moveMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'),1)">↓</button><button type="button" class="deleteItemButton" onclick="removeMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">DELETE</button></div></article>`;
+   }).join("");
+  updateSetupChecklist();
  }catch(e){
   const box=document.querySelector("#menuAvailabilityControls");
   if(box) box.textContent="Menu controls unavailable.";
  }
+}
+function setMenuCategory(category){currentMenuCategory=category;loadMenuAvailability();}
+async function duplicateMenuItem(id){const item=editableMenuItems.find(x=>x.id===id);if(!item)return;const duplicate={...item,id:"item-"+Date.now(),item_name:item.item_name+" Copy",sort_order:Number(item.sort_order||0)+.5};try{await bdSaveMenuItem(duplicate);await loadMenuAvailability();}catch(e){alert("Could not duplicate that menu item.");}}
+async function moveMenuItem(id,direction){const current=editableMenuItems.find(x=>x.id===id);if(!current)return;const same=editableMenuItems.filter(x=>x.category===current.category).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));const index=same.findIndex(x=>x.id===id),swap=same[index+direction];if(!swap)return;const old=current.sort_order;current.sort_order=swap.sort_order;swap.sort_order=old;try{await bdSaveMenuItem(current);await bdSaveMenuItem(swap);await loadMenuAvailability();}catch(e){alert("Could not move that menu item.");}}
+async function restoreSampleMenu(){
+ const saved=localStorage.getItem("bdSampleMenuTemplate");if(!saved){alert("Open the upgraded menu once before using Restore Sample Menu.");return;}
+ if(!confirm("Restore the original sample menu? This removes menu changes made after the template was first opened on this device."))return;
+ try{for(const item of editableMenuItems)await bdDeleteMenuItem(item.id);for(const item of JSON.parse(saved))await bdSaveMenuItem(item);await loadMenuAvailability();alert("Sample menu restored.");}catch(e){alert("Could not restore the sample menu.");}
+}
+
+function openMenuItemEditor(id=""){
+ const existing=editableMenuItems.find(x=>x.id===id)||{};
+ if(id&&id.startsWith("legacy-")){alert("The one-time menu upgrade has not been installed yet. Once it is installed, every item can be edited and removed here.");return;}
+ const dialog=document.createElement("div");dialog.className="menuEditorModal";
+ dialog.innerHTML=`<section><button class="closeEditor" aria-label="Close">×</button><span class="eyebrow">MENU BUILDER</span><h2>${id?"Edit menu item":"Add menu item"}</h2><label>Category<input id="editorCategory" value="${esc(existing.category||"Hot Dawgs")}" placeholder="Hot Dawgs"></label><label>Item name<input id="editorName" value="${esc(existing.item_name||"")}" placeholder="Item name"></label><label>Description<textarea id="editorDescription" placeholder="Short description">${esc(existing.description||"")}</textarea></label><label>Price<input id="editorPrice" value="${existing.price??""}" inputmode="decimal" placeholder="0.00"></label><label class="availabilityCheck"><input id="editorAvailable" type="checkbox" ${existing.available!==false?"checked":""}> Available to order</label><div class="editorButtons"><button type="button" class="secondaryButton closeEditor">CANCEL</button><button type="button" id="saveMenuItemButton">SAVE MENU ITEM</button></div></section>`;
+ document.body.append(dialog);
+ const close=()=>dialog.remove();dialog.querySelectorAll(".closeEditor").forEach(b=>b.addEventListener("click",close));
+ dialog.addEventListener("click",e=>{if(e.target===dialog)close();});
+ dialog.querySelector("#saveMenuItemButton").addEventListener("click",async()=>{
+  const category=dialog.querySelector("#editorCategory").value.trim(),item_name=dialog.querySelector("#editorName").value.trim(),description=dialog.querySelector("#editorDescription").value.trim(),price=Number(dialog.querySelector("#editorPrice").value);
+  if(!category||!item_name||!Number.isFinite(price)||price<0){alert("Enter a category, item name, and valid price.");return;}
+  const item={id:id||("item-"+Date.now()),category,item_name,description,price,available:dialog.querySelector("#editorAvailable").checked,sort_order:existing.sort_order??editableMenuItems.length};
+  try{await bdSaveMenuItem(item);close();await loadMenuAvailability();}catch(e){alert("Could not save the menu item. Run the menu upgrade once in Supabase, then try again.");}
+ });
+}
+async function removeMenuItem(id){
+ if(!id||id.startsWith("legacy-")){alert("The one-time menu upgrade has not been installed yet.");return;}
+ const item=editableMenuItems.find(x=>x.id===id);if(!item||!confirm(`Remove ${item.item_name} from the menu?`))return;
+ try{await bdDeleteMenuItem(id);await loadMenuAvailability();}catch(e){alert("Could not remove that menu item.");}
 }
 
 async function toggleMenuItem(name){
@@ -431,7 +509,7 @@ function repeatLastOrder(){
  speakKitchenOrder(lastSpokenOrderId);
 }
 function stopOrderSpeech(){ if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.stopSpeaking==="function") window.BakersDawgsAndroid.stopSpeaking(); if("speechSynthesis" in window) speechSynthesis.cancel(); }
-let kitchenRecognition=null,kitchenListening=false,kitchenPauseTimer=null;
+let kitchenRecognition=null,kitchenListening=false,kitchenPauseTimer=null,kitchenStarting=false,kitchenRecognizing=false;
 function voiceStatus(msg){const el=document.querySelector("#voiceAssistantStatus");if(el)el.textContent=msg;}
 function onNativeVoiceStatus(msg){voiceStatus(msg);}
 function onNativeVoiceError(msg){kitchenListening=false;voiceStatus(msg);}
@@ -456,13 +534,17 @@ function startKitchenListening(){
  if(!kitchenRecognition){
   kitchenRecognition=new SR(); kitchenRecognition.lang="en-US"; kitchenRecognition.continuous=true; kitchenRecognition.interimResults=false;
   kitchenRecognition.onresult=e=>Array.from(e.results).slice(e.resultIndex).forEach(r=>handleKitchenCommand(r[0].transcript));
-  kitchenRecognition.onend=()=>{if(kitchenListening){try{kitchenRecognition.start();}catch(e){}}};
+  kitchenRecognition.onstart=()=>{kitchenStarting=false;kitchenRecognizing=true;};
+  kitchenRecognition.onend=()=>{kitchenStarting=false;kitchenRecognizing=false;if(kitchenListening)setTimeout(()=>startKitchenListening(),250);};
   kitchenRecognition.onerror=e=>{if(e.error==="not-allowed"){kitchenListening=false;voiceStatus("Microphone permission is off.");}};
  }
- kitchenListening=true;try{kitchenRecognition.start();voiceStatus("Listening for kitchen commands");}catch(e){voiceStatus("Could not start microphone: "+e.message);}
+ if(kitchenRecognizing||kitchenStarting){voiceStatus("Already listening for kitchen commands");return;}
+ kitchenListening=true;kitchenStarting=true;
+ try{kitchenRecognition.start();voiceStatus("Listening for kitchen commands");}
+ catch(e){kitchenStarting=false;if(String(e?.message||"").includes("already started")){kitchenRecognizing=true;voiceStatus("Already listening for kitchen commands");}else voiceStatus("Could not start microphone: "+e.message);}
 }
 function stopKitchenListening(message="Voice assistant paused."){
- kitchenListening=false;clearTimeout(kitchenPauseTimer);
+ kitchenListening=false;kitchenStarting=false;clearTimeout(kitchenPauseTimer);
  if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.stopListening==="function")window.BakersDawgsAndroid.stopListening();
  if(kitchenRecognition){try{kitchenRecognition.stop();}catch(e){}}
  voiceStatus(message);
