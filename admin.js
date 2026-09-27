@@ -278,6 +278,7 @@ function showBoard(){
  loadOrders();
  loadRestaurantControls();
  setupAdminViews();
+ updateSpeechReadbackUI();
  upgradeCustomizationUI();
  loadMenuAvailability();
  loadBusinessBrandingForm();
@@ -474,7 +475,7 @@ async function loadOrders(){
 
     ${o.notes?`<p><b>Order note:</b> ${esc(o.notes)}</p>`:""}
 
-    <div class="speechActions"><button type="button" onclick="speakKitchenOrder(\'${o.id}\')">🔊 READ ORDER</button>${(o.items||[]).map((i,n)=>`<button type="button" onclick="speakKitchenOrder(\'${o.id}\',${n})">Read Item ${n+1}</button>`).join("")}</div>
+    ${canSpeakKitchenOrders()?`<div class="speechActions"><button type="button" onclick="speakKitchenOrder(\'${o.id}\')">🔊 READ ORDER</button>${(o.items||[]).map((i,n)=>`<button type="button" onclick="speakKitchenOrder(\'${o.id}\',${n})">Read Item ${n+1}</button>`).join("")}</div>`:""}
 
     ${typeof bdPaymentSelector==="function"?bdPaymentSelector(o):""}\n    ${nextStatus(o.status)?`<button class="nextStatus" onclick="changeStatus('${o.id}','${nextStatus(o.status)}')">${statusActionLabel(o.status)}</button>`:""}
 
@@ -501,6 +502,15 @@ async function loadOrders(){
 
 
 let lastSpokenOrderId=null;
+function canSpeakKitchenOrders(){return !!(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.speak==="function")||("speechSynthesis" in window);}
+function updateSpeechReadbackUI(){
+ const supported=canSpeakKitchenOrders();
+ document.querySelectorAll("button[onclick='repeatLastOrder()'],button[onclick='stopOrderSpeech()']").forEach(button=>button.hidden=!supported);
+ if(!supported){
+  const status=document.getElementById("voiceAssistantStatus");
+  if(status)status.textContent="Voice read-back is available in the Baker's Dawgs Admin app.";
+ }
+}
 function orderSpeechText(o, itemIndex=null){
  const items=Array.isArray(o.items)?o.items:[];
  const chosen=itemIndex===null?items:(items[itemIndex]?[items[itemIndex]]:[]);
@@ -525,7 +535,7 @@ function speakKitchenOrder(id,itemIndex=null){
   lastSpokenOrderId=o.id;
   return;
  }
- if(!("speechSynthesis" in window)){alert("This device does not support spoken order read-back.");return;}
+ if(!("speechSynthesis" in window))return;
  speechSynthesis.cancel();
  const u=new SpeechSynthesisUtterance(text);
  const voice=bestKitchenVoice(); if(voice){u.voice=voice;u.lang=voice.lang||"en-US";}
