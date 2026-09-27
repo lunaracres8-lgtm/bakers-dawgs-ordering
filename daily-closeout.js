@@ -34,20 +34,30 @@ function bdDailySummary(orders=bdTodayOrders()){
  return {day:bdLocalDayKey(),orders,completed,orderCount:orders.length,completedCount:completed.length,allTotal,completedTotal,payments,items:Object.values(items)};
 }
 
+function bdCashCountKey(day=bdLocalDayKey()){return "bdCashCount:"+day;}
+function bdSavedCashCount(day=bdLocalDayKey()){const value=localStorage.getItem(bdCashCountKey(day));return value===null?null:Number(value);}
+function setCashCount(value){
+ const s=bdDailySummary(),amount=Math.max(0,Number(value||0));
+ localStorage.setItem(bdCashCountKey(s.day),String(amount));renderCloseout();
+}
+
 function renderCloseout(){
  const s=bdDailySummary(), box=document.querySelector("#dailyCloseout");
  if(!box)return;
  const cash=s.payments["Cash"].total;
  const square=BD_PAYMENT_METHODS.filter(p=>p.startsWith("Square")).reduce((n,p)=>n+s.payments[p].total,0);
+ const counted=bdSavedCashCount(s.day),variance=counted===null?null:Number((counted-cash).toFixed(2));
  box.innerHTML='<div><b>Daily Closeout — '+s.day+'</b><small>'+s.orderCount+' orders • '+s.completedCount+' completed</small></div>'+
  '<div class="closeoutTotals"><span>Completed Sales <b>'+bdMoney(s.completedTotal)+'</b></span><span>Cash <b>'+bdMoney(cash)+'</b></span><span>Square Total <b>'+bdMoney(square)+'</b></span></div>'+
+ '<div class="cashCount"><div><b>Cash drawer count</b><small>Expected cash sales: '+bdMoney(cash)+'</small></div><input inputmode="decimal" type="number" min="0" step="0.01" placeholder="Counted cash" value="'+(counted===null?"":counted.toFixed(2))+'" onchange="setCashCount(this.value)">'+(variance===null?'<small>Enter the cash actually in the drawer.</small>':'<strong class="'+(variance===0?"balanced":variance>0?"over":"short")+'">'+(variance===0?"BALANCED":variance>0?"OVER ":"SHORT ")+bdMoney(Math.abs(variance))+'</strong>')+'</div>'+
  '<div class="closeoutButtons"><button onclick="downloadDailyReport()">SAVE DAILY FILE</button><button onclick="printDailyReport()">PRINT / SAVE PDF</button><button onclick="archiveDayLocally()">CLOSE DAY / ARCHIVE</button></div>';
 }
 
 function bdReportText(){
  const s=bdDailySummary(), lines=[];
  lines.push("BAKER'S DAWGS — DAILY CLOSEOUT",s.day,"");
- lines.push("Orders received: "+s.orderCount,"Completed orders: "+s.completedCount,"Completed sales: "+bdMoney(s.completedTotal),"");
+ const cash=s.payments["Cash"].total,counted=bdSavedCashCount(s.day);
+ lines.push("Orders received: "+s.orderCount,"Completed orders: "+s.completedCount,"Completed sales: "+bdMoney(s.completedTotal),"Expected cash: "+bdMoney(cash),counted===null?"Cash counted: not entered":"Cash counted: "+bdMoney(counted)+" ("+(counted-cash>=0?"over ":"short ")+bdMoney(Math.abs(counted-cash))+")","");
  lines.push("PAYMENTS");
  BD_PAYMENT_METHODS.forEach(p=>lines.push(p+": "+s.payments[p].count+" orders — "+bdMoney(s.payments[p].total)));
  lines.push("","ITEMS / OPTIONS");
