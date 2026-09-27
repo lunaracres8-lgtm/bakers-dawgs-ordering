@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
     // New build marker makes the installed Admin app fetch the current order-board code.
-    web.loadUrl(PAGE + "?v=53");
+    web.loadUrl(PAGE + "?v=55");
   }
 
   private void callback(String method, String value) {
@@ -63,6 +63,10 @@ public class MainActivity extends Activity {
   }
 
   private void startRecognition() {
+    if (listening) {
+      callback("onNativeVoiceStatus", "Already listening. Speak your kitchen command, or tap Stop Listening.");
+      return;
+    }
     if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
       requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 7);
       return;
@@ -82,17 +86,18 @@ public class MainActivity extends Activity {
         @Override public void onEndOfSpeech() { }
         @Override public void onError(int error) {
           if (!listening) return;
+          listening = false;
           if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS || error == SpeechRecognizer.ERROR_CLIENT) {
-            listening = false;
             callback("onNativeVoiceError", "Microphone unavailable. Check the app microphone permission.");
           } else {
-            web.postDelayed(() -> { if (listening) recognizer.startListening(recognitionIntent); }, 750);
+            callback("onNativeVoiceStatus", "No command heard. Tap Start Listening when you need the kitchen assistant.");
           }
         }
         @Override public void onResults(Bundle results) {
           ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
           if (matches != null && !matches.isEmpty()) callback("onNativeVoiceCommand", matches.get(0));
-          web.postDelayed(() -> { if (listening) recognizer.startListening(recognitionIntent); }, 500);
+          listening = false;
+          callback("onNativeVoiceStatus", "Command received. Tap Start Listening when you need it again.");
         }
         @Override public void onPartialResults(Bundle results) { }
         @Override public void onEvent(int eventType, Bundle params) { }
