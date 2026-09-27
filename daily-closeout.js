@@ -25,9 +25,10 @@ function bdDailySummary(orders=bdTodayOrders()){
  completed.forEach(o=>{
   if(o.payment_method&&payments[o.payment_method]){payments[o.payment_method].count++;payments[o.payment_method].total+=Number(o.total||0);}
   (o.items||[]).forEach(i=>{
+   const quantity=Math.max(1,Number(i.quantity)||1);
    const key=[i.name,i.options||"",i.notes||""].join(" | ");
    if(!items[key])items[key]={name:i.name,options:i.options||"",notes:i.notes||"",count:0,total:0};
-   items[key].count++;items[key].total+=Number(i.price||0);
+   items[key].count+=quantity;items[key].total+=Number(i.price||0)*quantity;
   });
  });
  return {day:bdLocalDayKey(),orders,completed,orderCount:orders.length,completedCount:completed.length,allTotal,completedTotal,payments,items:Object.values(items)};
@@ -54,7 +55,7 @@ function bdReportText(){
  lines.push("","ORDER DETAIL");
  s.orders.forEach((o,n)=>{
   lines.push((n+1)+". "+(o.customer_name||"Customer")+" | "+(o.phone||"")+" | Pickup "+(o.pickup_time||"")+" | "+(o.status||"")+" | "+(o.payment_method||"Payment not selected")+" | "+bdMoney(o.total));
-  (o.items||[]).forEach(i=>lines.push("   - "+i.name+(i.options?" — "+i.options:"")+(i.notes?" — "+i.notes:"")+" — "+bdMoney(i.price)));
+  (o.items||[]).forEach(i=>{const quantity=Math.max(1,Number(i.quantity)||1);lines.push("   - "+quantity+" × "+i.name+(i.options?" — "+i.options:"")+(i.notes?" — "+i.notes:"")+" — "+bdMoney(Number(i.price||0)*quantity));});
   if(o.notes)lines.push("   Order note: "+o.notes);
  });
  lines.push("","Generated: "+new Date().toLocaleString(),"No payment-card numbers or credentials are stored in this report.");
