@@ -60,6 +60,9 @@ function bdReportText(){
  lines.push("Orders received: "+s.orderCount,"Completed orders: "+s.completedCount,"Completed sales: "+bdMoney(s.completedTotal),"Expected cash: "+bdMoney(cash),counted===null?"Cash counted: not entered":"Cash counted: "+bdMoney(counted)+" ("+(counted-cash>=0?"over ":"short ")+bdMoney(Math.abs(counted-cash))+")","");
  lines.push("PAYMENTS");
  BD_PAYMENT_METHODS.forEach(p=>lines.push(p+": "+s.payments[p].count+" orders — "+bdMoney(s.payments[p].total)));
+ const shifts=typeof shiftsToday==="function"?shiftsToday():[];
+ lines.push("","EMPLOYEE SHIFTS");
+ shifts.length?shifts.forEach(shift=>{const end=shift.out?new Date(shift.out):new Date();const hours=Math.max(0,(end-new Date(shift.in))/36e5);lines.push(`${shift.name}: ${new Date(shift.in).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}${shift.out?` – ${new Date(shift.out).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}`:" • still clocked in"} — ${hours.toFixed(2)} hrs`);}):lines.push("No employee shifts entered.");
  lines.push("","ITEMS / OPTIONS");
  s.items.forEach(i=>lines.push(i.count+" × "+i.name+(i.options?" — "+i.options:"")+(i.notes?" — Note: "+i.notes:"")));
  lines.push("","ORDER DETAIL");
