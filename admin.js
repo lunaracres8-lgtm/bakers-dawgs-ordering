@@ -353,8 +353,8 @@ async function submitWindowSale(completeNow){
  const phone=document.getElementById("windowCustomerPhone")?.value.trim()||"Window sale";
  const subtotal=windowSubtotal(),total=Number((subtotal*1.0675).toFixed(2));
  const order={customer_name:name,phone,pickup_time:"Now",notes:"Walk-up window order",items:windowSaleCart.map(line=>({name:line.name,price:Number(line.price),quantity:Number(line.quantity),options:"",notes:""})),total,status:completeNow?"Completed":"New",payment_method:payment||null};
- try{await bdCreateOrder(order);windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleLastAdded="";await loadOrders();renderWindowOrder();alert(completeNow?"Walk-up sale completed and added to today’s cash-out.":"Window order sent to the kitchen.");if(!completeNow)setAdminView("orders");}
- catch(e){alert("Could not save this window order. Check the connection and try again.");}
+ try{await bdCreateStaffOrder(order);windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleLastAdded="";await loadOrders();renderWindowOrder();alert(completeNow?"Walk-up sale completed and added to today’s cash-out.":"Window order sent to the kitchen.");if(!completeNow)setAdminView("orders");}
+ catch(e){alert(e?.status===401||e?.status===403?"Your staff session expired. Sign in again, then save this window order.":"Could not save this window order. Check the connection and try again.");}
 }
 
 async function loadRestaurantControls(){
