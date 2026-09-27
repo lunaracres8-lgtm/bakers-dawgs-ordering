@@ -5,14 +5,16 @@ async function loadBusinessBrandingForm(){
  let b={...BD_BRAND_DEFAULTS};
  try{const cloud=await bdGetBusinessBranding();if(cloud)b={...b,businessName:cloud.business_name,tagline:cloud.tagline,phone:cloud.phone,email:cloud.email,logo:cloud.logo_url,background:cloud.background_url,primary:cloud.primary_color,accent:cloud.accent_color,specialEnabled:cloud.special_enabled,specialTitle:cloud.special_title,specialMessage:cloud.special_message};}catch(e){try{b={...b,...JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}")};}catch(_){}}
  localStorage.setItem("bdBusinessBranding",JSON.stringify(b));
- const map={brandBusinessName:"businessName",brandTagline:"tagline",brandPhone:"phone",brandEmail:"email",brandLogo:"logo",brandBackground:"background",brandPrimary:"primary",brandAccent:"accent",brandSpecialTitle:"specialTitle",brandSpecialMessage:"specialMessage"};
+ const scheduleMatch=String(b.specialMessage||"").match(/\n?\[\[BD_DAY:(every|[0-6])\]\]$/);b.specialDay=scheduleMatch?scheduleMatch[1]:"every";if(scheduleMatch)b.specialMessage=String(b.specialMessage).replace(/\n?\[\[BD_DAY:(every|[0-6])\]\]$/,"");
+ const map={brandBusinessName:"businessName",brandTagline:"tagline",brandPhone:"phone",brandEmail:"email",brandLogo:"logo",brandBackground:"background",brandPrimary:"primary",brandAccent:"accent",brandSpecialTitle:"specialTitle",brandSpecialMessage:"specialMessage",brandSpecialDay:"specialDay"};
  Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=b[key]||"";});
  const special=document.getElementById("brandSpecialEnabled");if(special)special.checked=b.specialEnabled===true;
  updateBrandPreview();updateSetupChecklist();
 }
 async function saveBusinessBranding(){
  const val=id=>(document.getElementById(id)?.value||"").trim();
- const b={businessName:val("brandBusinessName")||BD_BRAND_DEFAULTS.businessName,tagline:val("brandTagline")||BD_BRAND_DEFAULTS.tagline,phone:val("brandPhone"),email:val("brandEmail"),logo:val("brandLogo"),background:val("brandBackground"),primary:document.getElementById("brandPrimary")?.value||BD_BRAND_DEFAULTS.primary,accent:document.getElementById("brandAccent")?.value||BD_BRAND_DEFAULTS.accent,specialEnabled:!!document.getElementById("brandSpecialEnabled")?.checked,specialTitle:val("brandSpecialTitle"),specialMessage:val("brandSpecialMessage")};
+ const specialDay=document.getElementById("brandSpecialDay")?.value||"every";
+ const b={businessName:val("brandBusinessName")||BD_BRAND_DEFAULTS.businessName,tagline:val("brandTagline")||BD_BRAND_DEFAULTS.tagline,phone:val("brandPhone"),email:val("brandEmail"),logo:val("brandLogo"),background:val("brandBackground"),primary:document.getElementById("brandPrimary")?.value||BD_BRAND_DEFAULTS.primary,accent:document.getElementById("brandAccent")?.value||BD_BRAND_DEFAULTS.accent,specialEnabled:!!document.getElementById("brandSpecialEnabled")?.checked,specialTitle:val("brandSpecialTitle"),specialMessage:val("brandSpecialMessage")+(specialDay!=="every"?`\n[[BD_DAY:${specialDay}]]`:"")};
  const s=document.getElementById("brandingStatus");if(s)s.textContent="Saving branding to all devices…";
  try{await bdSaveBusinessBranding(b);localStorage.setItem("bdBusinessBranding",JSON.stringify(b));if(s)s.textContent="Saved — customer website/app will use these settings.";alert("Business branding saved for all devices.");return true;}catch(e){console.error(e);if(s)s.textContent="Could not save branding to the cloud.";alert("Could not save branding. Make sure you are signed in as staff.");return false;}
 }
@@ -25,9 +27,10 @@ function upgradeCustomizationUI(){
   branding.dataset.upgraded="1";
   branding.classList.add("ownerToolsPanel");
   branding.innerHTML=`<details class="ownerTools"><summary><span><b>Owner Settings</b><small>Business name, artwork, colors, and special offers</small></span><em>OPEN</em></summary><div class="ownerToolsBody"><div class="sectionTitle"><div><span class="eyebrow">PRIVATE OWNER CONTROLS</span><b>Business setup</b><small>These settings are hidden during daily order work.</small></div><div class="brandPreview" id="brandPreview"><span>LIVE LOOK</span><strong id="brandPreviewName">Baker's Dawgs</strong></div></div><div class="brandingFields"><label>Business name<input id="brandBusinessName" type="text" placeholder="Your Restaurant" oninput="updateBrandPreview()"></label><label>Tagline<input id="brandTagline" type="text" placeholder="Order ahead. Pick it up hot."></label><label>Phone<input id="brandPhone" type="tel" placeholder="555-555-5555"></label><label>Email<input id="brandEmail" type="email" placeholder="orders@example.com"></label><label>Primary color<input id="brandPrimary" type="color" value="#15100b" oninput="updateBrandPreview()"></label><label>Accent color<input id="brandAccent" type="color" value="#ffc21a" oninput="updateBrandPreview()"></label></div><div class="artworkUpload"><div><b>Logo artwork</b><small>Upload a logo from this phone or tablet, or paste an image link.</small><input id="brandLogo" type="url" placeholder="Paste logo image link"><input id="brandLogoUpload" type="file" accept="image/*"></div><button type="button" class="secondaryButton" onclick="document.getElementById('brandLogoUpload').click()">UPLOAD LOGO</button></div><div class="artworkUpload"><div><b>Full background artwork</b><small>Use a food photo, texture, or your own branded background.</small><input id="brandBackground" type="url" placeholder="Paste background image link"><input id="brandBackgroundUpload" type="file" accept="image/*"></div><button type="button" class="secondaryButton" onclick="document.getElementById('brandBackgroundUpload').click()">UPLOAD BACKGROUND</button></div><div class="buttonRow"><button type="button" onclick="saveBusinessBranding()">SAVE BRAND LOOK</button><button type="button" class="secondaryButton" onclick="previewBusinessBranding()">PREVIEW CUSTOMER SCREEN</button><button type="button" class="textButton" onclick="resetBusinessBranding()">RESET</button></div><small id="brandingStatus">Changes save to the restaurant template.</small></div></details>`;
-  branding.querySelector(".buttonRow")?.insertAdjacentHTML("beforebegin",`<div class="specialEditor"><span class="eyebrow">OPTIONAL DAILY SPECIAL</span><label class="specialToggle"><input id="brandSpecialEnabled" type="checkbox"> Show a special on the customer menu</label><label>Special headline<input id="brandSpecialTitle" type="text" maxlength="45" placeholder="Today’s Special"></label><label>Special message<input id="brandSpecialMessage" type="text" maxlength="120" placeholder="Example: Free cake slice with a meal today."></label></div>`);
+  branding.querySelector(".buttonRow")?.insertAdjacentHTML("beforebegin",`<div class="specialEditor"><span class="eyebrow">OPTIONAL DAILY SPECIAL</span><label class="specialToggle"><input id="brandSpecialEnabled" type="checkbox"> Show a special on the customer menu</label><label>Show it<select id="brandSpecialDay"><option value="every">Every day</option><option value="0">Sunday only</option><option value="1">Monday only</option><option value="2">Tuesday only</option><option value="3">Wednesday only</option><option value="4">Thursday only</option><option value="5">Friday only</option><option value="6">Saturday only</option></select></label><label>Special headline<input id="brandSpecialTitle" type="text" maxlength="45" placeholder="Today’s Special"></label><label>Special message<input id="brandSpecialMessage" type="text" maxlength="120" placeholder="Example: Free cake slice with a meal today."></label></div><details class="ownerTools operationalTools"><summary><span><b>Operations & backups</b><small>Inventory warnings, closeout protection, and a safe backup file.</small></span><em>OPEN</em></summary><div class="ownerToolsBody"><div id="inventoryManager"></div><div class="buttonRow"><button type="button" class="secondaryButton" onclick="downloadSystemBackup()">DOWNLOAD BACKUP</button><button type="button" class="secondaryButton" onclick="setAdminView('orders')">OPEN DAILY CLOSEOUT</button></div></div></details>`);
   document.getElementById("brandLogoUpload")?.addEventListener("change",e=>uploadBrandImage(e.target,"brandLogo"));
-  document.getElementById("brandBackgroundUpload")?.addEventListener("change",e=>uploadBrandImage(e.target,"brandBackground"));
+ document.getElementById("brandBackgroundUpload")?.addEventListener("change",e=>uploadBrandImage(e.target,"brandBackground"));
+  renderInventoryPanel();
  }
  const manager=document.querySelector("#menuAvailabilityControls")?.closest(".menuControls");
  if(manager&&!manager.dataset.upgraded){
@@ -70,6 +73,60 @@ let windowSaleDraft={name:"",phone:"",payment:""};
 let windowSaleLastAdded="";
 let windowSaleHoldTimer=null;
 let windowSaleHoldHandled=false;
+let recentOrderBannerTimer=null;
+let managerApprovalUntil=0;
+
+function ticketCode(order){return String(order?.id||"").replace(/[^a-z0-9]/gi,"").slice(-6).toUpperCase()||"PENDING";}
+function inventorySettings(){try{return JSON.parse(localStorage.getItem("bdInventorySettings")||"{}");}catch(e){return {};}}
+function saveInventorySettings(settings){localStorage.setItem("bdInventorySettings",JSON.stringify(settings));}
+function inventoryUsage(){
+ const used={};
+ (typeof bdDailySummary==="function"?bdDailySummary().items:[]).forEach(line=>{used[line.name]=(used[line.name]||0)+Number(line.count||0);});
+ return used;
+}
+function lowStockItems(){
+ const settings=inventorySettings(),used=inventoryUsage();
+ return Object.entries(settings).map(([name,config])=>({name,onHand:Number(config.onHand||0)-Number(used[name]||0),warning:Number(config.warning||0),sold:Number(used[name]||0)})).filter(item=>item.warning>0&&item.onHand<=item.warning);
+}
+function showNewOrderBanner(count){
+ let banner=document.getElementById("newOrderBanner");
+ if(!banner){banner=document.createElement("button");banner.id="newOrderBanner";banner.type="button";banner.onclick=()=>{setAdminView("orders");banner.classList.remove("show");};document.body.append(banner);}
+ banner.textContent=`🔔 ${count===1?"NEW ORDER":"NEW ORDERS"} — TAP TO OPEN`;
+ banner.classList.add("show");clearTimeout(recentOrderBannerTimer);recentOrderBannerTimer=setTimeout(()=>banner.classList.remove("show"),9000);
+}
+async function requireManagerApproval(action){
+ if(Date.now()<managerApprovalUntil)return true;
+ const pin=prompt(`Manager PIN required to ${action}.`);if(pin===null)return false;
+ const expected=localStorage.getItem("bdManagerPinHash")||localStorage.getItem("bdStaffPinHash")||DEFAULT_STAFF_PIN_HASH;
+ if(await hashPin(pin.trim())!==expected){alert("Manager PIN did not match.");return false;}
+ managerApprovalUntil=Date.now()+5*60*1000;return true;
+}
+function renderInventoryPanel(){
+ const box=document.getElementById("inventoryManager");if(!box)return;
+ const settings=inventorySettings(),used=inventoryUsage(),items=editableMenuItems.filter(item=>item.available!==false);
+ const rows=items.map(item=>{const config=settings[item.item_name]||{},onHand=config.onHand??"",warning=config.warning??"";const remaining=onHand===""?"—":Math.max(0,Number(onHand)-Number(used[item.item_name]||0));return `<label class="inventoryRow"><span><b>${esc(item.item_name)}</b><small>Sold today: ${used[item.item_name]||0} • remaining: ${remaining}</small></span><input data-inventory-name="${esc(item.item_name)}" data-inventory-field="onHand" inputmode="numeric" placeholder="On hand" value="${onHand}"><input data-inventory-name="${esc(item.item_name)}" data-inventory-field="warning" inputmode="numeric" placeholder="Warn at" value="${warning}"></label>`;}).join("");
+ const low=lowStockItems();
+ box.innerHTML=`<div class="sectionTitle"><div><span class="eyebrow">INVENTORY</span><b>Low-stock warnings</b><small>Set opening counts once each day. Completed sales reduce the remaining count automatically.</small></div><button type="button" class="secondaryButton" onclick="saveInventoryFromPanel()">SAVE COUNTS</button></div>${low.length?`<div class="lowStockAlert">⚠ ${low.map(item=>`${esc(item.name)}: ${item.onHand} left`).join(" • ")}</div>`:""}<div class="inventoryHeaders"><span>Item</span><span>On hand</span><span>Warn at</span></div><div class="inventoryRows">${rows||"<p>Open Menu once to load items.</p>"}</div>`;
+}
+async function saveInventoryFromPanel(){
+ if(!await requireManagerApproval("change inventory counts"))return;
+ const settings=inventorySettings();document.querySelectorAll("#inventoryManager input[data-inventory-name]").forEach(input=>{const name=input.dataset.inventoryName,field=input.dataset.inventoryField;settings[name]=settings[name]||{};settings[name][field]=Math.max(0,Number(input.value||0));});saveInventorySettings(settings);renderInventoryPanel();alert("Inventory counts saved on this tablet.");
+}
+function downloadSystemBackup(){
+ const backup={saved_at:new Date().toISOString(),business:JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}"),inventory:inventorySettings(),menu:editableMenuItems,orders:window.bdCurrentOrders||[]};
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:"application/json"}));a.download=`Bakers_Dawgs_Backup_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function printOrderReceipt(id){
+ const order=(window.bdCurrentOrders||[]).find(o=>String(o.id)===String(id));if(!order)return;
+ const rows=(order.items||[]).map(i=>`<tr><td>${esc(i.name)}${i.options?`<br><small>${esc(i.options)}</small>`:""}</td><td>${Number(i.quantity||1)} × $${Number(i.price||0).toFixed(2)}</td></tr>`).join("");
+ const win=window.open("","_blank");if(!win){alert("Allow pop-ups to print the receipt.");return;}
+ win.document.write(`<main style="font:16px Arial;max-width:360px;margin:20px auto"><h1>Baker's Dawgs</h1><h2>Receipt #${ticketCode(order)}</h2><p>${esc(order.customer_name||"Customer")}<br>${esc(order.phone||"")}<br>${esc(order.pickup_time||"")} • ${esc(order.status||"")}</p><table style="width:100%;border-collapse:collapse">${rows}</table><hr><h2>Total: $${Number(order.total||0).toFixed(2)}</h2><p>Payment: ${esc(order.payment_method||"Pay at pickup")}</p></main>`);win.document.close();win.focus();win.print();
+}
+function repeatOrderAtWindow(id){
+ const order=(window.bdCurrentOrders||[]).find(o=>String(o.id)===String(id));if(!order)return;
+ windowSaleCart=(order.items||[]).map(item=>({id:"repeat-"+item.name,name:item.name,price:Number(item.price||0),quantity:Math.max(1,Number(item.quantity)||1)}));
+ windowSaleDraft={name:order.customer_name||"",phone:order.phone||"",payment:""};windowSaleLastAdded=`Repeated ticket #${ticketCode(order)}`;setAdminView("window");
+}
 
 function esc(v=""){
  return String(v).replace(/[&<>"']/g,c=>({
@@ -352,8 +409,8 @@ async function submitWindowSale(completeNow){
  const name=document.getElementById("windowCustomerName")?.value.trim()||"Walk-in Customer";
  const phone=document.getElementById("windowCustomerPhone")?.value.trim()||"Window sale";
  const subtotal=windowSubtotal(),total=Number((subtotal*1.0675).toFixed(2));
- const order={customer_name:name,phone,pickup_time:"Now",notes:"Walk-up window order",items:windowSaleCart.map(line=>({name:line.name,price:Number(line.price),quantity:Number(line.quantity),options:"",notes:""})),total,status:completeNow?"Completed":"New",payment_method:payment||null};
- try{await bdCreateStaffOrder(order);windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleLastAdded="";await loadOrders();renderWindowOrder();alert(completeNow?"Walk-up sale completed and added to today’s cash-out.":"Window order sent to the kitchen.");if(!completeNow)setAdminView("orders");}
+ const order={id:"BD"+Date.now().toString(36).toUpperCase(),customer_name:name,phone,pickup_time:"Now",notes:"Walk-up window order",items:windowSaleCart.map(line=>({name:line.name,price:Number(line.price),quantity:Number(line.quantity),options:"",notes:""})),total,status:completeNow?"Completed":"New",payment_method:payment||null};
+ try{await bdCreateStaffOrder(order);windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleLastAdded="";await loadOrders();renderWindowOrder();alert(completeNow?`Walk-up sale #${ticketCode(order)} completed and added to today’s cash-out.`:`Window ticket #${ticketCode(order)} sent to the kitchen.`);if(!completeNow)setAdminView("orders");}
  catch(e){alert(e?.status===401||e?.status===403?"Your staff session expired. Sign in again, then save this window order.":"Could not save this window order. Check the connection and try again.");}
 }
 
@@ -418,12 +475,14 @@ function openMenuItemEditor(id=""){
   const category=dialog.querySelector("#editorCategory").value.trim(),item_name=dialog.querySelector("#editorName").value.trim(),description=dialog.querySelector("#editorDescription").value.trim(),price=Number(dialog.querySelector("#editorPrice").value);
   if(!category||!item_name||!Number.isFinite(price)||price<0){alert("Enter a category, item name, and valid price.");return;}
   const item={id:id||("item-"+Date.now()),category,item_name,description,price,available:dialog.querySelector("#editorAvailable").checked,sort_order:existing.sort_order??editableMenuItems.length};
+  if(!await requireManagerApproval(id?"change a menu item":"add a menu item"))return;
   try{await bdSaveMenuItem(item);close();await loadMenuAvailability();}catch(e){alert("Could not save the menu item. Run the menu upgrade once in Supabase, then try again.");}
  });
 }
 async function removeMenuItem(id){
  if(!id||id.startsWith("legacy-")){alert("The one-time menu upgrade has not been installed yet.");return;}
  const item=editableMenuItems.find(x=>x.id===id);if(!item||!confirm(`Remove ${item.item_name} from the menu?`))return;
+ if(!await requireManagerApproval("remove a menu item"))return;
  try{await bdDeleteMenuItem(id);await loadMenuAvailability();}catch(e){alert("Could not remove that menu item.");}
 }
 
@@ -468,7 +527,7 @@ async function loadOrders(){
   const orders=await bdGetOrders();
   window.bdCurrentOrders=orders;
   const newIds=orders.filter(o=>o.status==="New"&&!knownOrderIds.has(o.id)).map(o=>o.id);
-  if(!firstOrderLoad&&newIds.length){ playOrderAlert(); }
+  if(!firstOrderLoad&&newIds.length){ playOrderAlert();showNewOrderBanner(newIds.length); }
   knownOrderIds=new Set(orders.map(o=>o.id));
   firstOrderLoad=false;
 
@@ -480,6 +539,8 @@ async function loadOrders(){
   if(salesEl) salesEl.textContent=`${sales.toFixed(2)}`;
   if(ordersEl) ordersEl.textContent=todays.length;
   if(avgEl) avgEl.textContent=completed?`${(sales/completed).toFixed(2)}`:"$0.00";
+  if(typeof renderCloseout==="function")renderCloseout();
+  renderInventoryPanel();
 
   const newCount=document.querySelector("#newCount");
   const readyCount=document.querySelector("#readyCount");
@@ -504,7 +565,7 @@ async function loadOrders(){
     <div class="orderTop">
      <div>
       <h2>${esc(o.customer_name)}</h2>
-      <div><a class="phoneLink" href="tel:${esc(String(o.phone||'').replace(/[^+\d]/g,''))}">${esc(o.phone)}</a> • Pickup: ${esc(o.pickup_time)} • ${waitTime(o.created_at)}</div>
+      <div><b class="ticketLabel">Ticket #${ticketCode(o)}</b> <a class="phoneLink" href="tel:${esc(String(o.phone||'').replace(/[^+\d]/g,''))}">${esc(o.phone)}</a> • Pickup: ${esc(o.pickup_time)} • <span class="serviceTimer ${isLate(o)?"lateTimer":""}">${isLate(o)?"OVERDUE • ":""}${waitTime(o.created_at)}</span></div>
      </div>
      <strong>$${Number(o.total).toFixed(2)}</strong>
     </div>
@@ -536,7 +597,7 @@ async function loadOrders(){
      ).join("")}
     </select>
 
-    <button onclick="deleteOrder('${o.id}')">Delete Order</button>
+    <div class="orderUtility"><button type="button" onclick="printOrderReceipt('${o.id}')">PRINT RECEIPT</button><button type="button" onclick="repeatOrderAtWindow('${o.id}')">REPEAT AT WINDOW</button><button onclick="deleteOrder('${o.id}')">Delete Order</button></div>
    </article>
   `).join("");
 
@@ -661,6 +722,7 @@ async function changeStatus(id,status){
 
 async function deleteOrder(id){
  if(!confirm("Delete this order?")) return;
+ if(!await requireManagerApproval("delete an order"))return;
 
  try{
   await bdDeleteOrder(id);
