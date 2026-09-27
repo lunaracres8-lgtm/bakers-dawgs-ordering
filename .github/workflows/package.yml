@@ -17,6 +17,11 @@ on:
       - 'db.js'
 permissions:
   contents: write
+
+concurrency:
+  group: bakers-dawgs-package
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-24.04
