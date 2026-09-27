@@ -65,6 +65,7 @@ const adminMenuItems=["Carolina Classic Hot Dawg","Sauerkraut & Mustard Dawg","C
 let editableMenuItems=[];
 let currentMenuCategory="All";
 let previewMode="phone";
+let windowSaleCart=[];
 
 function esc(v=""){
  return String(v).replace(/[&<>"']/g,c=>({
@@ -290,21 +291,54 @@ function setupAdminViews(){
  app.dataset.viewsReady="1";
  const owner=app.querySelector(".ownerBranding");
  const menu=[...app.querySelectorAll(".menuControls")].find(section=>section!==owner);
+ const windowSale=document.createElement("section");
+ windowSale.id="windowSale";
+ windowSale.className="windowSale";
+ windowSale.dataset.adminView="window";
+ app.append(windowSale);
  const orders=[app.querySelector(".restaurantControls"),app.querySelector(".toolbar"),app.querySelector(".voiceAssistant"),app.querySelector("#dailyCloseout"),app.querySelector(".metrics"),app.querySelector("nav"),app.querySelector("#orders")];
  orders.forEach(el=>{if(el)el.dataset.adminView="orders";});
  if(menu)menu.dataset.adminView="menu";
  if(owner)owner.dataset.adminView="owner";
  const tabs=document.createElement("nav");
  tabs.className="adminViewTabs";
- tabs.innerHTML=`<button type="button" data-view="orders" onclick="setAdminView('orders')">ORDERS</button><button type="button" data-view="menu" onclick="setAdminView('menu')">MENU</button><button type="button" data-view="owner" onclick="setAdminView('owner')">OWNER</button>`;
+ tabs.innerHTML=`<button type="button" data-view="orders" onclick="setAdminView('orders')">ORDERS</button><button type="button" data-view="window" onclick="setAdminView('window')">WINDOW SALE</button><button type="button" data-view="menu" onclick="setAdminView('menu')">MENU</button><button type="button" data-view="owner" onclick="setAdminView('owner')">OWNER</button>`;
  app.prepend(tabs);
  setAdminView(activeAdminView);
 }
 function setAdminView(view){
- activeAdminView=["orders","menu","owner"].includes(view)?view:"orders";
+ activeAdminView=["orders","window","menu","owner"].includes(view)?view:"orders";
  document.body.dataset.adminView=activeAdminView;
  localStorage.setItem("bdAdminView",activeAdminView);
  document.querySelectorAll(".adminViewTabs button").forEach(button=>button.classList.toggle("active",button.dataset.view===activeAdminView));
+ if(activeAdminView==="window")renderWindowOrder();
+}
+
+function windowMenuItems(){return editableMenuItems.filter(item=>item.available!==false&&menuAvailability[item.item_name]!==false);}
+function windowSubtotal(){return windowSaleCart.reduce((sum,line)=>sum+Number(line.price||0)*Number(line.quantity||1),0);}
+function renderWindowOrder(){
+ const box=document.getElementById("windowSale");if(!box)return;
+ const menuItems=windowMenuItems();
+ const categories=[...new Set(menuItems.map(item=>item.category||"Menu"))];
+ const items=menuItems.map(item=>`<button type="button" class="windowMenuItem" onclick="addWindowSaleItem(decodeURIComponent('${encodeURIComponent(item.id)}'))"><span>${esc(item.item_name)}</span><b>$${Number(item.price||0).toFixed(2)}</b><small>${esc(item.category||"Menu")}</small></button>`).join("");
+ const subtotal=windowSubtotal(),tax=subtotal*.0675,total=subtotal+tax;
+ const cart=windowSaleCart.length?windowSaleCart.map((line,index)=>`<article class="windowCartLine"><div><b>${esc(line.name)}</b><small>$${Number(line.price).toFixed(2)} each</small></div><div class="quantityControl"><button type="button" onclick="changeWindowSaleQuantity(${index},-1)">−</button><b>${line.quantity}</b><button type="button" onclick="changeWindowSaleQuantity(${index},1)">+</button></div><strong>$${(Number(line.price)*Number(line.quantity)).toFixed(2)}</strong><button type="button" class="removeWindowItem" onclick="removeWindowSaleItem(${index})">×</button></article>`).join(""):`<p class="windowEmpty">Add items from the menu to start a walk-up sale.</p>`;
+ box.innerHTML=`<div class="windowTitle"><div><span class="eyebrow">COUNTER POS</span><b>Walk-up / window order</b><small>Cash and card sales are counted with online orders at closeout.</small></div><button type="button" class="secondaryButton" onclick="clearWindowSale()">CLEAR ORDER</button></div><div class="windowCustomer"><label>Customer name <input id="windowCustomerName" maxlength="70" placeholder="Walk-in customer"></label><label>Phone <input id="windowCustomerPhone" inputmode="tel" maxlength="30" placeholder="Optional"></label><label>Payment <select id="windowPayment"><option value="">Choose at payment</option>${(typeof BD_PAYMENT_METHODS!=="undefined"?BD_PAYMENT_METHODS:["Cash","Square — Other / Contactless"]).map(method=>`<option value="${esc(method)}">${esc(method)}</option>`).join("")}</select></label></div><div class="windowPOSGrid"><div><div class="windowMenuHeader">${categories.map(category=>`<span>${esc(category)}</span>`).join("")}</div><div class="windowMenuGrid">${items||"<p>Menu is loading. Open the Menu tab once if it does not appear.</p>"}</div></div><div class="windowCart"><h2>Current sale</h2><div class="windowCartLines">${cart}</div><div class="windowTotals"><span>Subtotal <b>$${subtotal.toFixed(2)}</b></span><span>NC tax (6.75%) <b>$${tax.toFixed(2)}</b></span><strong>Total <b>$${total.toFixed(2)}</b></strong></div><div class="windowActions"><button type="button" class="secondaryButton" onclick="submitWindowSale(false)" ${windowSaleCart.length?"":"disabled"}>SEND TO KITCHEN</button><button type="button" onclick="submitWindowSale(true)" ${windowSaleCart.length?"":"disabled"}>COMPLETE SALE</button></div><small>Send to Kitchen creates a new kitchen ticket. Complete Sale is for a finished walk-up order and requires a payment method.</small></div></div>`;
+}
+function addWindowSaleItem(id){const item=editableMenuItems.find(item=>item.id===id);if(!item||item.available===false)return;const line=windowSaleCart.find(line=>line.id===id);if(line)line.quantity++;else windowSaleCart.push({id:item.id,name:item.item_name,price:Number(item.price),quantity:1});renderWindowOrder();}
+function changeWindowSaleQuantity(index,amount){const line=windowSaleCart[index];if(!line)return;line.quantity+=amount;if(line.quantity<1)windowSaleCart.splice(index,1);renderWindowOrder();}
+function removeWindowSaleItem(index){windowSaleCart.splice(index,1);renderWindowOrder();}
+function clearWindowSale(){if(!windowSaleCart.length||confirm("Clear this walk-up order?")){windowSaleCart=[];renderWindowOrder();}}
+async function submitWindowSale(completeNow){
+ if(!windowSaleCart.length)return;
+ const payment=document.getElementById("windowPayment")?.value||"";
+ if(completeNow&&!payment){alert("Choose Cash or the Square payment type before completing this sale.");return;}
+ const name=document.getElementById("windowCustomerName")?.value.trim()||"Walk-in Customer";
+ const phone=document.getElementById("windowCustomerPhone")?.value.trim()||"Window sale";
+ const subtotal=windowSubtotal(),total=Number((subtotal*1.0675).toFixed(2));
+ const order={customer_name:name,phone,pickup_time:"Now",notes:"Walk-up window order",items:windowSaleCart.map(line=>({name:line.name,price:Number(line.price),quantity:Number(line.quantity),options:"",notes:""})),total,status:completeNow?"Completed":"New",payment_method:payment||null};
+ try{await bdCreateOrder(order);windowSaleCart=[];await loadOrders();renderWindowOrder();alert(completeNow?"Walk-up sale completed and added to today’s cash-out.":"Window order sent to the kitchen.");if(!completeNow)setAdminView("orders");}
+ catch(e){alert("Could not save this window order. Check the connection and try again.");}
 }
 
 async function loadRestaurantControls(){
@@ -341,6 +375,7 @@ async function loadMenuAvailability(){
    return `<article class="menuAdminItem ${available?"available":"soldout"}"><div class="menuItemInfo"><span class="menuCategory">${esc(item.category||"Menu item")}</span><strong>${esc(item.item_name)}</strong>${item.description?`<small>${esc(item.description)}</small>`:""}</div><div class="menuItemActions"><b>${price}</b><button type="button" class="availabilityButton" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(item.item_name)}\'))">${available?"AVAILABLE":"SOLD OUT"}</button><button type="button" class="editItemButton" onclick="openMenuItemEditor(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">EDIT</button><details class="menuMore"><summary>MORE</summary><div><button type="button" onclick="duplicateMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">Duplicate</button><button type="button" onclick="moveMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'),-1)">Move up</button><button type="button" onclick="moveMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'),1)">Move down</button><button type="button" class="deleteItemButton" onclick="removeMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">Delete</button></div></details></div></article>`;
    }).join("");
   updateSetupChecklist();
+  renderWindowOrder();
  }catch(e){
   const box=document.querySelector("#menuAvailabilityControls");
   if(box) box.textContent="Menu controls unavailable.";
@@ -465,10 +500,10 @@ async function loadOrders(){
     <div class="items">
      ${(o.items||[]).map(i=>`
       <div class="orderItem">
-       <b>${esc(i.name)}</b>
+       <b>${Number(i.quantity)>1?`${Number(i.quantity)} × `:""}${esc(i.name)}</b>
        ${i.options?`<small>${esc(i.options)}</small>`:""}
        ${i.notes?`<small>Note: ${esc(i.notes)}</small>`:""}
-       <span>$${Number(i.price||0).toFixed(2)}</span>
+       <span>$${(Number(i.price||0)*Math.max(1,Number(i.quantity)||1)).toFixed(2)}</span>
       </div>
      `).join("")}
     </div>
