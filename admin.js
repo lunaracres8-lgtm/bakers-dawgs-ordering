@@ -314,7 +314,7 @@ async function loadMenuAvailability(){
   if(box) box.innerHTML=visibleItems.map(item=>{
    const available=item.available!==false&&menuAvailability[item.item_name]!==false;
    const price=Number.isFinite(Number(item.price))&&item.price!==""?`$${Number(item.price).toFixed(2)}`:"";
-   return `<article class="menuAdminItem ${available?"available":"soldout"}"><div><span class="menuCategory">${esc(item.category||"Menu item")}</span><strong>${esc(item.item_name)}</strong>${item.description?`<small>${esc(item.description)}</small>`:""}</div><div class="menuItemActions"><b>${price}</b><button type="button" class="availabilityButton" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(item.item_name)}\'))">${available?"AVAILABLE":"SOLD OUT"}</button><button type="button" class="editItemButton" onclick="openMenuItemEditor(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">EDIT</button><button type="button" class="editItemButton" onclick="duplicateMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">DUPLICATE</button><button type="button" class="editItemButton" onclick="moveMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'),-1)">↑</button><button type="button" class="editItemButton" onclick="moveMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'),1)">↓</button><button type="button" class="deleteItemButton" onclick="removeMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">DELETE</button></div></article>`;
+   return `<article class="menuAdminItem ${available?"available":"soldout"}"><div class="menuItemInfo"><span class="menuCategory">${esc(item.category||"Menu item")}</span><strong>${esc(item.item_name)}</strong>${item.description?`<small>${esc(item.description)}</small>`:""}</div><div class="menuItemActions"><b>${price}</b><button type="button" class="availabilityButton" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(item.item_name)}\'))">${available?"AVAILABLE":"SOLD OUT"}</button><button type="button" class="editItemButton" onclick="openMenuItemEditor(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">EDIT</button><details class="menuMore"><summary>MORE</summary><div><button type="button" onclick="duplicateMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">Duplicate</button><button type="button" onclick="moveMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'),-1)">Move up</button><button type="button" onclick="moveMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'),1)">Move down</button><button type="button" class="deleteItemButton" onclick="removeMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">Delete</button></div></details></div></article>`;
    }).join("");
   updateSetupChecklist();
  }catch(e){
@@ -353,8 +353,14 @@ async function removeMenuItem(id){
 }
 
 async function toggleMenuItem(name){
- const available=menuAvailability[name]!==false;
+ const item=editableMenuItems.find(x=>x.item_name===name);
+ const available=item?item.available!==false:menuAvailability[name]!==false;
  try{
+  if(item){
+   item.available=!available;
+   await bdSaveMenuItem(item);
+  }
+  // Keep the original availability list synchronized for older customer screens.
   await bdSetMenuAvailability(name,!available);
   await loadMenuAvailability();
  }catch(e){ alert("Could not update that menu item."); }
