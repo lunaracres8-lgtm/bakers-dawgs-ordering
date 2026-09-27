@@ -88,6 +88,15 @@ function lowStockItems(){
  const settings=inventorySettings(),used=inventoryUsage();
  return Object.entries(settings).map(([name,config])=>({name,onHand:Number(config.onHand||0)-Number(used[name]||0),warning:Number(config.warning||0),sold:Number(used[name]||0)})).filter(item=>item.warning>0&&item.onHand<=item.warning);
 }
+function salesSnapshot(){
+ const summary=typeof bdDailySummary==="function"?bdDailySummary():{items:[],payments:{},completedTotal:0,completedCount:0};
+ const top=[...(summary.items||[])].sort((a,b)=>Number(b.count||0)-Number(a.count||0)).slice(0,3);
+ const completed=(summary.completed||[]),byHour={};completed.forEach(order=>{const hour=new Date(order.created_at).getHours();byHour[hour]=(byHour[hour]||0)+1;});
+ const busiest=Object.entries(byHour).sort((a,b)=>b[1]-a[1])[0];
+ const hourLabel=busiest?new Date(2000,0,1,Number(busiest[0])).toLocaleTimeString([], {hour:"numeric"}):"—";
+ const card=Object.entries(summary.payments||{}).filter(([,value])=>Number(value.total||0)>0).map(([name,value])=>`${name.replace(/^Square — /,"")}: $${Number(value.total).toFixed(2)}`).join(" • ")||"No payments completed yet";
+ return {top,hour:hourLabel,hourCount:busiest?.[1]||0,paymentText:card,total:Number(summary.completedTotal||0),count:Number(summary.completedCount||0)};
+}
 function showNewOrderBanner(count){
  let banner=document.getElementById("newOrderBanner");
  if(!banner){banner=document.createElement("button");banner.id="newOrderBanner";banner.type="button";banner.onclick=()=>{setAdminView("orders");banner.classList.remove("show");};document.body.append(banner);}
@@ -106,7 +115,8 @@ function renderInventoryPanel(){
  const settings=inventorySettings(),used=inventoryUsage(),items=editableMenuItems.filter(item=>item.available!==false);
  const rows=items.map(item=>{const config=settings[item.item_name]||{},onHand=config.onHand??"",warning=config.warning??"";const remaining=onHand===""?"—":Math.max(0,Number(onHand)-Number(used[item.item_name]||0));return `<label class="inventoryRow"><span><b>${esc(item.item_name)}</b><small>Sold today: ${used[item.item_name]||0} • remaining: ${remaining}</small></span><input data-inventory-name="${esc(item.item_name)}" data-inventory-field="onHand" inputmode="numeric" placeholder="On hand" value="${onHand}"><input data-inventory-name="${esc(item.item_name)}" data-inventory-field="warning" inputmode="numeric" placeholder="Warn at" value="${warning}"></label>`;}).join("");
  const low=lowStockItems();
- box.innerHTML=`<div class="sectionTitle"><div><span class="eyebrow">INVENTORY</span><b>Low-stock warnings</b><small>Set opening counts once each day. Completed sales reduce the remaining count automatically.</small></div><button type="button" class="secondaryButton" onclick="saveInventoryFromPanel()">SAVE COUNTS</button></div>${low.length?`<div class="lowStockAlert">⚠ ${low.map(item=>`${esc(item.name)}: ${item.onHand} left`).join(" • ")}</div>`:""}<div class="inventoryHeaders"><span>Item</span><span>On hand</span><span>Warn at</span></div><div class="inventoryRows">${rows||"<p>Open Menu once to load items.</p>"}</div>`;
+ const snapshot=salesSnapshot();
+ box.innerHTML=`<div class="salesSnapshot"><span><b>$${snapshot.total.toFixed(2)}</b><small>Completed today</small></span><span><b>${snapshot.hour}</b><small>${snapshot.hourCount?`${snapshot.hourCount} order${snapshot.hourCount===1?"":"s"}`:"No busy hour yet"}</small></span><span><b>${snapshot.top[0]?esc(snapshot.top[0].name):"—"}</b><small>${snapshot.top[0]?`${snapshot.top[0].count} sold`:"Top seller"}</small></span></div><div class="salesPaymentMix"><b>Payment mix</b><small>${esc(snapshot.paymentText)}</small></div>${snapshot.top.length?`<div class="topSellers"><b>Best sellers today</b>${snapshot.top.map((item,index)=>`<span>${index+1}. ${esc(item.name)} <strong>${item.count}</strong></span>`).join("")}</div>`:""}<div class="sectionTitle"><div><span class="eyebrow">INVENTORY</span><b>Low-stock warnings</b><small>Set opening counts once each day. Completed sales reduce the remaining count automatically.</small></div><button type="button" class="secondaryButton" onclick="saveInventoryFromPanel()">SAVE COUNTS</button></div>${low.length?`<div class="lowStockAlert">⚠ ${low.map(item=>`${esc(item.name)}: ${item.onHand} left`).join(" • ")}</div>`:""}<div class="inventoryHeaders"><span>Item</span><span>On hand</span><span>Warn at</span></div><div class="inventoryRows">${rows||"<p>Open Menu once to load items.</p>"}</div>`;
 }
 async function saveInventoryFromPanel(){
  if(!await requireManagerApproval("change inventory counts"))return;
