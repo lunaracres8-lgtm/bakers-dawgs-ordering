@@ -257,8 +257,8 @@ async function onNativeBiometricSuccess(purpose){
    const userId=nativeEnrollmentUserId||(await bdCurrentStaffUser()).id;
    localStorage.setItem("bdNativeBiometricUserId",userId);
    nativeEnrollmentUserId="";
-   alert("Fingerprint unlock is enabled for this staff account on this device. Your staff PIN still works.");
-  }catch(e){alert("Could not link fingerprint to your staff account. Sign in again and retry.");}
+   setBiometricStatus("Fingerprint unlock is ready for this staff account.");
+  }catch(e){setBiometricStatus("Could not link fingerprint. Sign in again and retry.",true);}
   return;
  }
  if(!localStorage.getItem("bdNativeBiometricUserId")){alert("Sign in and enable fingerprint unlock for this staff account first.");return;}
@@ -270,7 +270,7 @@ async function onNativeBiometricSuccess(purpose){
   showBoard();
  }catch(e){alert(e.message||"Please sign in with your staff password.");location.reload();}
 }
-function onNativeBiometricError(message){alert("Fingerprint unavailable: "+message+" You can use your staff PIN.");}
+function onNativeBiometricError(message){setBiometricStatus("Fingerprint unavailable: "+message,true);}
 function setBiometricButtonLabels(){
  const native=!!window.BakersDawgsAndroid?.authenticateBiometric;
  const main=document.getElementById("biometricBtn"),pin=document.querySelector("#pinGate .biometric"),enroll=document.getElementById("enrollBiometricBtn"),board=document.getElementById("enrollBiometricBoardBtn"),shortcut=document.getElementById("biometricSetupShortcut");
@@ -297,13 +297,37 @@ function ensureBoardBiometricButton(){
   shortcut.onclick=enrollBiometric;
   document.body.append(shortcut);
  }
+ if(!document.getElementById("biometricStatus")){
+  const status=document.createElement("div");
+  status.id="biometricStatus";
+  status.setAttribute("role","status");
+  document.body.append(status);
+ }
  setBiometricButtonLabels();
+}
+function setBiometricStatus(message,error=false){
+ const status=document.getElementById("biometricStatus");
+ if(!status)return;
+ status.textContent=message;
+ status.classList.toggle("error",!!error);
+ status.classList.add("show");
+ clearTimeout(window.bdBiometricStatusTimer);
+ window.bdBiometricStatusTimer=setTimeout(()=>status.classList.remove("show"),error?8000:3500);
+}
+function ensureMadeByCredit(){
+ const app=document.getElementById("app");
+ if(!app||document.getElementById("adminMadeByCredit"))return;
+ const credit=document.createElement("footer");
+ credit.id="adminMadeByCredit";
+ credit.textContent="Made by Lunar Acres Restaurant Services";
+ app.append(credit);
 }
 async function enrollBiometric(){
  if(!bdHasSavedSession()){alert("Sign in with your own staff email and password first.");return;}
  if(window.BakersDawgsAndroid?.authenticateBiometric){
   try{if(!await bdRefreshSession())throw new Error("Session expired");nativeEnrollmentUserId=(await bdCurrentStaffUser()).id;}
-  catch(e){alert("Your staff session expired. Sign in again.");return;}
+  catch(e){setBiometricStatus("Staff sign-in expired. Sign in again, then set up fingerprint.",true);return;}
+  setBiometricStatus("Opening Android fingerprint…");
   window.BakersDawgsAndroid.authenticateBiometric("enroll");return;
  }
  if(!window.PublicKeyCredential){alert("This browser does not support passkeys.");return;}
@@ -427,6 +451,7 @@ function showBoard(){
  if(recoveryBox) recoveryBox.style.display="none";
  if(board){ board.classList.remove("hidden"); board.style.display="block"; }
  ensureBoardBiometricButton();
+ ensureMadeByCredit();
  document.body.dataset.adminLocked="false";
  armAdminAutoLock();
  const soundBtn=document.querySelector("#soundToggle");
