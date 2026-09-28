@@ -266,21 +266,30 @@ async function onNativeBiometricSuccess(purpose){
 function onNativeBiometricError(message){alert("Fingerprint unavailable: "+message+" You can use your staff PIN.");}
 function setBiometricButtonLabels(){
  const native=!!window.BakersDawgsAndroid?.authenticateBiometric;
- const main=document.getElementById("biometricBtn"),pin=document.querySelector("#pinGate .biometric"),enroll=document.getElementById("enrollBiometricBtn"),board=document.getElementById("enrollBiometricBoardBtn");
+ const main=document.getElementById("biometricBtn"),pin=document.querySelector("#pinGate .biometric"),enroll=document.getElementById("enrollBiometricBtn"),board=document.getElementById("enrollBiometricBoardBtn"),shortcut=document.getElementById("biometricSetupShortcut");
  if(main)main.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PASSKEY";
  if(pin)pin.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PASSKEY";
  if(enroll)enroll.textContent=native?"Enable fingerprint for this device":"Enable passkey for this browser";
  if(board)board.textContent=native?"🔐 SET UP FINGERPRINT":"🔐 SET UP PASSKEY";
+ if(shortcut)shortcut.textContent=native?"🔐 SET UP FINGERPRINT":"🔐 SET UP PASSKEY";
 }
 function ensureBoardBiometricButton(){
  const toolbar=document.querySelector(".toolbar");
- if(!toolbar||document.getElementById("enrollBiometricBoardBtn"))return;
- const button=document.createElement("button");
- button.id="enrollBiometricBoardBtn";
- button.type="button";
- button.className="biometric";
- button.onclick=enrollBiometric;
- toolbar.insertBefore(button,toolbar.querySelector("button[onclick='lockAdminScreen()']")||toolbar.lastElementChild);
+ if(toolbar&&!document.getElementById("enrollBiometricBoardBtn")){
+  const button=document.createElement("button");
+  button.id="enrollBiometricBoardBtn";
+  button.type="button";
+  button.className="biometric";
+  button.onclick=enrollBiometric;
+  toolbar.insertBefore(button,toolbar.querySelector("button[onclick='lockAdminScreen()']")||toolbar.lastElementChild);
+ }
+ if(!document.getElementById("biometricSetupShortcut")){
+  const shortcut=document.createElement("button");
+  shortcut.id="biometricSetupShortcut";
+  shortcut.type="button";
+  shortcut.onclick=enrollBiometric;
+  document.body.append(shortcut);
+ }
  setBiometricButtonLabels();
 }
 async function enrollBiometric(){
@@ -493,7 +502,19 @@ function endWindowItemHold(){clearTimeout(windowSaleHoldTimer);}
 function changeWindowSaleQuantity(index,amount){const line=windowSaleCart[index];if(!line)return;line.quantity+=amount;if(line.quantity<1)windowSaleCart.splice(index,1);renderWindowOrder();}
 function removeWindowSaleItem(index){windowSaleCart.splice(index,1);renderWindowOrder();}
 function clearWindowSale(){if(!windowSaleCart.length||confirm("Clear this walk-up order?")){windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";renderWindowOrder();}}
-async function applyWindowDiscount(){if(!windowSaleCart.length)return;if(!await requireManagerApproval("add a discount or comp"))return;const amount=Number(prompt("Discount amount (before tax):")||0);if(!Number.isFinite(amount)||amount<=0){alert("Enter a discount amount greater than zero.");return;}const subtotal=windowSaleCart.reduce((sum,line)=>sum+Number(line.price||0)*Number(line.quantity||1),0);if(amount>subtotal){alert("The discount cannot be more than the items in this sale.");return;}const reason=prompt("Reason for discount or comp:");if(!reason?.trim()){alert("A reason is required.");return;}windowSaleDiscount={amount,reason:reason.trim()};renderWindowOrder();}
+async function applyWindowDiscount(){
+ if(!windowSaleCart.length){alert("Add at least one menu item before applying a discount or comp.");return;}
+ if(!await requireManagerApproval("add a discount or comp"))return;
+ const subtotal=windowSaleCart.reduce((sum,line)=>sum+Number(line.price||0)*Number(line.quantity||1),0);
+ const amount=Number(prompt(`Discount amount before tax (up to $${subtotal.toFixed(2)}):`)||0);
+ if(!Number.isFinite(amount)||amount<=0){alert("Enter a discount amount greater than zero.");return;}
+ if(amount>subtotal){alert("The discount cannot be more than the items in this sale.");return;}
+ const reason=prompt("Reason for discount or comp:");
+ if(!reason?.trim()){alert("A reason is required.");return;}
+ windowSaleDiscount={amount,reason:reason.trim()};
+ renderWindowOrder();
+ alert(`Discount applied: −$${amount.toFixed(2)}.`);
+}
 function clearWindowDiscount(){windowSaleDiscount={amount:0,reason:""};renderWindowOrder();}
 async function submitWindowSale(completeNow){
  if(!windowSaleCart.length)return;
