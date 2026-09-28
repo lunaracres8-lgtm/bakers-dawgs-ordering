@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
-  private static final String PAGE = "https://lunaracres8-lgtm.github.io/bakers-dawgs-ordering/admin.html";
+  private static final String PAGE = "https://bakersdawgs.com/admin.html";
   private WebView web;
   private TextToSpeech tts;
   private SpeechRecognizer recognizer;
@@ -41,7 +41,7 @@ public class MainActivity extends Activity {
     web.addJavascriptInterface(new VoiceBridge(), "BakersDawgsAndroid");
     web.setWebViewClient(new WebViewClient() {
       @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
-        if (url.startsWith("https://lunaracres8-lgtm.github.io/bakers-dawgs-ordering/")) return false;
+        if (url.startsWith("https://bakersdawgs.com/")) return false;
         try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); } catch (Exception ignored) { }
         return true;
       }
