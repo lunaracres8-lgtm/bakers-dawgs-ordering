@@ -151,6 +151,11 @@ function addCustomized(){
  let tops=[...document.querySelectorAll(".checks input:checked")].map(x=>x.value);
  let notes=itemNotes.value;
  let extra=document.querySelector("#chiliAdd")?.checked?.5:0;
+ let isLoaded=String(menu[active]?.[1]||"").toLowerCase().includes("loaded hot dawg");
+ if(isLoaded&&(tops.length<6||tops.length>8)){
+  alert("Choose 6 to 8 toppings for the Loaded Hot Dawg.");
+  return;
+ }
 
  for(let n=0;n<q;n++){
   cart.push({i:active,tops,notes,extra});
