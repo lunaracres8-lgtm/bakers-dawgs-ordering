@@ -264,6 +264,7 @@ async function onNativeBiometricSuccess(purpose){
    const userId=nativeEnrollmentUserId||(await bdCurrentStaffUser()).id;
    localStorage.setItem("bdNativeBiometricUserId",userId);
    nativeEnrollmentUserId="";
+   setBiometricButtonLabels();
    setBiometricStatus("Fingerprint unlock is ready for this staff account.");
   }catch(e){setBiometricStatus("Could not link fingerprint. Sign in again and retry.",true);}
   return;
@@ -281,11 +282,14 @@ function onNativeBiometricError(message){setBiometricStatus("Fingerprint unavail
 function setBiometricButtonLabels(){
  const native=!!window.BakersDawgsAndroid?.authenticateBiometric;
  const main=document.getElementById("biometricBtn"),pin=document.querySelector("#pinGate .biometric"),enroll=document.getElementById("enrollBiometricBtn"),board=document.getElementById("enrollBiometricBoardBtn"),shortcut=document.getElementById("biometricSetupShortcut");
+ const enrolled=native?!!localStorage.getItem("bdNativeBiometricUserId"):!!localStorage.getItem("bdWebPasskeyEnrolled");
  if(main)main.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PASSKEY";
  if(pin)pin.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PASSKEY";
  if(enroll)enroll.textContent=native?"Enable fingerprint for this device":"Enable passkey for this browser";
  if(board)board.textContent=native?"🔐 SET UP FINGERPRINT":"🔐 SET UP PASSKEY";
  if(shortcut)shortcut.textContent=native?"🔐 SET UP FINGERPRINT":"🔐 SET UP PASSKEY";
+ if(board)board.hidden=enrolled;
+ if(shortcut)shortcut.hidden=enrolled;
 }
 function ensureBoardBiometricButton(){
  const toolbar=document.querySelector(".toolbar");
@@ -323,10 +327,13 @@ function setBiometricStatus(message,error=false){
 }
 function ensureMadeByCredit(){
  const app=document.getElementById("app");
- if(!app||document.getElementById("adminMadeByCredit"))return;
- const credit=document.createElement("footer");
- credit.id="adminMadeByCredit";
- credit.textContent="Made by Lunar Acres Restaurant Services";
+ if(!app)return;
+ let credit=document.getElementById("adminMadeByCredit");
+ if(!credit){
+  credit=document.createElement("footer");
+  credit.id="adminMadeByCredit";
+  credit.textContent="Made by Lunar Acres Restaurant Services";
+ }
  app.append(credit);
 }
 async function enrollBiometric(){
@@ -458,7 +465,6 @@ function showBoard(){
  if(recoveryBox) recoveryBox.style.display="none";
  if(board){ board.classList.remove("hidden"); board.style.display="block"; }
  ensureBoardBiometricButton();
- ensureMadeByCredit();
  document.body.dataset.adminLocked="false";
  armAdminAutoLock();
  const soundBtn=document.querySelector("#soundToggle");
@@ -467,6 +473,7 @@ function showBoard(){
  loadOrders();
  loadRestaurantControls();
  setupAdminViews();
+ ensureMadeByCredit();
  updateSpeechReadbackUI();
  upgradeCustomizationUI();
  loadMenuAvailability();
