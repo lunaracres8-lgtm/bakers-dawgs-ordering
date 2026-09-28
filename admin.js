@@ -160,19 +160,26 @@ function repeatOrderAtWindow(id){
  windowSaleDraft={name:order.customer_name||"",phone:order.phone||"",payment:""};windowSaleLastAdded=`Repeated ticket #${ticketCode(order)}`;setAdminView("window");
 }
 function checkWindowLoyalty(){
- saveWindowSaleDraft();const phone=String(windowSaleDraft.phone||"").replace(/\D/g,"");
- if(phone.length<10){
-  windowLoyaltyMessage={message:"Enter the customer’s phone number, then tap Loyalty again to see their visits and rewards."};
-  renderWindowOrder();showWindowLoyaltyMessage();
-  const input=document.getElementById("windowCustomerPhone");
-  input?.focus();input?.scrollIntoView({block:"center",behavior:"smooth"});
-  return;
- }
- const visits=(window.bdCurrentOrders||[]).filter(order=>order.status==="Completed"&&String(order.phone||"").replace(/\D/g,"")===phone).length;
- const goal=8,rewards=Math.floor(visits/goal),progress=visits%goal;
- windowLoyaltyMessage={name:windowSaleDraft.name||"Customer",visits,goal,progress,rewards};
- renderWindowOrder();
- showWindowLoyaltyMessage();
+ saveWindowSaleDraft();
+ const modal=document.createElement("div");
+ modal.className="loyaltyModal";
+ modal.innerHTML=`<section><button type="button" class="closeLoyalty" aria-label="Close loyalty">×</button><span class="eyebrow">BAKER'S DAWGS REWARDS</span><h2>Check customer loyalty</h2><p>Enter the customer’s phone number to see completed visits and available rewards.</p><label>Customer phone<input id="loyaltyPhone" inputmode="tel" maxlength="30" value="${esc(windowSaleDraft.phone||"")}" placeholder="(828) 555-1234"></label><button type="button" id="checkLoyaltyButton">CHECK LOYALTY</button><div id="loyaltyResultBox" aria-live="polite"></div></section>`;
+ document.body.append(modal);
+ const close=()=>modal.remove();
+ modal.querySelector(".closeLoyalty").onclick=close;
+ modal.addEventListener("click",event=>{if(event.target===modal)close();});
+ const phoneInput=modal.querySelector("#loyaltyPhone"),result=modal.querySelector("#loyaltyResultBox");
+ const check=()=>{
+  const phone=String(phoneInput.value||"").replace(/\D/g,"");
+  if(phone.length<10){result.textContent="Enter a full 10-digit phone number first.";return;}
+  windowSaleDraft.phone=phoneInput.value;
+  const visits=(window.bdCurrentOrders||[]).filter(order=>order.status==="Completed"&&String(order.phone||"").replace(/\D/g,"")===phone).length;
+  const goal=8,rewards=Math.floor(visits/goal),progress=visits%goal;
+  result.innerHTML=`<b>${visits} completed visit${visits===1?"":"s"}</b><span>${progress} of ${goal} toward the next reward${rewards?` • ${rewards} reward${rewards===1?"":"s"} available`:""}</span>`;
+ };
+ modal.querySelector("#checkLoyaltyButton").onclick=check;
+ phoneInput.addEventListener("keydown",event=>{if(event.key==="Enter")check();});
+ setTimeout(()=>phoneInput.focus(),40);
 }
 function showWindowLoyaltyMessage(){
  const data=windowLoyaltyMessage,customer=document.querySelector("#windowSale .windowCustomer");
