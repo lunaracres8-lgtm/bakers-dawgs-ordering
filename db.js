@@ -136,7 +136,17 @@ async function bdUpdateOrder(id,changes){
  const r=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",headers:bdHeaders(),body:JSON.stringify(changes)});
 }
 async function bdDeleteOrder(id){
- const r=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`,{method:"DELETE",headers:bdHeaders()});
+ const r=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`,{
+  method:"DELETE",
+  headers:{...bdHeaders(),"Prefer":"return=representation"}
+ });
+ const deleted=await r.json();
+ if(!Array.isArray(deleted)||deleted.length!==1){
+  const error=new Error("The order was not found or you no longer have permission to delete it.");
+  error.status=404;
+  throw error;
+ }
+ return deleted[0];
 }
 
 async function bdGetRestaurantSettings(){
