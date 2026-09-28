@@ -138,15 +138,11 @@ async function bdUpdateOrder(id,changes){
 async function bdDeleteOrder(id){
  const r=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`,{
   method:"DELETE",
-  headers:{...bdHeaders(),"Prefer":"return=representation"}
+  headers:{...bdHeaders(),"Prefer":"return=minimal"}
  });
- const deleted=await r.json();
- if(!Array.isArray(deleted)||deleted.length!==1){
-  const error=new Error("The order was not found or you no longer have permission to delete it.");
-  error.status=404;
-  throw error;
- }
- return deleted[0];
+ // A successful DELETE normally returns 204 with no body. Do not mistake
+ // that success response for a failed deletion.
+ return true;
 }
 
 async function bdGetRestaurantSettings(){
