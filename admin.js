@@ -253,6 +253,13 @@ async function onNativeBiometricSuccess(purpose){
  }catch(e){alert(e.message||"Please sign in with your staff password.");location.reload();}
 }
 function onNativeBiometricError(message){alert("Fingerprint unavailable: "+message+" You can use your staff PIN.");}
+function setBiometricButtonLabels(){
+ const native=!!window.BakersDawgsAndroid?.authenticateBiometric;
+ const main=document.getElementById("biometricBtn"),pin=document.querySelector("#pinGate .biometric"),enroll=document.getElementById("enrollBiometricBtn");
+ if(main)main.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PASSKEY";
+ if(pin)pin.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PASSKEY";
+ if(enroll)enroll.textContent=native?"Enable fingerprint for this device":"Enable passkey for this browser";
+}
 async function enrollBiometric(){
  if(!bdHasSavedSession()){alert("Sign in with your own staff email and password first.");return;}
  if(window.BakersDawgsAndroid?.authenticateBiometric){
@@ -266,7 +273,11 @@ async function enrollBiometric(){
   await bdRegisterPasskey();
   localStorage.setItem("bdWebPasskeyEnrolled","1");
   alert("Passkey registered. You can use it to sign in from this browser.");
- }catch(e){alert("Could not register the passkey: "+(e?.message||"Please try again."));}
+ }catch(e){
+  const message=e?.message||"Please try again.";
+  if(/passkey_disabled/i.test(message))alert("Passkeys have not been turned on for this website yet. Use the Baker's Dawgs Admin APK for fingerprint unlock, or enable passkeys in Supabase before using the browser button.");
+  else alert("Could not register the passkey: "+message);
+ }
 }
 async function biometricUnlock(){
  if(window.BakersDawgsAndroid?.authenticateBiometric){
@@ -279,7 +290,12 @@ async function biometricUnlock(){
   const data=await bdSignInWithPasskey();
   if(!data?.session)throw new Error("No authenticated session was returned.");
   sessionStorage.removeItem("bdReturnToAdmin");showBoard();
- }catch(e){if(e?.name!=="NotAllowedError")alert("Passkey sign-in failed: "+(e?.message||"Please try again."));}
+ }catch(e){
+  if(e?.name==="NotAllowedError")return;
+  const message=e?.message||"Please try again.";
+  if(/passkey_disabled/i.test(message))alert("Passkeys have not been turned on for this website yet. Open the Baker's Dawgs Admin APK and use its fingerprint button, or enable passkeys in Supabase first.");
+  else alert("Passkey sign-in failed: "+message);
+ }
 }
 
 async function login(){
@@ -652,7 +668,7 @@ async function loadOrders(){
      ).join("")}
     </select>
 
-    <div class="orderUtility"><button type="button" onclick="printOrderReceipt('${o.id}')">PRINT RECEIPT</button>${o.status==="Ready"?`<button type="button" class="readyText" onclick="textCustomerReady('${o.id}')">TEXT READY</button>`:""}<button type="button" onclick="repeatOrderAtWindow('${o.id}')">REPEAT AT WINDOW</button>${o.status==="Completed"?`<button type="button" class="voidOrder" onclick="voidOrder('${o.id}')">VOID / REFUND</button>`:""}<button onclick="deleteOrder('${o.id}')">Delete Order</button></div>
+    <div class="orderUtility"><button type="button" onclick="printOrderReceipt('${o.id}')">PRINT RECEIPT</button>${o.status==="Ready"?`<button type="button" class="readyText" onclick="textCustomerReady('${o.id}')">TEXT READY</button>`:""}<button type="button" onclick="repeatOrderAtWindow('${o.id}')">REPEAT AT WINDOW</button>${o.status==="Completed"?`<button type="button" class="voidOrder" onclick="voidOrder('${o.id}')">VOID / REFUND</button>`:""}<button type="button" class="deleteOrderButton" data-order-id="${o.id}" onclick="deleteOrder('${o.id}',this)">Delete Order</button></div>
    </article>
   `).join("");
 
@@ -785,15 +801,18 @@ async function voidOrder(id){
  catch(e){alert("Could not void this order.");}
 }
 
-async function deleteOrder(id){
+async function deleteOrder(id,button){
  if(!confirm("Delete this order?")) return;
  if(!await requireManagerApproval("delete an order"))return;
-
+ if(button){button.disabled=true;button.textContent="Deleting…";}
  try{
-  await bdDeleteOrder(id);
+  const deleted=await bdDeleteOrder(id);
+  window.bdCurrentOrders=(window.bdCurrentOrders||[]).filter(order=>String(order.id)!==String(deleted.id));
   await loadOrders();
  }catch(e){
-  alert("Could not delete order.");
+  if(button){button.disabled=false;button.textContent="Delete Order";}
+  if(e?.status===401||e?.status===403){alert("Your staff sign-in expired. Sign in again, then delete the order.");}
+  else alert(e?.message||"Could not delete order. Check your connection and try again.");
  }
 }
 
@@ -865,3 +884,4 @@ const pinUnlockBtn=document.querySelector("#pinUnlockBtn");
 if(pinUnlockBtn)pinUnlockBtn.onclick=unlockWithPin;
 const staffPinInput=document.querySelector("#staffPin");
 if(staffPinInput)staffPinInput.addEventListener("keydown",e=>{if(e.key==="Enter")unlockWithPin();});
+setBiometricButtonLabels();
