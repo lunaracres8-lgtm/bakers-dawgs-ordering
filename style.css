@@ -17,3 +17,4 @@ footer a{color:#fff!important;font-weight:800;text-decoration:underline;text-dec
 .cakePromo{margin:0;padding:14px 16px;background:#0c0d0e;color:#fff;text-align:center;border-top:2px solid #d71919;border-bottom:2px solid #d71919}.cakePromo b,.cakePromo span{display:block!important}.cakePromo b{font-size:18px;font-weight:900}.cakePromo span{margin-top:7px;font-size:16px;font-weight:800;text-transform:uppercase;line-height:1.35}
 
 .orderSuccess{text-align:center;padding:6px 0 2px}.successCheck{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;margin:0 auto 10px;background:#16803b;color:#fff;font-size:40px;font-weight:900}.successLead{font-size:18px;margin:4px 0 12px}.orderNumber{display:inline-block;background:#ffc21a;color:#111;border-radius:10px;padding:10px 14px;font-size:19px;font-weight:1000;letter-spacing:1px}
+.madeByCredit{display:block;margin-top:15px;color:#777;font-size:11px;letter-spacing:.3px}
