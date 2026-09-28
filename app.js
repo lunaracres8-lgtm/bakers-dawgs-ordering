@@ -114,6 +114,12 @@ function showCat(c){
  menuEl.scrollIntoView();
 }
 
+function startBuildYourDawg(){
+ const loadedIndex=menu.findIndex(item=>String(item[1]||"").toLowerCase().includes("loaded hot dawg"));
+ if(loadedIndex<0){goMenu();return;}
+ customize(loadedIndex);
+}
+
 function customize(i){
  if(menuAvailability[menu[i][1]]===false) return alert("Sorry, that item is sold out right now.");
  if(orderingStatusKnown&&!orderingOpen) return showOrderingPaused();
@@ -366,7 +372,7 @@ async function placeOrder(){
 
   modalBody.innerHTML=
   `<div class="orderSuccess"><div class="successCheck">✓</div><h2>Order Received!</h2>
-  <p class="successLead">Your order is in the kitchen.</p><p><b>PAY AT PICKUP</b><br>No online payment was taken. Please pay at the restaurant when you pick up your order.</p>
+  <p class="successLead">Your order is in the kitchen. It will be ready around your pickup time.</p><p><b>PAY AT PICKUP</b><br>No online payment was taken. Please pay at the restaurant when you pick up your order.</p>
   <div class="orderNumber">ORDER #${customerTicket}</div></div>
   <p><b>Pickup:</b> ${timeEl.value}<br><b>Subtotal:</b> ${money(subtotal)}<br><b>NC sales tax (6.75%):</b> ${money(tax)}<br><b>Total:</b> ${money(total)}</p>
   <button class="checkout" onclick="printLastCustomerReceipt()">PRINT RECEIPT</button><button class="checkout" onclick="closeModal()">DONE</button>`;
