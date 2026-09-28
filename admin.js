@@ -893,13 +893,13 @@ async function voidOrder(id){
 }
 
 async function deleteOrder(id,button){
- if(!confirm("Delete this order?")) return;
- if(!await requireManagerApproval("delete an order"))return;
+ if(!confirm("Delete this order permanently? This cannot be undone.")) return;
  if(button){button.disabled=true;button.textContent="Deleting…";}
  try{
-  const deleted=await bdDeleteOrder(id);
-  window.bdCurrentOrders=(window.bdCurrentOrders||[]).filter(order=>String(order.id)!==String(deleted.id));
+  await bdDeleteOrder(id);
+  window.bdCurrentOrders=(window.bdCurrentOrders||[]).filter(order=>String(order.id)!==String(id));
   await loadOrders();
+  alert("Order deleted.");
  }catch(e){
   if(button){button.disabled=false;button.textContent="Delete Order";}
   if(e?.status===401||e?.status===403){alert("Your staff sign-in expired. Sign in again, then delete the order.");}
