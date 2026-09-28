@@ -137,12 +137,16 @@ async function bdUpdateOrder(id,changes){
 }
 async function bdDeleteOrder(id){
  const r=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`,{
-  method:"DELETE",
-  headers:{...bdHeaders(),"Prefer":"return=minimal"}
+   method:"DELETE",
+  headers:{...bdHeaders(),"Prefer":"return=representation"}
  });
- // A successful DELETE normally returns 204 with no body. Do not mistake
- // that success response for a failed deletion.
- return true;
+ const deleted=await r.json();
+ if(!Array.isArray(deleted)||deleted.length!==1){
+  const error=new Error("This order could not be deleted. Sign in again and try once more.");
+  error.status=403;
+  throw error;
+ }
+ return deleted[0];
 }
 
 async function bdGetRestaurantSettings(){
