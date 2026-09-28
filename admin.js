@@ -160,7 +160,14 @@ function repeatOrderAtWindow(id){
  windowSaleDraft={name:order.customer_name||"",phone:order.phone||"",payment:""};windowSaleLastAdded=`Repeated ticket #${ticketCode(order)}`;setAdminView("window");
 }
 function checkWindowLoyalty(){
- saveWindowSaleDraft();const phone=String(windowSaleDraft.phone||"").replace(/\D/g,"");if(phone.length<10){alert("Enter the customer’s phone number first.");return;}
+ saveWindowSaleDraft();const phone=String(windowSaleDraft.phone||"").replace(/\D/g,"");
+ if(phone.length<10){
+  windowLoyaltyMessage={message:"Enter the customer’s phone number, then tap Loyalty again to see their visits and rewards."};
+  renderWindowOrder();showWindowLoyaltyMessage();
+  const input=document.getElementById("windowCustomerPhone");
+  input?.focus();input?.scrollIntoView({block:"center",behavior:"smooth"});
+  return;
+ }
  const visits=(window.bdCurrentOrders||[]).filter(order=>order.status==="Completed"&&String(order.phone||"").replace(/\D/g,"")===phone).length;
  const goal=8,rewards=Math.floor(visits/goal),progress=visits%goal;
  windowLoyaltyMessage={name:windowSaleDraft.name||"Customer",visits,goal,progress,rewards};
@@ -172,7 +179,7 @@ function showWindowLoyaltyMessage(){
  if(!data||!customer)return;
  const panel=document.createElement("section");
  panel.className="loyaltyResult";
- panel.innerHTML=`<b>LOYALTY — ${esc(data.name)}</b><span>${data.visits} completed visit${data.visits===1?"":"s"} • ${data.progress} of ${data.goal} toward the next reward${data.rewards?` • ${data.rewards} reward${data.rewards===1?"":"s"} available`:""}</span><button type="button" class="textButton" onclick="windowLoyaltyMessage='';renderWindowOrder()">×</button>`;
+ panel.innerHTML=data.message?`<b>LOYALTY</b><span>${esc(data.message)}</span><button type="button" class="textButton" onclick="windowLoyaltyMessage='';renderWindowOrder()">×</button>`:`<b>LOYALTY — ${esc(data.name)}</b><span>${data.visits} completed visit${data.visits===1?"":"s"} • ${data.progress} of ${data.goal} toward the next reward${data.rewards?` • ${data.rewards} reward${data.rewards===1?"":"s"} available`:""}</span><button type="button" class="textButton" onclick="windowLoyaltyMessage='';renderWindowOrder()">×</button>`;
  customer.insertAdjacentElement("afterend",panel);
 }
 
