@@ -301,6 +301,14 @@ function ensureBoardBiometricButton(){
   button.onclick=enrollBiometric;
   toolbar.insertBefore(button,toolbar.querySelector("button[onclick='lockAdminScreen()']")||toolbar.lastElementChild);
  }
+ if(toolbar&&!document.getElementById("systemCheckButton")){
+  const button=document.createElement("button");
+  button.id="systemCheckButton";
+  button.type="button";
+  button.textContent="SYSTEM CHECK";
+  button.onclick=runSystemCheck;
+  toolbar.insertBefore(button,toolbar.querySelector("button[onclick='lockAdminScreen()']")||toolbar.lastElementChild);
+ }
  if(!document.getElementById("biometricStatus")){
   const status=document.createElement("div");
   status.id="biometricStatus";
@@ -308,6 +316,29 @@ function ensureBoardBiometricButton(){
   document.body.append(status);
  }
  setBiometricButtonLabels();
+}
+async function runSystemCheck(){
+ const button=document.getElementById("systemCheckButton");
+ if(button){button.disabled=true;button.textContent="CHECKING…";}
+ const checks=[];
+ try{
+  if(!await bdRefreshSession())throw new Error("Staff sign-in needs to be refreshed.");
+  await bdCurrentStaffUser();checks.push("staff sign-in");
+  const settings=await bdGetRestaurantSettings();
+  if(!settings)throw new Error("Ordering controls did not respond.");
+  checks.push("ordering controls");
+  const menuItems=await bdGetMenuItems();
+  if(!Array.isArray(menuItems))throw new Error("Menu did not respond.");
+  checks.push("menu");
+  const orders=await bdGetOrders();
+  if(!Array.isArray(orders))throw new Error("Order board did not respond.");
+  checks.push("order board");
+  alert(`System check passed: ${checks.join(", ")}.`);
+ }catch(e){
+  alert(`System check found a problem: ${e?.message||"connection failed"}`);
+ }finally{
+  if(button){button.disabled=false;button.textContent="SYSTEM CHECK";}
+ }
 }
 function setBiometricStatus(message,error=false){
  const status=document.getElementById("biometricStatus");
@@ -394,6 +425,9 @@ async function forgotPassword(){
 function logout(){
  bdSignOut();
  location.reload();
+}
+function strongPassword(password){
+ return password.length>=12&&/[a-z]/.test(password)&&/[A-Z]/.test(password)&&/\d/.test(password)&&/[^A-Za-z0-9]/.test(password);
 }
 function switchEmployee(){
  if(!confirm("Sign out this staff account so another employee can sign in?"))return;
@@ -941,7 +975,7 @@ if(recoveryToken){
  if(save) save.onclick=async function(){
   const p=document.querySelector("#newPassword").value;
   const c=document.querySelector("#confirmPassword").value;
-  if(p.length<8){ alert("Use at least 8 characters."); return; }
+  if(!strongPassword(p)){ alert("Use at least 12 characters with an uppercase letter, lowercase letter, number, and symbol."); return; }
   if(p!==c){ alert("Passwords do not match."); return; }
   save.disabled=true;
   try{
