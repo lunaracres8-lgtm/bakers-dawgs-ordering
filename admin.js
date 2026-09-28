@@ -74,6 +74,7 @@ let windowSaleCart=[];
 let windowSaleDraft={name:"",phone:"",payment:""};
 let windowSaleDiscount={amount:0,reason:""};
 let windowSaleLastAdded="";
+let windowLoyaltyMessage="";
 let windowSaleHoldTimer=null;
 let windowSaleHoldHandled=false;
 let recentOrderBannerTimer=null;
@@ -162,7 +163,17 @@ function checkWindowLoyalty(){
  saveWindowSaleDraft();const phone=String(windowSaleDraft.phone||"").replace(/\D/g,"");if(phone.length<10){alert("Enter the customer’s phone number first.");return;}
  const visits=(window.bdCurrentOrders||[]).filter(order=>order.status==="Completed"&&String(order.phone||"").replace(/\D/g,"")===phone).length;
  const goal=8,rewards=Math.floor(visits/goal),progress=visits%goal;
- alert(`${windowSaleDraft.name||"Customer"} has ${visits} completed visit${visits===1?"":"s"}.\n\nLoyalty progress: ${progress} of ${goal}${rewards?`\nAvailable reward${rewards===1?"":"s"}: ${rewards}`:""}`);
+ windowLoyaltyMessage={name:windowSaleDraft.name||"Customer",visits,goal,progress,rewards};
+ renderWindowOrder();
+ showWindowLoyaltyMessage();
+}
+function showWindowLoyaltyMessage(){
+ const data=windowLoyaltyMessage,customer=document.querySelector("#windowSale .windowCustomer");
+ if(!data||!customer)return;
+ const panel=document.createElement("section");
+ panel.className="loyaltyResult";
+ panel.innerHTML=`<b>LOYALTY — ${esc(data.name)}</b><span>${data.visits} completed visit${data.visits===1?"":"s"} • ${data.progress} of ${data.goal} toward the next reward${data.rewards?` • ${data.rewards} reward${data.rewards===1?"":"s"} available`:""}</span><button type="button" class="textButton" onclick="windowLoyaltyMessage='';renderWindowOrder()">×</button>`;
+ customer.insertAdjacentElement("afterend",panel);
 }
 
 function esc(v=""){
@@ -255,10 +266,22 @@ async function onNativeBiometricSuccess(purpose){
 function onNativeBiometricError(message){alert("Fingerprint unavailable: "+message+" You can use your staff PIN.");}
 function setBiometricButtonLabels(){
  const native=!!window.BakersDawgsAndroid?.authenticateBiometric;
- const main=document.getElementById("biometricBtn"),pin=document.querySelector("#pinGate .biometric"),enroll=document.getElementById("enrollBiometricBtn");
+ const main=document.getElementById("biometricBtn"),pin=document.querySelector("#pinGate .biometric"),enroll=document.getElementById("enrollBiometricBtn"),board=document.getElementById("enrollBiometricBoardBtn");
  if(main)main.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PASSKEY";
  if(pin)pin.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PASSKEY";
  if(enroll)enroll.textContent=native?"Enable fingerprint for this device":"Enable passkey for this browser";
+ if(board)board.textContent=native?"🔐 SET UP FINGERPRINT":"🔐 SET UP PASSKEY";
+}
+function ensureBoardBiometricButton(){
+ const toolbar=document.querySelector(".toolbar");
+ if(!toolbar||document.getElementById("enrollBiometricBoardBtn"))return;
+ const button=document.createElement("button");
+ button.id="enrollBiometricBoardBtn";
+ button.type="button";
+ button.className="biometric";
+ button.onclick=enrollBiometric;
+ toolbar.insertBefore(button,toolbar.querySelector("button[onclick='lockAdminScreen()']")||toolbar.lastElementChild);
+ setBiometricButtonLabels();
 }
 async function enrollBiometric(){
  if(!bdHasSavedSession()){alert("Sign in with your own staff email and password first.");return;}
@@ -387,6 +410,7 @@ function showBoard(){
  if(loginBox) loginBox.style.display="none";
  if(recoveryBox) recoveryBox.style.display="none";
  if(board){ board.classList.remove("hidden"); board.style.display="block"; }
+ ensureBoardBiometricButton();
  document.body.dataset.adminLocked="false";
  armAdminAutoLock();
  const soundBtn=document.querySelector("#soundToggle");
