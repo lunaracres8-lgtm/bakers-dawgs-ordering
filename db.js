@@ -61,7 +61,7 @@ async function bdSignIn(email,password){
 async function bdResetPassword(email){
  const headers={"apikey":BD_KEY,"Content-Type":"application/json"};
  const body=JSON.stringify({email});
- const redirectTo="https://lunaracres8-lgtm.github.io/bakers-dawgs-ordering/admin.html";
+ const redirectTo="https://bakersdawgs.com/admin.html";
  let r=await fetch(`${BD_URL}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,{method:"POST",headers,body});
  if(!r.ok){
   // Older WebViews and projects without an allow-listed redirect can reject redirect_to.
