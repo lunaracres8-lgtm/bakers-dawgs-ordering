@@ -301,13 +301,6 @@ function ensureBoardBiometricButton(){
   button.onclick=enrollBiometric;
   toolbar.insertBefore(button,toolbar.querySelector("button[onclick='lockAdminScreen()']")||toolbar.lastElementChild);
  }
- if(!document.getElementById("biometricSetupShortcut")){
-  const shortcut=document.createElement("button");
-  shortcut.id="biometricSetupShortcut";
-  shortcut.type="button";
-  shortcut.onclick=enrollBiometric;
-  document.body.append(shortcut);
- }
  if(!document.getElementById("biometricStatus")){
   const status=document.createElement("div");
   status.id="biometricStatus";
