@@ -91,7 +91,7 @@ jobs:
           python3 - <<'MANIFEST'
           from pathlib import Path
           p=Path('admin-apk/app/src/main/AndroidManifest.xml')
-          s=p.read_text().replace('<application ', '<uses-permission android:name="android.permission.RECORD_AUDIO"/><queries><intent><action android:name="android.speech.RecognitionService"/></intent></queries><application ')
+          s=p.read_text().replace('<application ', '<uses-permission android:name="android.permission.RECORD_AUDIO"/><uses-permission android:name="android.permission.USE_BIOMETRIC"/><uses-permission android:name="android.permission.USE_FINGERPRINT"/><queries><intent><action android:name="android.speech.RecognitionService"/></intent></queries><application ')
           p.write_text(s)
           MANIFEST
       - name: Build APKs
