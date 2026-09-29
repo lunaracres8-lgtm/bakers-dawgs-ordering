@@ -811,19 +811,21 @@ async function toggleMenuItem(name,button){
  const available=item?item.available!==false:menuAvailability[name]!==false;
  if(button){button.disabled=true;button.textContent="SAVING…";}
  try{
-  if(item){
-   item.available=!available;
-   await bdSaveMenuItem(item);
-  }else{
-   await bdSetMenuAvailability(name,!available);
-  }
-  // Keep the older availability list synchronized when it is available, but
-  // never let that older list prevent the current menu from refreshing.
-  // menu_items is now the source of truth for availability.
+  if(!item) throw new Error("This menu item is not in the menu_items table.");
+  // Availability is a simple field update. Do not send the whole item back:
+  // this avoids unrelated unique constraints or schema fields from blocking
+  // the Available/Sold Out action.
+  await bdRequest(`${BD_URL}/rest/v1/menu_items?id=eq.${encodeURIComponent(item.id)}`,{
+   method:"PATCH",
+   headers:{...bdHeaders(),"Prefer":"return=minimal"},
+   body:JSON.stringify({available:!available})
+  });
+  item.available=!available;
   await loadMenuAvailability();
  }catch(e){
   if(button){button.disabled=false;button.textContent=available?"AVAILABLE":"SOLD OUT";}
-  alert(e?.status===401||e?.status===403?"Your staff sign-in expired. Sign in again, then change this item.":"Could not update that menu item.\\n\\n"+(e?.message||"Unknown error"));
+  const detail=String(e?.message||"Unknown error").replace(/\\s+/g," ").trim();
+  alert("Could not update that menu item.\\n\\n"+detail);
  }
 }
 
