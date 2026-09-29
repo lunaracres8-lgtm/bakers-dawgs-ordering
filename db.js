@@ -184,8 +184,43 @@ async function bdGetMenuItems(){
  return r.json();
 }
 async function bdSaveMenuItem(item){
- const payload={id:item.id,category:item.category,item_name:item.item_name,description:item.description||"",price:Number(item.price),available:item.available!==false,sort_order:Number(item.sort_order)||0,updated_at:new Date().toISOString()};
- const save=()=>bdRequest(`${BD_URL}/rest/v1/menu_items?on_conflict=id`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(payload)});
+ const payload={
+  id:item.id,
+  category:String(item.category||"").trim(),
+  item_name:String(item.item_name||"").trim(),
+  description:String(item.description||""),
+  price:Number(item.price),
+  available:item.available!==false,
+  sort_order:Number(item.sort_order)||0,
+  updated_at:new Date().toISOString()
+ };
+ if(!payload.category||!payload.item_name||!Number.isFinite(payload.price)||payload.price<0){
+  throw new Error("Menu item has an invalid category, name, or price.");
+ }
+
+ // Use separate INSERT/PATCH calls instead of PostgREST upsert. This makes
+ // permission failures much clearer and avoids requiring upsert-specific
+ // INSERT+UPDATE behavior when a brand-new item is being created.
+ const isExisting=Array.isArray(window.editableMenuItems)
+   ? window.editableMenuItems.some(x=>String(x.id)===String(item.id))
+   : false;
+
+ const save=async()=>{
+  if(isExisting){
+   await bdRequest(`${BD_URL}/rest/v1/menu_items?id=eq.${encodeURIComponent(item.id)}`,{
+    method:"PATCH",
+    headers:{...bdHeaders(),"Prefer":"return=minimal"},
+    body:JSON.stringify(payload)
+   });
+  }else{
+   await bdRequest(`${BD_URL}/rest/v1/menu_items`,{
+    method:"POST",
+    headers:{...bdHeaders(),"Prefer":"return=minimal"},
+    body:JSON.stringify(payload)
+   });
+  }
+ };
+
  try{
   await save();
  }catch(e){
@@ -195,7 +230,16 @@ async function bdSaveMenuItem(item){
     return;
    }
   }
-  throw e;
+  let message=String(e?.message||"");
+  try{
+   const parsed=JSON.parse(message);
+   if(parsed?.message) message=parsed.message;
+   if(parsed?.hint) message += " Hint: "+parsed.hint;
+   if(parsed?.code) message += " (code "+parsed.code+")";
+  }catch(_){}
+  const error=new Error(message||"Supabase rejected the menu item.");
+  error.status=e?.status;
+  throw error;
  }
 }
 async function bdDeleteMenuItem(id){
