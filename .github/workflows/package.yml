@@ -1,3 +1,4 @@
+# Manual-build trigger enabled
 name: Build Baker's Dawgs software packages
 on:
   workflow_dispatch:
