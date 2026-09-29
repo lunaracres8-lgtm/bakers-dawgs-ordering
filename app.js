@@ -8,6 +8,7 @@ async function applyBusinessBranding(){
  const name=b.businessName||"Baker's Dawgs";
  const title=document.getElementById("brandBusinessNameDisplay");if(title)title.textContent=name.toUpperCase();
  const foot=document.getElementById("brandFooterName");if(foot)foot.textContent=name;
+ const tagline=document.getElementById("brandTaglineDisplay");if(tagline&&b.tagline)tagline.textContent=b.tagline;
  if(b.primary)document.documentElement.style.setProperty("--brand-primary",b.primary);
  if(b.accent)document.documentElement.style.setProperty("--brand-accent",b.accent);
  if(b.background){document.body.style.backgroundImage='linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.28)),url("'+String(b.background).replace(/["']/g,"")+'")';document.body.style.backgroundSize="cover";document.body.style.backgroundAttachment="fixed";}
