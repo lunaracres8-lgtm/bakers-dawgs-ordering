@@ -183,7 +183,10 @@ async function bdSaveMenuItem(item){
   await save();
  }catch(e){
   if(e?.status===401||e?.status===403){
-   if(await bdRefreshSession()) await save();
+   if(await bdRefreshSession()){
+    await save();
+    return;
+   }
   }
   throw e;
  }
