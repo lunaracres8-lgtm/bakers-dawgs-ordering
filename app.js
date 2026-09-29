@@ -202,11 +202,16 @@ async function refreshMenuAvailability(){
   render();
  }catch(e){}
 }
+function canonicalCategory(category){
+ const raw=String(category||"").trim().toLowerCase();
+ if(raw==="drinks and sides"||raw==="drinks & sides"||raw==="drinks/sides") return "Drinks & Sides";
+ return String(category||"").trim();
+}
 async function loadEditableMenu(){
  try{
   const rows=await bdGetMenuItems();
   if(!rows?.length)return;
-  menu=rows.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[x.category,x.item_name,x.description||"",Number(x.price)]);
+  menu=rows.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[canonicalCategory(x.category),x.item_name,x.description||"",Number(x.price)]);
   cats=[...new Set(menu.map(x=>x[0]))];
   menuAvailability=Object.fromEntries(rows.map(x=>[x.item_name,x.available!==false]));
   render();update();
