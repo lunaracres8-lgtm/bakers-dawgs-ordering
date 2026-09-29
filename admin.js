@@ -1,5 +1,5 @@
 
-const BD_BRAND_DEFAULTS={businessName:"Baker's Dawgs",tagline:"Made fresh. Order ahead. Pick it up hot.",phone:"8282051139",email:"dawgsbaker@gmail.com",logo:"",background:"",primary:"#15100b",accent:"#ffc21a",specialEnabled:false,specialTitle:"",specialMessage:""};
+const BD_BRAND_DEFAULTS={businessName:"Baker's Dawgs",tagline:"Best Dawgs in Town",phone:"8282051139",email:"dawgsbaker@gmail.com",logo:"",background:"",primary:"#15100b",accent:"#ffc21a",specialEnabled:false,specialTitle:"",specialMessage:""};
 function getBusinessBranding(){try{return {...BD_BRAND_DEFAULTS,...JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}")};}catch(e){return {...BD_BRAND_DEFAULTS};}}
 async function loadBusinessBrandingForm(){
  let b={...BD_BRAND_DEFAULTS};
