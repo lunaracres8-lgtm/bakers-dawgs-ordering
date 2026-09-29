@@ -37,6 +37,7 @@ public class MainActivity extends Activity {
     WebSettings settings = web.getSettings();
     settings.setJavaScriptEnabled(true);
     settings.setDomStorageEnabled(true);
+    settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
     settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
     web.addJavascriptInterface(new VoiceBridge(), "BakersDawgsAndroid");
     web.setWebViewClient(new WebViewClient() {
@@ -54,7 +55,7 @@ public class MainActivity extends Activity {
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
     // New build marker makes the installed Admin app fetch the current order-board code.
-    web.loadUrl(PAGE + "?v=56");
+    web.loadUrl(PAGE + "?v=57");
   }
 
   private void callback(String method, String value) {
