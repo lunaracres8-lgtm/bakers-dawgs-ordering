@@ -178,7 +178,15 @@ async function bdGetMenuItems(){
 }
 async function bdSaveMenuItem(item){
  const payload={id:item.id,category:item.category,item_name:item.item_name,description:item.description||"",price:Number(item.price),available:item.available!==false,sort_order:Number(item.sort_order)||0,updated_at:new Date().toISOString()};
- await bdRequest(`${BD_URL}/rest/v1/menu_items?on_conflict=id`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(payload)});
+ const save=()=>bdRequest(`${BD_URL}/rest/v1/menu_items?on_conflict=id`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(payload)});
+ try{
+  await save();
+ }catch(e){
+  if(e?.status===401||e?.status===403){
+   if(await bdRefreshSession()) await save();
+  }
+  throw e;
+ }
 }
 async function bdDeleteMenuItem(id){
  await bdRequest(`${BD_URL}/rest/v1/menu_items?id=eq.${encodeURIComponent(id)}`,{method:"DELETE",headers:bdHeaders()});
