@@ -654,17 +654,99 @@ async function restoreSampleMenu(){
 function openMenuItemEditor(id=""){
  const existing=editableMenuItems.find(x=>x.id===id)||{};
  if(id&&id.startsWith("legacy-")){alert("The one-time menu upgrade has not been installed yet. Once it is installed, every item can be edited and removed here.");return;}
+
+ // Build the category list from the categories already used by the menu.
+ // This prevents a new item from accidentally being saved under a misspelled
+ // or slightly different category name.
+ const categories=[...new Set(editableMenuItems
+   .map(x=>String(x.category||"").trim())
+   .filter(Boolean))];
+ if(existing.category&&!categories.includes(existing.category))categories.push(existing.category);
+ categories.sort((a,b)=>a.localeCompare(b));
+
+ const categoryOptions=categories.map(cat=>`<option value="${esc(cat)}" ${existing.category===cat?"selected":""}>${esc(cat)}</option>`).join("");
+ const hasExistingCategory=!!existing.category&&categories.includes(existing.category);
  const dialog=document.createElement("div");dialog.className="menuEditorModal";
- dialog.innerHTML=`<section><button class="closeEditor" aria-label="Close">×</button><span class="eyebrow">MENU BUILDER</span><h2>${id?"Edit menu item":"Add menu item"}</h2><label>Category<input id="editorCategory" value="${esc(existing.category||"Hot Dawgs")}" placeholder="Hot Dawgs"></label><label>Item name<input id="editorName" value="${esc(existing.item_name||"")}" placeholder="Item name"></label><label>Description<textarea id="editorDescription" placeholder="Short description">${esc(existing.description||"")}</textarea></label><label>Price<input id="editorPrice" value="${existing.price??""}" inputmode="decimal" placeholder="0.00"></label><label class="availabilityCheck"><input id="editorAvailable" type="checkbox" ${existing.available!==false?"checked":""}> Available to order</label><div class="editorButtons"><button type="button" class="secondaryButton closeEditor">CANCEL</button><button type="button" id="saveMenuItemButton">SAVE MENU ITEM</button></div></section>`;
+ dialog.innerHTML=`<section>
+  <button class="closeEditor" aria-label="Close">×</button>
+  <span class="eyebrow">MENU BUILDER</span>
+  <h2>${id?"Edit menu item":"Add menu item"}</h2>
+
+  <label>Category
+   <select id="editorCategory">
+    <option value="">Choose a category…</option>
+    ${categoryOptions}
+    <option value="__new__">＋ Create a new category</option>
+   </select>
+  </label>
+  <label id="newCategoryWrap" style="display:none">New category name
+   <input id="editorNewCategory" placeholder="Example: Drinks & Sides">
+  </label>
+
+  <label>Item name
+   <input id="editorName" value="${esc(existing.item_name||"")}" placeholder="Item name">
+  </label>
+  <label>Description
+   <textarea id="editorDescription" placeholder="Short description">${esc(existing.description||"")}</textarea>
+  </label>
+  <label>Price
+   <input id="editorPrice" value="${existing.price??""}" inputmode="decimal" placeholder="0.00">
+  </label>
+  <label class="availabilityCheck">
+   <input id="editorAvailable" type="checkbox" ${existing.available!==false?"checked":""}> Available to order
+  </label>
+  <div class="editorButtons">
+   <button type="button" class="secondaryButton closeEditor">CANCEL</button>
+   <button type="button" id="saveMenuItemButton">SAVE MENU ITEM</button>
+  </div>
+ </section>`;
  document.body.append(dialog);
- const close=()=>dialog.remove();dialog.querySelectorAll(".closeEditor").forEach(b=>b.addEventListener("click",close));
+
+ const categorySelect=dialog.querySelector("#editorCategory");
+ const newCategoryWrap=dialog.querySelector("#newCategoryWrap");
+ const newCategoryInput=dialog.querySelector("#editorNewCategory");
+ const syncCategoryUI=()=>{
+   const isNew=categorySelect.value==="__new__";
+   newCategoryWrap.style.display=isNew?"block":"none";
+   if(isNew)newCategoryInput.focus();
+ };
+ if(hasExistingCategory)categorySelect.value=existing.category;
+ categorySelect.addEventListener("change",syncCategoryUI);
+ syncCategoryUI();
+
+ const close=()=>dialog.remove();
+ dialog.querySelectorAll(".closeEditor").forEach(b=>b.addEventListener("click",close));
  dialog.addEventListener("click",e=>{if(e.target===dialog)close();});
+
  dialog.querySelector("#saveMenuItemButton").addEventListener("click",async()=>{
-  const category=dialog.querySelector("#editorCategory").value.trim(),item_name=dialog.querySelector("#editorName").value.trim(),description=dialog.querySelector("#editorDescription").value.trim(),price=Number(dialog.querySelector("#editorPrice").value);
-  if(!category||!item_name||!Number.isFinite(price)||price<0){alert("Enter a category, item name, and valid price.");return;}
-  const item={id:id||("item-"+Date.now()),category,item_name,description,price,available:dialog.querySelector("#editorAvailable").checked,sort_order:existing.sort_order??editableMenuItems.length};
+  let category=categorySelect.value==="__new__"?newCategoryInput.value.trim():categorySelect.value.trim();
+  const item_name=dialog.querySelector("#editorName").value.trim();
+  const description=dialog.querySelector("#editorDescription").value.trim();
+  const price=Number(dialog.querySelector("#editorPrice").value);
+
+  if(!category||category==="__new__"||!item_name||!Number.isFinite(price)||price<0){
+   alert("Choose an existing category or create a new category, then enter the item name and a valid price.");
+   return;
+  }
+
+  const item={
+   id:id||("item-"+Date.now()),
+   category,
+   item_name,
+   description,
+   price,
+   available:dialog.querySelector("#editorAvailable").checked,
+   sort_order:existing.sort_order??editableMenuItems.length
+  };
+
   if(!await requireManagerApproval(id?"change a menu item":"add a menu item"))return;
-  try{await bdSaveMenuItem(item);close();await loadMenuAvailability();}catch(e){alert("Could not save the menu item. Run the menu upgrade once in Supabase, then try again.");}
+  try{
+   await bdSaveMenuItem(item);
+   close();
+   await loadMenuAvailability();
+  }catch(e){
+   alert("Could not save the menu item. Run the menu upgrade once in Supabase, then try again.");
+  }
  });
 }
 async function removeMenuItem(id){
