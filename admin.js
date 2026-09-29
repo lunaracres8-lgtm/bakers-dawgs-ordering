@@ -306,7 +306,7 @@ function ensureBoardBiometricButton(){
   button.id="systemCheckButton";
   button.type="button";
   button.textContent="RUN FULL SYSTEM AUDIT";
-  button.onclick=()=>runSystemCheck();
+  button.onclick=()=>{try{runSystemCheck();}catch(e){console.error("System audit failed to start:",e);alert("System audit could not start: "+(e?.message||"JavaScript error"));}};
   toolbar.insertBefore(button,toolbar.querySelector("button[onclick='lockAdminScreen()']")||toolbar.lastElementChild);
  }
  if(!document.getElementById("systemAuditPanel")){
@@ -366,6 +366,7 @@ async function runSystemCheck(){
  if(bar)bar.className=failed?"audit-warning":"audit-good";
  if(button){button.disabled=false;button.textContent="RUN FULL SYSTEM AUDIT";}
 }
+window.runSystemCheck=runSystemCheck;
 function setBiometricStatus(message,error=false){
  const status=document.getElementById("biometricStatus");
  if(!status)return;
@@ -765,19 +766,30 @@ function openMenuItemEditor(id=""){
    sort_order:existing.sort_order??editableMenuItems.length
   };
 
+  const saveButton=dialog.querySelector("#saveMenuItemButton");
   if(!await requireManagerApproval(id?"change a menu item":"add a menu item"))return;
+  if(saveButton){saveButton.disabled=true;saveButton.textContent="CHECKING STAFF SESSION…";}
   try{
+   // Revalidate the staff session immediately before a write. This prevents a
+   // stale browser token from silently blocking a new menu item.
+   if(!bdHasSavedSession()||!await bdRefreshSession())throw new Error("Your staff session has expired. Sign in again, then save the menu item.");
+   await bdCurrentStaffUser();
+   if(saveButton)saveButton.textContent="SAVING…";
    await bdSaveMenuItem(item);
+
+   // Read the exact row back so the admin never reports success unless the
+   // database actually contains the new/updated item.
+   const saved=await bdGetMenuItems();
+   const verified=saved.find(x=>String(x.id)===String(item.id));
+   if(!verified)throw new Error("The database did not return the menu item after saving. Check the menu_items table/Data API access in Supabase.");
    close();
    await loadMenuAvailability();
+   alert(id?"Menu item saved successfully.":"Menu item added successfully.");
   }catch(e){
    console.error("Menu item save failed:",e);
+   if(saveButton){saveButton.disabled=false;saveButton.textContent="SAVE MENU ITEM";}
    const detail=String(e?.message||"").replace(/\s+/g," ").trim();
-   if(e?.status===401||e?.status===403){
-    alert("Could not save the menu item because the staff session is not authorized. Please sign in again, then try again.");
-   }else{
-    alert("Could not save the menu item. Supabase returned: "+(detail||"Unknown error"));
-   }
+   alert("MENU SAVE FAILED\n\n"+(detail||"Unknown error")+"\n\nIf this mentions permissions or Data API access, the menu_items table needs authenticated SELECT/INSERT/UPDATE access in Supabase.");
   }
  });
 }
