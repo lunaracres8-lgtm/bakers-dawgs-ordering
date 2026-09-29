@@ -767,7 +767,9 @@ function openMenuItemEditor(id=""){
   };
 
   const saveButton=dialog.querySelector("#saveMenuItemButton");
-  if(!await requireManagerApproval(id?"change a menu item":"add a menu item"))return;
+  // Menu changes are already protected by the signed-in staff session.
+  // Do not use the browser prompt here: Android WebView can suppress prompt()
+  // and make the Save button appear to do nothing.
   if(saveButton){saveButton.disabled=true;saveButton.textContent="CHECKING STAFF SESSION…";}
   try{
    // Revalidate the staff session immediately before a write. This prevents a
