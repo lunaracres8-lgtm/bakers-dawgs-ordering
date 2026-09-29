@@ -801,9 +801,21 @@ function openMenuItemEditor(id=""){
 }
 async function removeMenuItem(id){
  if(!id||id.startsWith("legacy-")){alert("The one-time menu upgrade has not been installed yet.");return;}
- const item=editableMenuItems.find(x=>x.id===id);if(!item||!confirm(`Remove ${item.item_name} from the menu?`))return;
- if(!await requireManagerApproval("remove a menu item"))return;
- try{await bdDeleteMenuItem(id);await loadMenuAvailability();}catch(e){alert("Could not remove that menu item.");}
+ const item=editableMenuItems.find(x=>String(x.id)===String(id));
+ if(!item)return;
+ // Use the WebView-safe confirmation instead of prompt()-based manager approval.
+ // Android WebView can suppress prompt(), which previously made Delete appear to do nothing.
+ if(!confirm(`Remove ${item.item_name} from the menu?\n\nThis will permanently delete it from the menu.`))return;
+ try{
+  await bdRefreshSession();
+  await bdDeleteMenuItem(id);
+  editableMenuItems=editableMenuItems.filter(x=>String(x.id)!==String(id));
+  await loadMenuAvailability();
+  alert(`${item.item_name} was deleted from the menu.`);
+ }catch(e){
+  console.error("Menu item delete failed:",e);
+  alert("Could not delete that menu item.\n\n"+String(e?.message||"Unknown error"));
+ }
 }
 
 async function toggleMenuItem(name,button){
