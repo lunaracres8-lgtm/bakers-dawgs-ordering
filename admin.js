@@ -438,7 +438,11 @@ async function login(){
   if((window.BakersDawgsAndroid?.authenticateBiometric && localStorage.getItem("bdNativeBiometricUserId")!==staffUser.id) || (!window.BakersDawgsAndroid && window.PublicKeyCredential && !localStorage.getItem("bdWebPasskeyEnrolled"))){
    setTimeout(()=>{ if(confirm("Add this device fingerprint/passkey so you can sign in after a restart?")) enrollBiometric(); },300);
   }
- }catch(e){ alert("Sign-in failed. Check the staff email and password."); }
+  }catch(e){
+  console.error("Admin sign-in failed:",e);
+  const detail=String(e?.message||"").replace(/\\s+/g," ").trim();
+  alert("SIGN-IN FAILED\\n\\n"+(detail||"Unknown sign-in error"));
+ }
 }
 
 async function forgotPassword(){
