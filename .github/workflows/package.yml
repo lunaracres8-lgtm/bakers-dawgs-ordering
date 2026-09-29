@@ -76,7 +76,7 @@ jobs:
           </vector>
           EOF
             cat > "$DIR/app/src/main/AndroidManifest.xml" <<EOF
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><application android:theme="@style/AppTheme" android:label="$TITLE" android:icon="@drawable/ic_launcher" android:roundIcon="@drawable/ic_launcher"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><application android:usesCleartextTraffic="true" android:theme="@style/AppTheme" android:label="$TITLE" android:icon="@drawable/ic_launcher" android:roundIcon="@drawable/ic_launcher"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
           EOF
             JAVA="$DIR/app/src/main/java/${PKG//.//}/MainActivity.java"
             cat > "$JAVA" <<EOF
