@@ -664,7 +664,7 @@ async function loadMenuAvailability(){
   if(box) box.innerHTML=visibleItems.map(item=>{
    const available=item.available!==false&&menuAvailability[item.item_name]!==false;
    const price=Number.isFinite(Number(item.price))&&item.price!==""?`$${Number(item.price).toFixed(2)}`:"";
-   return `<article class="menuAdminItem ${available?"available":"soldout"}"><div class="menuItemInfo"><span class="menuCategory">${esc(item.category||"Menu item")}</span><strong>${esc(item.item_name)}</strong>${item.description?`<small>${esc(item.description)}</small>`:""}</div><div class="menuItemActions"><b>${price}</b><button type="button" class="availabilityButton" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(item.item_name)}\'),this)">${available?"AVAILABLE":"SOLD OUT"}</button><button type="button" class="editItemButton" onclick="openMenuItemEditor(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">EDIT</button><details class="menuMore"><summary>MORE</summary><div><button type="button" onclick="duplicateMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">Duplicate</button><button type="button" onclick="moveMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'),-1)">Move up</button><button type="button" onclick="moveMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'),1)">Move down</button><button type="button" class="deleteItemButton" onclick="removeMenuItem(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">Delete</button></div></details></div></article>`;
+   return `<article class="menuAdminItem ${available?"available":"soldout"}"><div class="menuItemInfo"><span class="menuCategory">${esc(item.category||"Menu item")}</span><strong>${esc(item.item_name)}</strong>${item.description?`<small>${esc(item.description)}</small>`:""}</div><div class="menuItemActions"><b>${price}</b><button type="button" class="availabilityButton" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(item.item_name)}\'),this)">${available?"AVAILABLE":"SOLD OUT"}</button><button type="button" class="editItemButton" onclick="openMenuItemEditor(decodeURIComponent(\'`{encodeURIComponent(item.id)}\'))">EDIT</button><button type="button" class="secondaryButton" onclick="duplicateMenuItem(decodeURIComponent(\'`{encodeURIComponent(item.id)}\'))">DUPLICATE</button><button type="button" class="deleteItemButton" onclick="removeMenuItem(decodeURIComponent(\'`{encodeURIComponent(item.id)}\'),this)">DELETE</button></div></article>`;
    }).join("");
   updateSetupChecklist();
   renderWindowOrder();
@@ -799,21 +799,27 @@ function openMenuItemEditor(id=""){
   }
  });
 }
-async function removeMenuItem(id){
+async function removeMenuItem(id,button){
  if(!id||id.startsWith("legacy-")){alert("The one-time menu upgrade has not been installed yet.");return;}
  const item=editableMenuItems.find(x=>String(x.id)===String(id));
  if(!item)return;
- // Use the WebView-safe confirmation instead of prompt()-based manager approval.
- // Android WebView can suppress prompt(), which previously made Delete appear to do nothing.
- if(!confirm(`Remove ${item.item_name} from the menu?\n\nThis will permanently delete it from the menu.`))return;
+ // Android WebView can suppress confirm()/prompt(). Use a two-tap inline confirmation instead.
+ if(button&&!button.dataset.confirmDelete){
+  button.dataset.confirmDelete="1";
+  button.textContent="TAP AGAIN";
+  button.classList.add("deleteConfirm");
+  setTimeout(()=>{if(button.isConnected&&button.dataset.confirmDelete==="1"){button.dataset.confirmDelete="";button.textContent="DELETE";button.classList.remove("deleteConfirm");}},4000);
+  return;
+ }
+ if(button){button.disabled=true;button.textContent="DELETING…";}
  try{
-  await bdRefreshSession();
+  if(!await bdRefreshSession())throw new Error("Your staff session has expired. Sign in again, then delete the menu item.");
   await bdDeleteMenuItem(id);
   editableMenuItems=editableMenuItems.filter(x=>String(x.id)!==String(id));
   await loadMenuAvailability();
-  alert(`${item.item_name} was deleted from the menu.`);
  }catch(e){
   console.error("Menu item delete failed:",e);
+  if(button){button.disabled=false;button.dataset.confirmDelete="";button.textContent="DELETE";button.classList.remove("deleteConfirm");}
   alert("Could not delete that menu item.\n\n"+String(e?.message||"Unknown error"));
  }
 }
