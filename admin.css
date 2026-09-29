@@ -71,3 +71,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .toolbar button{min-height:44px}
 .toolbar button:active{transform:translateY(1px)}
 @media(max-width:640px){.toolbar{gap:8px}.toolbar button{flex:1 1 auto}.order,.menuManager,.ownerTools{border-radius:16px}}
+
+
+/* Comprehensive live system audit */
+#systemAuditPanel{margin:14px 16px 18px;padding:16px;border:1px solid #343434;border-radius:18px;background:#111;box-shadow:0 10px 28px #0005}
+#systemAuditPanel[hidden]{display:none}
+.systemAuditHead strong{display:block;font-size:18px}.systemAuditHead span{display:block;margin-top:5px;color:#aaa;font-size:13px;line-height:1.35}.systemAuditTrack{height:8px;background:#292929;border-radius:99px;overflow:hidden;margin:14px 0 10px}.systemAuditTrack i{display:block;height:100%;width:0;background:#ffc21a;transition:width .25s ease}.systemAuditTrack i.audit-good{background:#35c76f}.systemAuditTrack i.audit-warning{background:#e8a83e}.systemAuditRow{display:flex;gap:11px;align-items:flex-start;padding:10px 0;border-top:1px solid #252525}.systemAuditRow .auditIcon{width:25px;height:25px;display:grid;place-items:center;border-radius:50%;font-weight:1000;background:#333;color:#aaa;flex:0 0 25px}.systemAuditRow b{display:block;font-size:14px}.systemAuditRow small{display:block;color:#999;margin-top:2px;line-height:1.35}.systemAuditRow.pass .auditIcon{background:#153c25;color:#7df0a5}.systemAuditRow.fail .auditIcon{background:#4a1d1d;color:#ff9b9b}.systemAuditRow.working .auditIcon{background:#4a3d19;color:#ffd86a}.audit-good{color:#7df0a5}.audit-warning{color:#ffcf7a}
