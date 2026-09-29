@@ -61,3 +61,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .restaurantControls,.menuControls,.voiceAssistant,.dailyCloseout,.metrics{box-shadow:0 6px 18px #0005}
 .orders:empty::before{content:"No orders yet. New pickup orders will appear here automatically.";display:block;padding:28px 18px;text-align:center;color:#bcc3c8;border:1px dashed #62696e;border-radius:12px}
 @media(max-width:620px){.toolbar{top:6px}.toolbar button{flex:1 1 145px}.orderCounts{width:100%;justify-content:space-between}.restaurantControls button,.voiceButtons button{min-height:50px}.metrics>div{min-height:104px;display:grid;place-items:center}.metrics>div small{text-align:center}}
+
+
+/* System check + final admin polish */
+#systemCheckStatus{margin:10px 16px 0;padding:11px 14px;border:1px solid #3a3a3a;border-radius:12px;background:#171717;color:#ddd;font-weight:800;line-height:1.35;box-shadow:0 8px 24px #0004}
+#systemCheckStatus[data-state="working"]{border-color:#6b5a20}
+#systemCheckStatus[data-state="ok"]{border-color:#287a45;color:#b9f4c9;background:#102117}
+#systemCheckStatus[data-state="error"]{border-color:#9b3d3d;color:#ffd0d0;background:#241313}
+.toolbar button{min-height:44px}
+.toolbar button:active{transform:translateY(1px)}
+@media(max-width:640px){.toolbar{gap:8px}.toolbar button{flex:1 1 auto}.order,.menuManager,.ownerTools{border-radius:16px}}
