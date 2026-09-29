@@ -306,8 +306,15 @@ function ensureBoardBiometricButton(){
   button.id="systemCheckButton";
   button.type="button";
   button.textContent="SYSTEM CHECK";
-  button.onclick=runSystemCheck;
+  button.onclick=()=>runSystemCheck();
   toolbar.insertBefore(button,toolbar.querySelector("button[onclick='lockAdminScreen()']")||toolbar.lastElementChild);
+ }
+ if(!document.getElementById("systemCheckStatus")){
+  const status=document.createElement("div");
+  status.id="systemCheckStatus";
+  status.hidden=true;
+  status.setAttribute("role","status");
+  toolbar?.insertAdjacentElement("afterend",status);
  }
  if(!document.getElementById("biometricStatus")){
   const status=document.createElement("div");
@@ -319,23 +326,35 @@ function ensureBoardBiometricButton(){
 }
 async function runSystemCheck(){
  const button=document.getElementById("systemCheckButton");
- if(button){button.disabled=true;button.textContent="CHECKING…";}
+ const status=document.getElementById("systemCheckStatus");
+ const setStatus=(message,type="working")=>{
+  if(status){status.textContent=message;status.dataset.state=type;status.hidden=false;}
+  if(button){button.disabled=type==="working";button.textContent=type==="working"?"CHECKING…":"SYSTEM CHECK";}
+ };
+ const withTimeout=(promise,label,ms=9000)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+" timed out. Check your connection.")),ms))]);
+ setStatus("Checking staff sign-in…");
  const checks=[];
  try{
-  if(!await bdRefreshSession())throw new Error("Staff sign-in needs to be refreshed.");
-  await bdCurrentStaffUser();checks.push("staff sign-in");
-  const settings=await bdGetRestaurantSettings();
+  if(!await withTimeout(bdRefreshSession(),"Staff sign-in refresh"))throw new Error("Staff sign-in needs to be refreshed.");
+  await withTimeout(bdCurrentStaffUser(),"Staff account check");checks.push("staff sign-in");
+  setStatus("Checking restaurant controls…");
+  const settings=await withTimeout(bdGetRestaurantSettings(),"Ordering controls check");
   if(!settings)throw new Error("Ordering controls did not respond.");
   checks.push("ordering controls");
-  const menuItems=await bdGetMenuItems();
+  setStatus("Checking menu…");
+  const menuItems=await withTimeout(bdGetMenuItems(),"Menu check");
   if(!Array.isArray(menuItems))throw new Error("Menu did not respond.");
   checks.push("menu");
-  const orders=await bdGetOrders();
+  setStatus("Checking order board…");
+  const orders=await withTimeout(bdGetOrders(),"Order board check");
   if(!Array.isArray(orders))throw new Error("Order board did not respond.");
   checks.push("order board");
-  alert(`System check passed: ${checks.join(", ")}.`);
+  setStatus("All systems are working • "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}),"ok");
+  alert("System check passed: "+checks.join(", ")+".");
  }catch(e){
-  alert(`System check found a problem: ${e?.message||"connection failed"}`);
+  console.error("System check failed:",e);
+  setStatus("System check: "+(e?.message||"connection failed"),"error");
+  alert("System check found a problem: "+(e?.message||"connection failed"));
  }finally{
   if(button){button.disabled=false;button.textContent="SYSTEM CHECK";}
  }
