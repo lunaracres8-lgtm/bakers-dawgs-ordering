@@ -192,7 +192,7 @@ async function bdSaveMenuItem(item){
   price:Number(item.price),
   available:item.available!==false,
   sort_order:Number(item.sort_order)||0,
-  // Do not send updated_at: the live menu_items table does not expose that column.\n };
+ };
  if(!payload.category||!payload.item_name||!Number.isFinite(payload.price)||payload.price<0){
   throw new Error("Menu item has an invalid category, name, or price.");
  }
