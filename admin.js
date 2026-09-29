@@ -305,16 +305,16 @@ function ensureBoardBiometricButton(){
   const button=document.createElement("button");
   button.id="systemCheckButton";
   button.type="button";
-  button.textContent="SYSTEM CHECK";
+  button.textContent="RUN FULL SYSTEM AUDIT";
   button.onclick=()=>runSystemCheck();
   toolbar.insertBefore(button,toolbar.querySelector("button[onclick='lockAdminScreen()']")||toolbar.lastElementChild);
  }
- if(!document.getElementById("systemCheckStatus")){
-  const status=document.createElement("div");
-  status.id="systemCheckStatus";
-  status.hidden=true;
-  status.setAttribute("role","status");
-  toolbar?.insertAdjacentElement("afterend",status);
+ if(!document.getElementById("systemAuditPanel")){
+  const panel=document.createElement("section");
+  panel.id="systemAuditPanel";
+  panel.hidden=true;
+  panel.innerHTML="<div class='systemAuditHead'><div><strong>Full System Audit</strong><span id='systemAuditSummary'>Ready</span></div><div class='systemAuditTrack'><i id='systemAuditBar'></i></div></div><div id='systemAuditList'></div>";
+  toolbar?.insertAdjacentElement("afterend",panel);
  }
  if(!document.getElementById("biometricStatus")){
   const status=document.createElement("div");
@@ -326,38 +326,45 @@ function ensureBoardBiometricButton(){
 }
 async function runSystemCheck(){
  const button=document.getElementById("systemCheckButton");
- const status=document.getElementById("systemCheckStatus");
- const setStatus=(message,type="working")=>{
-  if(status){status.textContent=message;status.dataset.state=type;status.hidden=false;}
-  if(button){button.disabled=type==="working";button.textContent=type==="working"?"CHECKING…":"SYSTEM CHECK";}
+ const panel=document.getElementById("systemAuditPanel");
+ const list=document.getElementById("systemAuditList");
+ const summary=document.getElementById("systemAuditSummary");
+ const bar=document.getElementById("systemAuditBar");
+ if(panel)panel.hidden=false;
+ if(list)list.innerHTML="";
+ if(summary)summary.textContent="Starting comprehensive site audit…";
+ const tests=[
+  ["Browser & connection","Checking this device, browser storage, network, and secure connection.",async()=>{if(!window.fetch)throw new Error("Fetch is unavailable.");if(!window.localStorage)throw new Error("Local storage is unavailable.");if(location.protocol!=="https:"&&location.hostname!=="localhost")throw new Error("The site is not using HTTPS.");return "Browser, storage, network and HTTPS are available";}],
+  ["Site assets","Checking the customer site and required JavaScript/CSS assets.",async()=>{const files=["/","/app.js","/style.css","/config.js","/db.js","/manifest.json"];for(const file of files){const r=await fetch(file,{cache:"no-store"});if(!r.ok)throw new Error(file+" returned HTTP "+r.status);}return "Customer site assets are reachable";}],
+  ["Admin assets","Checking the admin page and admin scripts/styles.",async()=>{for(const file of ["/admin.html","/admin.js","/admin.css","/daily-closeout.js"]){const r=await fetch(file,{cache:"no-store"});if(!r.ok)throw new Error(file+" returned HTTP "+r.status);}return "Admin assets are reachable";}],
+  ["Staff session","Checking the signed-in staff account and session refresh.",async()=>{if(!bdHasSavedSession())throw new Error("No saved staff session. Sign in again.");if(!await bdRefreshSession())throw new Error("Staff session could not be refreshed.");const u=await bdCurrentStaffUser();return "Signed in as "+(u.email||"staff user");}],
+  ["Restaurant controls","Checking ordering status and preparation settings.",async()=>{const x=await bdGetRestaurantSettings();if(!x)throw new Error("Restaurant settings did not respond.");return "Ordering controls responded";}],
+  ["Menu database","Checking menu categories, prices, availability, and records.",async()=>{const x=await bdGetMenuItems();if(!Array.isArray(x))throw new Error("Menu query did not return a list.");const bad=x.filter(i=>!i.id||!i.category||!i.item_name||Number.isNaN(Number(i.price)));if(bad.length)throw new Error(bad.length+" menu item(s) have missing/invalid fields.");return x.length+" menu item(s) checked";}],
+  ["Menu availability","Checking category/item availability controls.",async()=>{const x=await bdGetMenuAvailability();if(x==null)throw new Error("Menu availability did not respond.");return "Availability controls responded";}],
+  ["Order board","Checking orders and required order fields.",async()=>{const x=await bdGetOrders();if(!Array.isArray(x))throw new Error("Orders query did not return a list.");const bad=x.filter(o=>!o.id||!o.created_at);if(bad.length)throw new Error(bad.length+" order(s) have missing required fields.");return x.length+" order(s) checked";}],
+  ["Business branding","Checking saved business name, contact information, and branding.",async()=>{const x=await bdGetBusinessBranding();if(!x)throw new Error("Business branding did not respond.");return "Business branding responded";}],
+  ["Admin functions","Checking critical admin controls are loaded in this page.",async()=>{const required=["bdGetOrders","bdUpdateOrder","bdGetMenuItems","bdSaveMenuItem","bdDeleteMenuItem","bdGetRestaurantSettings","bdSetOrderingOpen","bdSetPrepMinutes"];const missing=required.filter(n=>typeof window[n]!=="function");if(missing.length)throw new Error("Missing: "+missing.join(", "));return "Critical admin functions are loaded";}],
+  ["Security basics","Checking session protection and safe page context.",async()=>{if(location.protocol!=="https:")throw new Error("Admin page is not using HTTPS.");if(!document.querySelector('meta[name="viewport"]'))throw new Error("Viewport configuration is missing.");return "HTTPS and mobile security basics passed";}]
+ ];
+ let passed=0,failed=0;
+ const add=(name,state,detail)=>{
+  const row=document.createElement("div");row.className="systemAuditRow "+state;
+  row.innerHTML="<span class='auditIcon'>"+(state==="pass"?"✓":state==="fail"?"!":"…")+"</span><span><b>"+name+"</b><small>"+detail+"</small></span>";
+  list?.appendChild(row);return row;
  };
- const withTimeout=(promise,label,ms=9000)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+" timed out. Check your connection.")),ms))]);
- setStatus("Checking staff sign-in…");
- const checks=[];
- try{
-  if(!await withTimeout(bdRefreshSession(),"Staff sign-in refresh"))throw new Error("Staff sign-in needs to be refreshed.");
-  await withTimeout(bdCurrentStaffUser(),"Staff account check");checks.push("staff sign-in");
-  setStatus("Checking restaurant controls…");
-  const settings=await withTimeout(bdGetRestaurantSettings(),"Ordering controls check");
-  if(!settings)throw new Error("Ordering controls did not respond.");
-  checks.push("ordering controls");
-  setStatus("Checking menu…");
-  const menuItems=await withTimeout(bdGetMenuItems(),"Menu check");
-  if(!Array.isArray(menuItems))throw new Error("Menu did not respond.");
-  checks.push("menu");
-  setStatus("Checking order board…");
-  const orders=await withTimeout(bdGetOrders(),"Order board check");
-  if(!Array.isArray(orders))throw new Error("Order board did not respond.");
-  checks.push("order board");
-  setStatus("All systems are working • "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}),"ok");
-  alert("System check passed: "+checks.join(", ")+".");
- }catch(e){
-  console.error("System check failed:",e);
-  setStatus("System check: "+(e?.message||"connection failed"),"error");
-  alert("System check found a problem: "+(e?.message||"connection failed"));
- }finally{
-  if(button){button.disabled=false;button.textContent="SYSTEM CHECK";}
+ for(let n=0;n<tests.length;n++){
+  const [name,description,fnc]=tests[n];const pct=Math.round((n/tests.length)*100);
+  if(summary)summary.textContent=(n+1)+" of "+tests.length+" • "+description;
+  if(bar)bar.style.width=pct+"%";
+  const row=add(name,"working","Running…");
+  try{const detail=await Promise.race([fnc(),new Promise((_,reject)=>setTimeout(()=>reject(new Error("Timed out after 10 seconds.")),10000))]);row.className="systemAuditRow pass";row.querySelector(".auditIcon").textContent="✓";row.querySelector("small").textContent=detail;passed++;}
+  catch(err){row.className="systemAuditRow fail";row.querySelector(".auditIcon").textContent="!";row.querySelector("small").textContent=err?.message||"Check failed";failed++;}
+  if(bar)bar.style.width=Math.round(((n+1)/tests.length)*100)+"%";
  }
+ const state=failed?"audit-warning":"audit-good";
+ if(summary){summary.className=state;summary.textContent=failed?("Audit complete • "+passed+" passed • "+failed+" need attention"):("Audit complete • All "+passed+" checks passed");}
+ if(bar)bar.className=failed?"audit-warning":"audit-good";
+ if(button){button.disabled=false;button.textContent="RUN FULL SYSTEM AUDIT";}
 }
 function setBiometricStatus(message,error=false){
  const status=document.getElementById("biometricStatus");
