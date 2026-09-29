@@ -745,7 +745,15 @@ function openMenuItemEditor(id=""){
    close();
    await loadMenuAvailability();
   }catch(e){
-   alert("Could not save the menu item. Run the menu upgrade once in Supabase, then try again.");
+   console.error("Menu item save failed:",e);
+   const detail=String(e?.message||"").replace(/\s+/g," ").trim();
+   if(e?.status===401||e?.status===403){
+    alert("Could not save the menu item because the staff session is not authorized. Please sign in again, then try again.");
+   }else if(/menu_items/i.test(detail)&&/(relation|table|column|schema cache|does not exist)/i.test(detail)){
+    alert("The menu_items table is still not available to the app. In Supabase, refresh the page and run the menu upgrade SQL again.");
+   }else{
+    alert("Could not save the menu item. Supabase returned: "+(detail||"Unknown error"));
+   }
   }
  });
 }
