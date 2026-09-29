@@ -36,3 +36,17 @@ nav button:focus-visible,.hero:focus-visible,.buildDawg:focus-visible,.direction
 .item:hover{border-color:#80621b}
 .cartbar{border:1px solid #ff6a6a}
 @media(max-width:560px){header{padding:26px 12px 22px}header h2{font-size:18px;line-height:1.25}.hero,.buildDawg,.directions{width:calc(100% - 8px);margin:6px 4px 0}.cartbar{bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:16px;font-size:17px}.item{padding:15px}.category h2{font-size:25px}}
+
+
+/* Final customer-site polish */
+:root{scroll-behavior:smooth}
+body{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px));text-rendering:optimizeLegibility}
+header{position:relative;overflow:hidden}
+header:after{content:"";position:absolute;inset:auto -20% -70px;height:150px;background:radial-gradient(circle,rgba(255,194,26,.16),transparent 65%);pointer-events:none}
+.item{box-shadow:0 8px 24px #0004}
+.item h3{letter-spacing:.1px}
+.add,.checkout,.buildDawg,.hero,.directions{font-weight:900;transition:transform .15s ease,filter .15s ease,box-shadow .15s ease}
+.add:hover,.checkout:hover,.buildDawg:hover,.hero:hover,.directions:hover{filter:brightness(1.06);box-shadow:0 7px 20px #0005}
+.field{min-height:48px;border-radius:12px}
+.cartbar{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 -8px 28px #0007}
+@media(max-width:560px){body{font-size:16px}.item{box-shadow:0 6px 18px #0004}.field{font-size:16px}.checkout{min-height:52px}.add{min-height:48px}}
