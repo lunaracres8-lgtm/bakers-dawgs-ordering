@@ -819,11 +819,11 @@ async function toggleMenuItem(name,button){
   }
   // Keep the older availability list synchronized when it is available, but
   // never let that older list prevent the current menu from refreshing.
-  if(item){try{await bdSetMenuAvailability(name,!available);}catch(_){}}
+  // menu_items is now the source of truth for availability.
   await loadMenuAvailability();
  }catch(e){
   if(button){button.disabled=false;button.textContent=available?"AVAILABLE":"SOLD OUT";}
-  alert(e?.status===401||e?.status===403?"Your staff sign-in expired. Sign in again, then change this item.":"Could not update that menu item.");
+  alert(e?.status===401||e?.status===403?"Your staff sign-in expired. Sign in again, then change this item.":"Could not update that menu item.\\n\\n"+(e?.message||"Unknown error"));
  }
 }
 
