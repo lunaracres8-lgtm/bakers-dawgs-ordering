@@ -283,11 +283,11 @@ function setBiometricButtonLabels(){
  const native=!!window.BakersDawgsAndroid?.authenticateBiometric;
  const main=document.getElementById("biometricBtn"),pin=document.querySelector("#pinGate .biometric"),enroll=document.getElementById("enrollBiometricBtn"),board=document.getElementById("enrollBiometricBoardBtn"),shortcut=document.getElementById("biometricSetupShortcut");
  const enrolled=native?!!localStorage.getItem("bdNativeBiometricUserId"):!!localStorage.getItem("bdWebPasskeyEnrolled");
- if(main)main.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PASSKEY";
- if(pin)pin.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PASSKEY";
- if(enroll)enroll.textContent=native?"Enable fingerprint for this device":"Enable passkey for this browser";
- if(board)board.textContent=native?"🔐 SET UP FINGERPRINT":"🔐 SET UP PASSKEY";
- if(shortcut)shortcut.textContent=native?"🔐 SET UP FINGERPRINT":"🔐 SET UP PASSKEY";
+ if(main)main.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PHONE FINGERPRINT / PASSKEY";
+ if(pin)pin.textContent=native?"🔐 USE FINGERPRINT":"🔐 USE PHONE FINGERPRINT / PASSKEY";
+ if(enroll)enroll.textContent=native?"Enable fingerprint for this device":"Enable phone fingerprint / passkey";
+ if(board)board.textContent=native?"🔐 SET UP FINGERPRINT":"🔐 SET UP PHONE FINGERPRINT / PASSKEY";
+ if(shortcut)shortcut.textContent=native?"🔐 SET UP FINGERPRINT":"🔐 SET UP PHONE FINGERPRINT / PASSKEY";
  if(board)board.hidden=enrolled;
  if(shortcut)shortcut.hidden=enrolled;
 }
