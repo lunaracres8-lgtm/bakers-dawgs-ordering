@@ -92,16 +92,23 @@ async function bdUpdatePassword(accessToken,password){
 async function bdRefreshSession(){
  const refreshToken=localStorage.getItem("bdRefreshToken") || sessionStorage.getItem("bdRefreshToken");
  if(!refreshToken) return false;
- const r=await fetch(`${BD_URL}/auth/v1/token?grant_type=refresh_token`,{
-  method:"POST",headers:{"apikey":BD_KEY,"Content-Type":"application/json"},
-  body:JSON.stringify({refresh_token:refreshToken})
- });
- if(!r.ok){ bdSignOut(); return false; }
- const data=await r.json();
- if(!data.access_token) return false;
- localStorage.setItem("bdAccessToken",data.access_token);
- if(data.refresh_token) localStorage.setItem("bdRefreshToken",data.refresh_token);
- return true;
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),8000);
+ try{
+  const r=await fetch(`${BD_URL}/auth/v1/token?grant_type=refresh_token`,{
+   method:"POST",headers:{"apikey":BD_KEY,"Content-Type":"application/json"},
+   body:JSON.stringify({refresh_token:refreshToken}),signal:controller.signal
+  });
+  if(!r.ok){ bdSignOut(); return false; }
+  const data=await r.json();
+  if(!data.access_token) return false;
+  localStorage.setItem("bdAccessToken",data.access_token);
+  if(data.refresh_token) localStorage.setItem("bdRefreshToken",data.refresh_token);
+  return true;
+ }catch(e){
+  console.error("Session refresh failed:",e);
+  return false;
+ }finally{clearTimeout(timer);}
 }
 async function bdCurrentStaffUser(){
  const r=await bdRequest(`${BD_URL}/auth/v1/user`,{headers:bdHeaders()});
