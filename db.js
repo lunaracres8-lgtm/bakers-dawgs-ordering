@@ -140,7 +140,10 @@ async function bdGetOrders(){
  return r.json();
 }
 async function bdUpdateOrder(id,changes){
- const r=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",headers:bdHeaders(),body:JSON.stringify(changes)});
+ const r=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",headers:{...bdHeaders(),"Prefer":"return=representation"},body:JSON.stringify(changes)});
+ const rows=await r.json();
+ if(!Array.isArray(rows)||rows.length!==1)throw new Error("Order update did not affect exactly one order.");
+ return rows[0];
 }
 async function bdDeleteOrder(id){
  const r=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`,{
