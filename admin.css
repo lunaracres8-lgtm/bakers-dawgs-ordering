@@ -124,6 +124,27 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 .systemAuditHead strong{letter-spacing:.25px}
 .systemAuditHead span{max-width:680px}
+.systemAuditToggle{
+  flex:0 0 auto;
+  min-height:34px;
+  padding:7px 11px;
+  border:1px solid #4a555b;
+  border-radius:9px;
+  background:#1b2023;
+  color:#d8dee2;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.35px;
+  cursor:pointer;
+}
+.systemAuditToggle:hover{filter:brightness(1.1)}
+#systemAuditPanel.audit-collapsed{
+  margin-top:8px;
+  margin-bottom:10px;
+  padding:10px 12px;
+}
+#systemAuditPanel.audit-collapsed .systemAuditTrack{display:none}
+#systemAuditPanel.audit-collapsed .systemAuditHead{align-items:center}
 .systemAuditTrack{
   height:10px;
   margin:15px 0 12px;
@@ -155,6 +176,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(max-width:620px){
   #systemAuditPanel{margin:12px 10px 16px;padding:14px}
   .systemAuditHead{display:block}
+  .systemAuditToggle{margin-top:8px;width:100%}
   .systemAuditHead strong{font-size:17px}
   .systemAuditRow{gap:9px}
   .systemAuditRow .auditIcon{width:28px;height:28px;flex-basis:28px}
