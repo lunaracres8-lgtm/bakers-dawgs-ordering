@@ -389,7 +389,15 @@ async function placeOrder(){
   <button class="checkout" onclick="printLastCustomerReceipt()">PRINT RECEIPT</button><button class="checkout" onclick="closeModal()">DONE</button>`;
  }catch(e){
   if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent="PLACE PICKUP ORDER"; }
-  alert("Order could not be sent. Please try again.");
+  console.error("Baker's Dawgs customer order insert failed:", e);
+  let detail=String(e?.message||"Unknown database error");
+  try{
+   const parsed=JSON.parse(detail);
+   detail=[parsed.code?("Code: "+parsed.code):"",parsed.message||"",parsed.details||"",parsed.hint||"",e?.status?("HTTP "+e.status):""].filter(Boolean).join("\\n");
+  }catch(_){
+   if(e?.status) detail += "\\nHTTP "+e.status;
+  }
+  alert("ORDER ERROR\\n\\n"+detail);
  }
 }
 
