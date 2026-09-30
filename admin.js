@@ -676,6 +676,14 @@ async function loadMenuAvailability(){
   let items=[];
   try{items=await bdGetMenuItems();}catch(_){items=[];}
   if(items.length){editableMenuItems=items;if(!localStorage.getItem("bdSampleMenuTemplate"))localStorage.setItem("bdSampleMenuTemplate",JSON.stringify(items));}
+  // menu_items is the canonical owner-controlled menu. Keep the public availability table synchronized so the customer site cannot show stale SOLD OUT states after an admin change.
+  if(items.length){
+   for(const item of items){
+    try{
+     await bdRequest(BD_URL+`/rest/v1/menu_availability?on_conflict=item_name`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({item_name:item.item_name,available:item.available!==false,updated_at:new Date().toISOString()})});
+    }catch(_){}
+   }
+  }
   const rows=items.length?items:await bdGetMenuAvailability();
   menuAvailability=Object.fromEntries((rows||[]).map(r=>[r.item_name,r.available!==false]));
   const box=document.querySelector("#menuAvailabilityControls");
@@ -861,6 +869,8 @@ async function toggleMenuItem(name,button){
    body:JSON.stringify({available:!available})
   });
   item.available=!available;
+  // Keep the public availability table in lockstep with the owner-controlled record.
+  try{await bdRequest(BD_URL+`/rest/v1/menu_availability?on_conflict=item_name`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({item_name:item.item_name,available:item.available,updated_at:new Date().toISOString()})});}catch(_){}
   await loadMenuAvailability();
  }catch(e){
   if(button){button.disabled=false;button.textContent=available?"AVAILABLE":"SOLD OUT";}
