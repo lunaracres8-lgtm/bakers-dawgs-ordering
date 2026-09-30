@@ -98,7 +98,7 @@ let windowSaleHoldHandled=false;
 let recentOrderBannerTimer=null;
 let managerApprovalUntil=0;
 
-function ticketCode(order){return String(order?.id||"").replace(/[^a-z0-9]/gi,"").slice(-6).toUpperCase()||"PENDING";}
+function ticketCode(order){const digits=String(order?.id||"").replace(/\D/g,"");return digits.slice(-4).padStart(4,"0")||"0000";}
 function inventorySettings(){try{return JSON.parse(localStorage.getItem("bdInventorySettings")||"{}");}catch(e){return {};}}
 function saveInventorySettings(settings){localStorage.setItem("bdInventorySettings",JSON.stringify(settings));}
 function inventoryUsage(){
