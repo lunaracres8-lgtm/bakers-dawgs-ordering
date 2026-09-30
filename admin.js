@@ -313,7 +313,7 @@ function ensureBoardBiometricButton(){
   const panel=document.createElement("section");
   panel.id="systemAuditPanel";
   panel.hidden=true;
-  panel.innerHTML="<div class='systemAuditHead'><div><strong>Full System Audit</strong><span id='systemAuditSummary'>Ready</span></div><div class='systemAuditTrack'><i id='systemAuditBar'></i></div></div><div id='systemAuditList'></div>";
+  panel.innerHTML="<div class='systemAuditHead'><div><strong>Full System Audit</strong><span id='systemAuditSummary'>Ready</span></div><button type='button' id='systemAuditToggle' class='systemAuditToggle' aria-expanded='true'>HIDE DETAILS</button></div><div class='systemAuditTrack'><i id='systemAuditBar'></i></div><div id='systemAuditList'></div>";
   toolbar?.insertAdjacentElement("afterend",panel);
  }
  if(!document.getElementById("biometricStatus")){
@@ -330,8 +330,10 @@ async function runSystemCheck(){
  const list=document.getElementById("systemAuditList");
  const summary=document.getElementById("systemAuditSummary");
  const bar=document.getElementById("systemAuditBar");
- if(panel)panel.hidden=false;
- if(list)list.innerHTML="";
+ if(panel){panel.hidden=false;panel.classList.remove("audit-collapsed");}
+ if(list){list.innerHTML="";list.hidden=false;}
+ const toggle=document.getElementById("systemAuditToggle");
+ if(toggle){toggle.textContent="HIDE DETAILS";toggle.setAttribute("aria-expanded","true");toggle.onclick=()=>{const collapsed=panel.classList.toggle("audit-collapsed");if(list)list.hidden=collapsed;toggle.textContent=collapsed?"VIEW DETAILS":"HIDE DETAILS";toggle.setAttribute("aria-expanded",String(!collapsed));};}
  if(summary)summary.textContent="Starting comprehensive site audit…";
  const tests=[
   ["Browser & connection","Checking this device, browser storage, network, and secure connection.",async()=>{if(!window.fetch)throw new Error("Fetch is unavailable.");if(!window.localStorage)throw new Error("Local storage is unavailable.");if(location.protocol!=="https:"&&location.hostname!=="localhost")throw new Error("The site is not using HTTPS.");return "Browser, storage, network and HTTPS are available";}],
@@ -365,6 +367,8 @@ async function runSystemCheck(){
  if(summary){summary.className=state;summary.textContent=failed?("Audit complete • "+passed+" passed • "+failed+" need attention"):("Audit complete • All "+passed+" checks passed");}
  if(bar)bar.className=failed?"audit-warning":"audit-good";
  if(button){button.disabled=false;button.textContent="RUN FULL SYSTEM AUDIT";}
+ // Keep the completed audit available without leaving all individual checks on screen.
+ if(panel&&list&&toggle){setTimeout(()=>{panel.classList.add("audit-collapsed");list.hidden=true;toggle.textContent="VIEW DETAILS";toggle.setAttribute("aria-expanded","false");},900);}
 }
 window.runSystemCheck=runSystemCheck;
 function setBiometricStatus(message,error=false){
