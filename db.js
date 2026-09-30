@@ -36,6 +36,14 @@ async function bdSignInWithPasskey(){
 }
 
 
+function bdNewUuid(){
+ try{if(window.crypto?.randomUUID)return window.crypto.randomUUID();}catch(_){}
+ const bytes=new Uint8Array(16);try{window.crypto?.getRandomValues?.(bytes);}catch(_){}
+ if(!bytes.some(Boolean))for(let i=0;i<16;i++)bytes[i]=Math.floor(Math.random()*256);
+ bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;
+ const h=[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
+ return h.slice(0,8)+"-"+h.slice(8,12)+"-"+h.slice(12,16)+"-"+h.slice(16,20)+"-"+h.slice(20);
+}
 function bdToken(){ return localStorage.getItem("bdAccessToken") || sessionStorage.getItem("bdAccessToken") || BD_KEY; }
 function bdHeaders(){
  return {"apikey":BD_KEY,"Authorization":`Bearer ${bdToken()}`,"Content-Type":"application/json"};
