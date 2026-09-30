@@ -34,6 +34,25 @@ function upgradeCustomizationUI(){
  document.getElementById("brandBackgroundUpload")?.addEventListener("change",e=>uploadBrandImage(e.target,"brandBackground"));
   renderInventoryPanel();
  }
+ // Keep the full System Audit inside the Owner tab, while preserving its
+ // existing VIEW DETAILS / HIDE DETAILS collapse control.
+ const ownerBody=document.querySelector(".ownerToolsPanel .ownerToolsBody");
+ const auditButton=document.getElementById("systemCheckButton");
+ const auditPanel=document.getElementById("systemAuditPanel");
+ if(ownerBody&&auditButton&&auditPanel&&!document.getElementById("systemAuditTools")){
+  const details=document.createElement("details");
+  details.id="systemAuditTools";
+  details.className="ownerTools systemAuditTools";
+  details.open=false;
+  details.innerHTML="<summary><span><b>System Audit</b><small>Run a complete check of the restaurant system and security basics.</small></span><em>OPEN</em></summary><div class='ownerToolsBody systemAuditBody'></div>";
+  ownerBody.appendChild(details);
+  const body=details.querySelector(".systemAuditBody");
+  body.appendChild(auditButton);
+  body.appendChild(auditPanel);
+  auditButton.classList.add("ownerAuditButton");
+  auditPanel.hidden=true;
+ }
+}
  const manager=document.querySelector("#menuAvailabilityControls")?.closest(".menuControls");
  if(manager&&!manager.dataset.upgraded){
   manager.dataset.upgraded="1";
