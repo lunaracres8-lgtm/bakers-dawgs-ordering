@@ -356,7 +356,7 @@ async function placeOrder(){
  if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent="SENDING ORDER…"; }
 
  const orderId=bdNewUuid();
- const customerTicket=orderId.replace(/-/g,"").slice(-6).toUpperCase();
+ const customerTicket=orderId.replace(/\D/g,"").slice(-4).padStart(4,"0");
  let order={
   id:orderId,
   customer_name:nameEl.value.trim(),
@@ -385,7 +385,7 @@ async function placeOrder(){
   modalBody.innerHTML=
   `<div class="orderSuccess"><div class="successCheck">✓</div><h2>Order Received!</h2>
   <p class="successLead">Your order is in the kitchen. It will be ready around your pickup time.</p><p><b>PAY AT PICKUP</b><br>No online payment was taken. Please pay at the restaurant when you pick up your order.</p>
-  <div class="orderNumber">ORDER #${customerTicket}</div></div>
+  <div class="orderNumber">CONFIRMATION #${customerTicket}</div></div>
   <p><b>Pickup:</b> ${timeEl.value}<br><b>Subtotal:</b> ${money(subtotal)}<br><b>NC sales tax (6.75%):</b> ${money(tax)}<br><b>Total:</b> ${money(total)}</p>
   <button class="checkout" onclick="printLastCustomerReceipt()">PRINT RECEIPT</button><button class="checkout" onclick="closeModal()">DONE</button>`;
  }catch(e){
