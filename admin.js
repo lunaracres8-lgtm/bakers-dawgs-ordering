@@ -52,7 +52,6 @@ function upgradeCustomizationUI(){
   auditButton.classList.add("ownerAuditButton");
   auditPanel.hidden=true;
  }
-}
  const manager=document.querySelector("#menuAvailabilityControls")?.closest(".menuControls");
  if(manager&&!manager.dataset.upgraded){
   manager.dataset.upgraded="1";
