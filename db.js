@@ -222,6 +222,8 @@ async function bdSaveMenuItem(item){
 
  try{
   await save();
+  // Mirror the owner-controlled availability into the public table used by customers.
+  try{await bdRequest(BD_URL+`/rest/v1/menu_availability?on_conflict=item_name`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({item_name:payload.item_name,available:payload.available,updated_at:new Date().toISOString()})});}catch(_){}
  }catch(e){
   if(e?.status===401||e?.status===403){
    if(await bdRefreshSession()){
@@ -242,7 +244,10 @@ async function bdSaveMenuItem(item){
  }
 }
 async function bdDeleteMenuItem(id){
+ const existing=(Array.isArray(window.editableMenuItems)?window.editableMenuItems:[]).find(x=>String(x.id)===String(id));
  await bdRequest(`${BD_URL}/rest/v1/menu_items?id=eq.${encodeURIComponent(id)}`,{method:"DELETE",headers:bdHeaders()});
+ if(existing?.item_name){try{await bdRequest(BD_URL+`/rest/v1/menu_availability?item_name=eq.${encodeURIComponent(existing.item_name)}`,{method:"DELETE",headers:bdHeaders()});}catch(_){}
+ }
 }
 
 async function bdGetBusinessBranding(){
