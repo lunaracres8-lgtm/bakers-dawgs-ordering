@@ -355,9 +355,10 @@ async function placeOrder(){
  if(submitBtn?.disabled) return;
  if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent="SENDING ORDER…"; }
 
- const customerTicket="BD"+Date.now().toString(36).toUpperCase();
+ const orderId=bdNewUuid();
+ const customerTicket=orderId.replace(/-/g,"").slice(-6).toUpperCase();
  let order={
-  id:customerTicket,
+  id:orderId,
   customer_name:nameEl.value.trim(),
   phone:phoneEl.value.trim(),
   pickup_time:timeEl.value,
