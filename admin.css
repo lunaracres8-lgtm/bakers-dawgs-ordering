@@ -182,3 +182,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .systemAuditRow .auditIcon{width:28px;height:28px;flex-basis:28px}
   #systemCheckButton{width:100%;order:-1}
 }
+
+/* Owner tab: System Audit */
+.systemAuditTools{margin-top:12px}.systemAuditTools>.ownerToolsBody{padding:12px}.ownerAuditButton{width:100%;margin:0 0 10px}.systemAuditBody #systemAuditPanel{margin:0}.systemAuditBody .systemAuditHead{align-items:center}.systemAuditTools summary{cursor:pointer}
