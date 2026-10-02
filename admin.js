@@ -1117,12 +1117,18 @@ async function deleteOrder(id,button){
  if(!confirm("Delete this order permanently? This cannot be undone.")) return;
  if(button){button.disabled=true;button.textContent="Deleting…";}
  try{
-  // The board can stay open for hours. Refresh staff credentials immediately
-  // before the destructive action instead of using an old access token.
-  if(!await bdRefreshSession()){
-   const error=new Error("Your staff sign-in expired. Sign in again, then delete the order.");
-   error.status=401;
-   throw error;
+  // Use the current authenticated staff token first. A valid access token is
+  // enough for the RLS delete policy; some installed/PWA sessions may not
+  // retain a refresh token even though the staff session is still valid.
+  try{
+   await bdCurrentStaffUser();
+  }catch(firstError){
+   if(!await bdRefreshSession()){
+    const error=new Error("Your staff sign-in expired. Sign in again, then delete the order.");
+    error.status=401;
+    throw error;
+   }
+   await bdCurrentStaffUser();
   }
   await bdDeleteOrder(id);
   window.bdCurrentOrders=(window.bdCurrentOrders||[]).filter(order=>String(order.id)!==String(id));
