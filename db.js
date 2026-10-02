@@ -154,17 +154,19 @@ async function bdUpdateOrder(id,changes){
  return rows[0];
 }
 async function bdDeleteOrder(id){
+ // Delete with the current staff JWT. Do not require PostgREST to return the
+ // deleted row: DELETE may succeed with 204/no body depending on API settings.
  const r=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`,{
-   method:"DELETE",
-  headers:{...bdHeaders(),"Prefer":"return=representation"}
+  method:"DELETE",
+  headers:{...bdHeaders(),"Prefer":"return=minimal"}
  });
- const deleted=await r.json();
- if(!Array.isArray(deleted)||deleted.length!==1){
-  const error=new Error("This order could not be deleted. Sign in again and try once more.");
-  error.status=403;
-  throw error;
- }
- return deleted[0];
+ // Confirm the row is actually gone before reporting success.
+ const verify=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(id)}&select=id`,{headers:bdHeaders()});
+ const rows=await verify.json();
+ if(Array.isArray(rows)&&rows.length===0)return true;
+ const error=new Error("The database did not delete this order. Staff delete permission may not be enabled.");
+ error.status=403;
+ throw error;
 }
 
 async function bdGetRestaurantSettings(){
