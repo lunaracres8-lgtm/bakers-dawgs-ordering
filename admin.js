@@ -365,7 +365,7 @@ async function runSystemCheck(){
   ["Customer order write path","Submitting and cleaning up a clearly marked TEST order to verify the real customer order API path.",async()=>{const id=bdNewUuid();const order={id,customer_name:"SYSTEM AUDIT TEST",phone:"5555550100",pickup_time:"2099-12-31T23:59",notes:"AUTOMATED SYSTEM AUDIT — DELETE AFTER TEST",items:[{name:"System Audit Test Item",options:"",notes:"",price:0}],total:0,status:"New"};await bdCreateOrder(order);try{const rows=await bdGetOrders();if(!Array.isArray(rows)||!rows.some(o=>String(o.id)===id))throw new Error("Order write succeeded but the new test order was not visible to the staff order board.");}finally{await bdDeleteOrder(id);}return "Customer order submission, staff visibility, and cleanup all passed";}],
   ["Order update path","Testing that the authenticated staff order-update path is callable without changing a real customer order.",async()=>{const id=bdNewUuid();const order={id,customer_name:"SYSTEM AUDIT UPDATE TEST",phone:"5555550101",pickup_time:"2099-12-31T23:59",notes:"AUTOMATED SYSTEM AUDIT — DELETE AFTER TEST",items:[],total:0,status:"New"};await bdCreateStaffOrder(order);try{await bdUpdateOrder(id,{status:"Accepted"});}finally{await bdDeleteOrder(id);}return "Staff order update and cleanup passed";}],
   ["Business branding","Checking saved business name, contact information, and branding.",async()=>{const x=await bdGetBusinessBranding();if(!x)throw new Error("Business branding did not respond.");return "Business branding responded";}],
-  ["Admin functions","Checking critical admin controls are loaded in this page.",async()=>{const required=["bdGetOrders","bdUpdateOrder","bdGetMenuItems","bdSaveMenuItem","bdDeleteMenuItem","bdGetRestaurantSettings","bdSetOrderingOpen","bdSetPrepMinutes","bdCreateOrder","bdCreateStaffOrder","bdUpdateOrder"];const missing=required.filter(n=>typeof window[n]!=="function");if(missing.length)throw new Error("Missing: "+missing.join(", "));return "Critical admin/database functions are loaded";}],
+  ["Admin functions","Checking critical admin controls are loaded in this page.",async()=>{const required=["bdGetOrders","bdUpdateOrder","bdDeleteOrder","bdGetMenuItems","bdSaveMenuItem","bdDeleteMenuItem","bdGetRestaurantSettings","bdSetOrderingOpen","bdSetPrepMinutes","bdCreateOrder","bdCreateStaffOrder","bdUpdateOrder"];const missing=required.filter(n=>typeof window[n]!=="function");if(missing.length)throw new Error("Missing: "+missing.join(", "));return "Critical admin/database functions are loaded";}],
   ["Customer controls","Checking the customer ordering source is present and all required customer controls are declared.",async()=>{const required=["goMenu","showCat","startBuildYourDawg","customize","openCart","addCustomized","placeOrder","closeModal","printLastCustomerReceipt"];const source=await fetch(new URL("app.js?audit="+Date.now(),location.href),{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("Customer app source could not be loaded.");return r.text();});const missing=required.filter(n=>!new RegExp("function\\s+"+n+"\\s*\\(").test(source));if(missing.length)throw new Error("Missing customer function(s) in customer app: "+missing.join(", "));return "Customer navigation, cart, checkout and receipt functions are present";}],
   ["Security basics","Checking session protection and safe page context.",async()=>{if(location.protocol!=="https:")throw new Error("Admin page is not using HTTPS.");if(!document.querySelector('meta[name="viewport"]'))throw new Error("Viewport configuration is missing.");return "HTTPS and mobile security basics passed";}]
  ];
@@ -493,6 +493,8 @@ function switchEmployee(){
 
 let adminLockTimer=null;
 const ADMIN_AUTO_LOCK_MS=5*60*1000;
+// Manager approval is required for destructive order deletion.
+// This prevents an accidental double-tap from permanently removing a live ticket.
 const DEFAULT_STAFF_PIN_HASH="f3e055913a0b1eb0f07317896f9a1bc466b9a50db85a7f882f3ffde9ffb23aca";
 let pinFailures=0, pinBlockedUntil=0;
 async function hashPin(pin){
@@ -1123,7 +1125,11 @@ async function deleteOrder(id,button){
   setTimeout(()=>{if(button.isConnected&&button.dataset.confirmDelete==="1"){button.dataset.confirmDelete="";button.textContent="Delete Order";button.classList.remove("deleteConfirm");}},5000);
   return;
  }
- if(button){button.disabled=true;button.textContent="Deleting…";}
+ if(!await requireManagerApproval("permanently delete this order")){
+  if(button){button.dataset.confirmDelete="";button.textContent="Delete Order";button.classList.remove("deleteConfirm");}
+  return;
+ }
+ if(button){button.disabled=true;button.textContent="Deleting…";button.classList.remove("deleteConfirm");}
  try{
   // Use the current authenticated staff token first. A valid access token is
   // enough for the RLS delete policy; some installed/PWA sessions may not
