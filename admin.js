@@ -37,6 +37,7 @@ function upgradeCustomizationUI(){
  // Keep the full System Audit inside the Owner tab, while preserving its
  // existing VIEW DETAILS / HIDE DETAILS collapse control.
  const ownerBody=document.querySelector(".ownerToolsPanel .ownerToolsBody");
+ if(ownerBody&&!document.getElementById("ownerSecurityTools")){const security=document.createElement("details");security.id="ownerSecurityTools";security.className="ownerTools securityTools";security.innerHTML="<summary><span><b>Security</b><small>Change the signed-in staff password or this device’s manager PIN.</small></span><em>OPEN</em></summary><div class='ownerToolsBody'><div class='sectionTitle'><div><span class='eyebrow'>ACCOUNT SECURITY</span><b>Password & manager PIN</b><small>Manager approval is required before either credential can be changed.</small></div></div><div class='brandingFields'><label>New staff password<input id='ownerNewPassword' type='password' autocomplete='new-password' placeholder='12+ characters'></label><label>Confirm staff password<input id='ownerConfirmPassword' type='password' autocomplete='new-password' placeholder='Repeat password'></label></div><div class='buttonRow'><button type='button' onclick='changeStaffPassword()'>CHANGE STAFF PASSWORD</button></div><div class='brandingFields'><label>New manager PIN<input id='ownerNewPin' type='password' inputmode='numeric' maxlength='8' autocomplete='new-password' placeholder='4–8 digits'></label><label>Confirm manager PIN<input id='ownerConfirmPin' type='password' inputmode='numeric' maxlength='8' autocomplete='new-password' placeholder='Repeat PIN'></label></div><div class='buttonRow'><button type='button' class='secondaryButton' onclick='changeManagerPin()'>CHANGE MANAGER PIN</button></div><small id='ownerSecurityStatus' role='status' aria-live='polite'>Use a unique password and a PIN employees cannot easily guess.</small></div>";ownerBody.appendChild(security);}
  const auditButton=document.getElementById("systemCheckButton");
  const auditPanel=document.getElementById("systemAuditPanel");
  if(ownerBody&&auditButton&&auditPanel&&!document.getElementById("systemAuditTools")){
@@ -60,6 +61,22 @@ function upgradeCustomizationUI(){
   manager.insertAdjacentHTML("beforeend",`<div id="menuBuilderFooter" class="menuBuilderFooter"><button type="button" class="secondaryButton" onclick="restoreSampleMenu()">RESTORE SAMPLE MENU</button><small>Menu changes save immediately and update the customer screen.</small></div>`);
   manager.querySelector(".sectionTitle")?.insertAdjacentHTML("afterend",`<div id="menuFilterTabs" class="menuFilterTabs"></div>`);
  }
+}
+async function changeStaffPassword(){
+ if(!await requireManagerApproval("change the staff password"))return;
+ const first=document.getElementById("ownerNewPassword"),second=document.getElementById("ownerConfirmPassword"),status=document.getElementById("ownerSecurityStatus");
+ const password=first?.value||"",confirmPassword=second?.value||"";
+ if(!strongPassword(password)){if(status)status.textContent="Use at least 12 characters with uppercase, lowercase, a number, and a symbol.";return;}
+ if(password!==confirmPassword){if(status)status.textContent="The two passwords do not match.";return;}
+ try{if(!await bdRefreshSession())throw new Error("Your staff session expired. Sign in again first.");await bdUpdatePassword(bdToken(),password);if(first)first.value="";if(second)second.value="";if(status)status.textContent="Staff password changed successfully.";}catch(e){if(status)status.textContent=e?.message||"Could not change the staff password.";}
+}
+async function changeManagerPin(){
+ if(!await requireManagerApproval("change the manager PIN"))return;
+ const first=document.getElementById("ownerNewPin"),second=document.getElementById("ownerConfirmPin"),status=document.getElementById("ownerSecurityStatus");
+ const pin=(first?.value||"").trim(),confirmPin=(second?.value||"").trim();
+ if(!/^\\d{4,8}$/.test(pin)){if(status)status.textContent="Use a 4–8 digit manager PIN.";return;}
+ if(pin!==confirmPin){if(status)status.textContent="The two PIN entries do not match.";return;}
+ const hash=await hashPin(pin);localStorage.setItem("bdStaffPinHash",hash);localStorage.setItem("bdManagerPinHash",hash);managerApprovalUntil=Date.now()+5*60*1000;if(first)first.value="";if(second)second.value="";if(status)status.textContent="Manager PIN changed successfully on this device.";
 }
 function updateBrandPreview(){const name=document.getElementById("brandBusinessName")?.value||"Your Restaurant";const primary=document.getElementById("brandPrimary")?.value||"#15100b";const accent=document.getElementById("brandAccent")?.value||"#ffc21a";const p=document.getElementById("brandPreview"),t=document.getElementById("brandPreviewName");if(p){p.style.background=primary;p.style.borderColor=accent;}if(t){t.textContent=name;t.style.color=accent;}}
 function setPreviewMode(mode,button){previewMode=mode;document.querySelector(".brandPreview")?.classList.toggle("tabletPreview",mode==="tablet");document.querySelectorAll(".previewSwitch button").forEach(b=>b.classList.toggle("active",b===button));}
