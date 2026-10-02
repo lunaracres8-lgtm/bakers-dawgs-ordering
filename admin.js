@@ -1114,7 +1114,15 @@ async function voidOrder(id){
 }
 
 async function deleteOrder(id,button){
- if(!confirm("Delete this order permanently? This cannot be undone.")) return;
+ // Android WebView/PWA shells can suppress confirm(), making the button look dead.
+ // Use the same reliable two-tap inline confirmation used by menu deletion.
+ if(button&&!button.dataset.confirmDelete){
+  button.dataset.confirmDelete="1";
+  button.textContent="TAP AGAIN TO DELETE";
+  button.classList.add("deleteConfirm");
+  setTimeout(()=>{if(button.isConnected&&button.dataset.confirmDelete==="1"){button.dataset.confirmDelete="";button.textContent="Delete Order";button.classList.remove("deleteConfirm");}},5000);
+  return;
+ }
  if(button){button.disabled=true;button.textContent="Deleting…";}
  try{
   // Use the current authenticated staff token first. A valid access token is
