@@ -16,6 +16,9 @@ on:
       - 'admin.css'
       - 'config.js'
       - 'db.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tests/**'
 permissions:
   contents: write
 
@@ -28,6 +31,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Verify admin workflows
+        run: npm ci && npm test
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -61,7 +70,7 @@ jobs:
             cat > "$DIR/app/build.gradle" <<EOF
           plugins { id 'com.android.application' }
           android { namespace '$PKG'; compileSdk 35
-            defaultConfig { applicationId '$PKG'; minSdk 21; targetSdk 35; versionCode 9; versionName '1.8' }
+            defaultConfig { applicationId '$PKG'; minSdk 21; targetSdk 35; versionCode ${{ github.run_number }}; versionName '1.9.${{ github.run_number }}' }
           }
           EOF
             cat > "$DIR/app/src/main/res/values/styles.xml" <<'EOF'

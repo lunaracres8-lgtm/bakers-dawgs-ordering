@@ -140,7 +140,17 @@ async function bdCreateOrder(order){
 }
 async function bdCreateStaffOrder(order){
  // Walk-up sales are made by signed-in staff and may be completed immediately.
- await bdRequest(`${BD_URL}/rest/v1/orders`,{method:"POST",headers:{...bdHeaders(),"Prefer":"return=minimal"},body:JSON.stringify(order)});
+ try{
+  await bdRequest(`${BD_URL}/rest/v1/orders`,{method:"POST",headers:{...bdHeaders(),"Prefer":"return=minimal"},body:JSON.stringify(order)});
+ }catch(error){
+  // A lost response or retry can follow a successful INSERT. Reuse the ticket
+  // UUID and verify it instead of creating a second sale.
+  if(error.status && error.status!==409)throw error;
+  const verify=await bdRequest(`${BD_URL}/rest/v1/orders?id=eq.${encodeURIComponent(order.id)}&select=id,status,total,items`,{headers:bdHeaders()});
+  const rows=await verify.json();
+  const itemSignature=items=>JSON.stringify((items||[]).map(i=>[i.name,Number(i.price),Number(i.quantity),i.options||"",i.notes||""]));
+  if(rows.length!==1 || rows[0].status!==order.status || Number(rows[0].total)!==Number(order.total) || itemSignature(rows[0].items)!==itemSignature(order.items))throw error;
+ }
  return {submitted:true};
 }
 async function bdGetOrders(){

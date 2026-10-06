@@ -112,6 +112,9 @@ let windowSaleLastAdded="";
 let windowLoyaltyMessage="";
 let windowSaleHoldTimer=null;
 let windowSaleHoldHandled=false;
+let windowSaleSaving=false;
+let windowSalePending=null;
+let windowSaleNotice="";
 let recentOrderBannerTimer=null;
 let managerApprovalUntil=0;
 
@@ -175,10 +178,15 @@ async function saveInventoryFromPanel(){
 }
 function downloadSystemBackup(){
  const backup={saved_at:new Date().toISOString(),business:JSON.parse(localStorage.getItem("bdBusinessBranding")||"{}"),inventory:inventorySettings(),shifts:shiftsToday(),menu:editableMenuItems,orders:window.bdCurrentOrders||[]};
+ if(window.BakersDawgsAndroid?.saveText){window.BakersDawgsAndroid.saveText(`Bakers_Dawgs_Backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(backup,null,2),"application/json");return;}
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:"application/json"}));a.download=`Bakers_Dawgs_Backup_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function printOrderReceipt(id){
  const order=(window.bdCurrentOrders||[]).find(o=>String(o.id)===String(id));if(!order)return;
+ if(window.BakersDawgsAndroid?.printText){
+  const lines=["Baker's Dawgs",`Receipt #${ticketCode(order)}`,order.customer_name||"Customer",order.pickup_time||"Now",order.status||"",...(order.items||[]).map(i=>`${Number(i.quantity||1)} × ${i.name}${i.options?" — "+i.options:""} — $${(Number(i.price||0)*Number(i.quantity||1)).toFixed(2)}`),`Total: $${Number(order.total||0).toFixed(2)}`,`Payment: ${order.payment_method||"Pay at pickup"}`];
+  window.BakersDawgsAndroid.printText("Baker's Dawgs Receipt",lines.join("\n"));return;
+ }
  const rows=(order.items||[]).map(i=>`<tr><td>${esc(i.name)}${i.options?`<br><small>${esc(i.options)}</small>`:""}</td><td>${Number(i.quantity||1)} × $${Number(i.price||0).toFixed(2)}</td></tr>`).join("");
  const win=window.open("","_blank");if(!win){alert("Allow pop-ups to print the receipt.");return;}
  win.document.write(`<main style="font:16px Arial;max-width:360px;margin:20px auto"><h1>Baker's Dawgs</h1><h2>Receipt #${ticketCode(order)}</h2><p>${esc(order.customer_name||"Customer")}<br>${esc(order.phone||"")}<br>${esc(order.pickup_time||"")} • ${esc(order.status||"")}</p><table style="width:100%;border-collapse:collapse">${rows}</table><hr><h2>Total: $${Number(order.total||0).toFixed(2)}</h2><p>Payment: ${esc(order.payment_method||"Pay at pickup")}</p></main>`);win.document.close();win.focus();win.print();
@@ -192,7 +200,7 @@ function textCustomerReady(id){
 function repeatOrderAtWindow(id){
  const order=(window.bdCurrentOrders||[]).find(o=>String(o.id)===String(id));if(!order)return;
  windowSaleCart=(order.items||[]).map(item=>({id:"repeat-"+item.name,name:item.name,price:Number(item.price||0),quantity:Math.max(1,Number(item.quantity)||1)}));
- windowSaleDraft={name:order.customer_name||"",phone:order.phone||"",payment:""};windowSaleLastAdded=`Repeated ticket #${ticketCode(order)}`;setAdminView("window");
+ windowSaleDraft={name:order.customer_name||"",phone:order.phone||"",payment:""};windowSaleLastAdded=`Repeated ticket #${ticketCode(order)}`;windowSalePending=null;windowSaleNotice="";setAdminView("window",false);
 }
 function checkWindowLoyalty(){
  saveWindowSaleDraft();
@@ -247,7 +255,7 @@ function isLate(o){
 
 function nextStatus(status){
  const i=statuses.indexOf(status);
- return i>=0&&i<3?statuses[i+1]:null;
+ return i>=0&&i<4?statuses[i+1]:null;
 }
 
 function statusActionLabel(status){
@@ -569,6 +577,7 @@ function showBoard(){
  ensureBoardBiometricButton();
  document.body.dataset.adminLocked="false";
  armAdminAutoLock();
+ const completedButton=document.querySelector("#completedToggle");if(completedButton)completedButton.textContent=hideCompleted?"Show Completed":"Hide Completed";
  const soundBtn=document.querySelector("#soundToggle");
  if(soundBtn) soundBtn.textContent=soundEnabled?"🔔 Alerts On":"🔕 Alerts Off";
 
@@ -608,12 +617,12 @@ function setupAdminViews(){
  app.prepend(tabs);
  setAdminView(activeAdminView);
 }
-function setAdminView(view){
+function setAdminView(view,preserveDraft=true){
  activeAdminView=["orders","kitchen","window","menu","owner"].includes(view)?view:"orders";
  document.body.dataset.adminView=activeAdminView;
  localStorage.setItem("bdAdminView",activeAdminView);
  document.querySelectorAll(".adminViewTabs button").forEach(button=>button.classList.toggle("active",button.dataset.view===activeAdminView));
- if(activeAdminView==="window")renderWindowOrder();
+ if(activeAdminView==="window")renderWindowOrder(preserveDraft);
  if(activeAdminView==="kitchen")renderKitchenDisplay();
 }
 
@@ -633,23 +642,25 @@ function saveWindowSaleDraft(){
  if(phone)windowSaleDraft.phone=phone.value;
  if(payment)windowSaleDraft.payment=payment.value;
 }
-function renderWindowOrder(){
+function renderWindowOrder(preserveDraft=true){
  const box=document.getElementById("windowSale");if(!box)return;
- saveWindowSaleDraft();
+ if(preserveDraft)saveWindowSaleDraft();
  const menuItems=windowMenuItems();
  const categories=[...new Set(menuItems.map(item=>item.category||"Menu"))];
  const items=menuItems.map(item=>{const line=windowSaleCart.find(line=>line.id===item.id);const itemId=encodeURIComponent(item.id);return `<button type="button" class="windowMenuItem ${line?"inCart":""}" onclick="addWindowSaleItem(decodeURIComponent('${itemId}'))" onpointerdown="startWindowItemHold(decodeURIComponent('${itemId}'))" onpointerup="endWindowItemHold()" onpointercancel="endWindowItemHold()" onpointerleave="endWindowItemHold()" oncontextmenu="return false"><span>${esc(item.item_name)}</span><b>$${Number(item.price||0).toFixed(2)}</b><small>${line?`✓ IN ORDER • ${line.quantity} • HOLD TO REMOVE`:esc(item.category||"Menu")}</small></button>`;}).join("");
- const subtotal=windowSubtotal(),tax=subtotal*.0675,total=subtotal+tax;
+ const subtotal=Number(windowSubtotal().toFixed(2)),tax=Number((subtotal*.0675).toFixed(2)),total=Number((subtotal+tax).toFixed(2));
  const cart=windowSaleCart.length?windowSaleCart.map((line,index)=>`<article class="windowCartLine"><div><b>${esc(line.name)}</b><small>$${Number(line.price).toFixed(2)} each</small></div><div class="quantityControl"><button type="button" onclick="changeWindowSaleQuantity(${index},-1)">−</button><b>${line.quantity}</b><button type="button" onclick="changeWindowSaleQuantity(${index},1)">+</button></div><strong>$${(Number(line.price)*Number(line.quantity)).toFixed(2)}</strong><button type="button" class="removeWindowItem" onclick="removeWindowSaleItem(${index})">×</button></article>`).join(""):`<p class="windowEmpty">Add items from the menu to start a walk-up sale.</p>`;
  const discount=windowSaleDiscount.amount?`<div class="discountLine"><span>Discount / comp — ${esc(windowSaleDiscount.reason)}</span><b>−$${Number(windowSaleDiscount.amount).toFixed(2)}</b><button type="button" onclick="clearWindowDiscount()">×</button></div>`:"";
  box.innerHTML=`<div class="windowTitle"><div><span class="eyebrow">COUNTER POS</span><b>Walk-up / window order</b><small>Cash and card sales are counted with online orders at closeout.</small></div><div class="windowTitleActions"><button type="button" class="secondaryButton" onclick="checkWindowLoyalty()">LOYALTY</button><button type="button" class="secondaryButton" onclick="clearWindowSale()">CLEAR ORDER</button></div></div><div class="windowCustomer"><label>Customer name <input id="windowCustomerName" maxlength="70" value="${esc(windowSaleDraft.name)}" placeholder="Walk-in customer"></label><label>Phone <input id="windowCustomerPhone" inputmode="tel" maxlength="30" value="${esc(windowSaleDraft.phone)}" placeholder="Optional"></label><label>Payment <select id="windowPayment"><option value="">Choose at payment</option>${(typeof BD_PAYMENT_METHODS!=="undefined"?BD_PAYMENT_METHODS:["Cash","Square — Other / Contactless"]).map(method=>`<option value="${esc(method)}" ${windowSaleDraft.payment===method?"selected":""}>${esc(method)}</option>`).join("")}</select></label></div><div class="windowPOSGrid"><div><div class="windowMenuHeader"><b>Menu items</b><small>${categories.map(category=>esc(category)).join(" · ")}</small></div><div class="windowMenuGrid">${items||"<p>Menu is loading. Open the Menu tab once if it does not appear.</p>"}</div><div class="windowAddedNotice">${windowSaleLastAdded?`Last added: <b>${esc(windowSaleLastAdded)}</b>`:"Tap an item to add it to this order."}<small>Tap adds one. Hold an item to remove it from the order.</small></div></div><div class="windowCart"><h2>Current sale <small>${windowSaleCart.reduce((n,line)=>n+Number(line.quantity||0),0)} item${windowSaleCart.reduce((n,line)=>n+Number(line.quantity||0),0)===1?"":"s"} • $${total.toFixed(2)}</small></h2><div class="windowCartLines">${cart}</div>${discount}<button type="button" class="discountButton" onclick="applyWindowDiscount()">ADD DISCOUNT / COMP</button><div class="windowTotals"><span>Subtotal <b>$${subtotal.toFixed(2)}</b></span><span>NC tax (6.75%) <b>$${tax.toFixed(2)}</b></span><strong>Total <b>$${total.toFixed(2)}</b></strong></div><div class="windowActions"><button type="button" class="secondaryButton" onclick="submitWindowSale(false)" ${windowSaleCart.length?"":"disabled"}>SEND TO KITCHEN</button><button type="button" onclick="submitWindowSale(true)" ${windowSaleCart.length?"":"disabled"}>COMPLETE SALE</button></div><small>Send to Kitchen creates a new kitchen ticket. Complete Sale is for a finished walk-up order and requires a payment method.</small></div></div>`;
+ const notice=document.createElement("div");notice.className="windowSaleConfirmation";notice.setAttribute("role","status");notice.setAttribute("aria-live","polite");notice.textContent=windowSaleNotice;box.prepend(notice);
+ if(windowSaleSaving)box.querySelectorAll("button,input,select").forEach(control=>control.disabled=true);
 }
-function addWindowSaleItem(id){if(windowSaleHoldHandled){windowSaleHoldHandled=false;return;}const item=editableMenuItems.find(item=>item.id===id);if(!item||item.available===false)return;const line=windowSaleCart.find(line=>line.id===id);if(line)line.quantity++;else windowSaleCart.push({id:item.id,name:item.item_name,price:Number(item.price),quantity:1});windowSaleLastAdded=item.item_name;renderWindowOrder();}
+function addWindowSaleItem(id){if(windowSaleSaving)return;if(windowSaleHoldHandled){windowSaleHoldHandled=false;return;}const item=editableMenuItems.find(item=>item.id===id);if(!item||item.available===false)return;const line=windowSaleCart.find(line=>line.id===id);if(line)line.quantity++;else windowSaleCart.push({id:item.id,name:item.item_name,price:Number(item.price),quantity:1});windowSaleLastAdded=item.item_name;renderWindowOrder();}
 function startWindowItemHold(id){clearTimeout(windowSaleHoldTimer);windowSaleHoldHandled=false;windowSaleHoldTimer=setTimeout(()=>{const item=editableMenuItems.find(item=>item.id===id);const index=windowSaleCart.findIndex(line=>line.id===id);if(index<0||!item)return;windowSaleCart.splice(index,1);windowSaleLastAdded=`Removed ${item.item_name}`;windowSaleHoldHandled=true;renderWindowOrder();},650);}
 function endWindowItemHold(){clearTimeout(windowSaleHoldTimer);}
 function changeWindowSaleQuantity(index,amount){const line=windowSaleCart[index];if(!line)return;line.quantity+=amount;if(line.quantity<1)windowSaleCart.splice(index,1);renderWindowOrder();}
 function removeWindowSaleItem(index){windowSaleCart.splice(index,1);renderWindowOrder();}
-function clearWindowSale(){if(!windowSaleCart.length||confirm("Clear this walk-up order?")){windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";renderWindowOrder();}}
+function clearWindowSale(){if(windowSaleSaving)return;if(!windowSaleCart.length||confirm("Clear this walk-up order?")){windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";windowSaleNotice="Order cleared.";windowSalePending=null;renderWindowOrder(false);}}
 async function applyWindowDiscount(){
  if(!windowSaleCart.length){alert("Add at least one menu item before applying a discount or comp.");return;}
  if(!await requireManagerApproval("add a discount or comp"))return;
@@ -665,16 +676,28 @@ async function applyWindowDiscount(){
 }
 function clearWindowDiscount(){windowSaleDiscount={amount:0,reason:""};renderWindowOrder();}
 async function submitWindowSale(completeNow){
- if(!windowSaleCart.length)return;
+ if(windowSaleSaving||!windowSaleCart.length)return;
  saveWindowSaleDraft();
  const payment=document.getElementById("windowPayment")?.value||"";
  if(completeNow&&!payment){alert("Choose Cash or the Square payment type before completing this sale.");return;}
  const name=document.getElementById("windowCustomerName")?.value.trim()||"Walk-in Customer";
  const phone=document.getElementById("windowCustomerPhone")?.value.trim()||"Window sale";
- const subtotal=windowSubtotal(),total=Number((subtotal*1.0675).toFixed(2));
+ const subtotal=Number(windowSubtotal().toFixed(2)),tax=Number((subtotal*.0675).toFixed(2)),total=Number((subtotal+tax).toFixed(2));
  const order={id:bdNewUuid(),customer_name:name,phone,pickup_time:"Now",notes:`Walk-up window order${windowSaleDiscount.amount?` • DISCOUNT / COMP: $${Number(windowSaleDiscount.amount).toFixed(2)} — ${windowSaleDiscount.reason}`:""}`,items:[...windowSaleCart.map(line=>({name:line.name,price:Number(line.price),quantity:Number(line.quantity),options:"",notes:""})),...(windowSaleDiscount.amount?[{name:"Discount / Comp",price:-Number(windowSaleDiscount.amount),quantity:1,options:"",notes:windowSaleDiscount.reason}]:[])],total,status:completeNow?"Completed":"New",payment_method:payment||null};
- try{await bdCreateStaffOrder(order);windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";await loadOrders();renderWindowOrder();alert(completeNow?`Walk-up sale #${ticketCode(order)} completed and added to today’s cash-out.`:`Window ticket #${ticketCode(order)} sent to the kitchen.`);if(!completeNow)setAdminView("orders");}
- catch(e){alert(e?.status===401||e?.status===403?"Your staff session expired. Sign in again, then save this window order.":"Could not save this window order. Check the connection and try again.");}
+ const signature=JSON.stringify({...order,id:null});
+ if(windowSalePending?.signature===signature)order.id=windowSalePending.id;
+ else windowSalePending={id:order.id,signature};
+ windowSaleSaving=true;windowSaleNotice="Saving sale…";renderWindowOrder();
+ try{
+  await bdCreateStaffOrder(order);
+  windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";windowSalePending=null;
+  windowSaleNotice=completeNow?`Sale completed • Ticket #${ticketCode(order)} • $${total.toFixed(2)} • ${payment}. Saved to daily sales.`:`Ticket #${ticketCode(order)} sent to the kitchen.`;
+  await loadOrders();
+ }catch(e){
+  windowSaleNotice=e?.status===401||e?.status===403?"Staff access was rejected. Sign in again before saving this order.":"Sale not confirmed. Your items are kept. Review daily sales before retrying.";
+  alert(windowSaleNotice);
+ }finally{windowSaleSaving=false;renderWindowOrder(false);}
+ if(!completeNow&&!windowSaleCart.length)setAdminView("orders");
 }
 
 async function loadRestaurantControls(){
@@ -937,9 +960,9 @@ async function loadOrders(){
   const sales=todays.filter(o=>o.status==="Completed").reduce((s,o)=>s+Number(o.total||0),0);
   const completed=todays.filter(o=>o.status==="Completed").length;
   const salesEl=document.querySelector("#salesToday"),ordersEl=document.querySelector("#ordersToday"),avgEl=document.querySelector("#avgTicket");
-  if(salesEl) salesEl.textContent=`${sales.toFixed(2)}`;
+  if(salesEl) salesEl.textContent=`$${sales.toFixed(2)}`;
   if(ordersEl) ordersEl.textContent=todays.length;
-  if(avgEl) avgEl.textContent=completed?`${(sales/completed).toFixed(2)}`:"$0.00";
+  if(avgEl) avgEl.textContent=completed?`$${(sales/completed).toFixed(2)}`:"$0.00";
   if(typeof renderCloseout==="function")renderCloseout();
   renderInventoryPanel();
   if(activeAdminView==="kitchen")renderKitchenDisplay();
@@ -951,7 +974,7 @@ async function loadOrders(){
 
   const count=document.querySelector("#openCount");
   if(count){
-   count.textContent=orders.filter(o=>o.status!=="Completed").length;
+   count.textContent=orders.filter(o=>!["Completed","Voided"].includes(o.status)).length;
   }
 
   if(!orders.length){

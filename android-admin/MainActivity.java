@@ -17,6 +17,14 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebChromeClient;
+import android.print.PrintManager;
+import android.print.PrintAttributes;
+import android.content.Context;
+import android.widget.Toast;
+import android.widget.FrameLayout;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import android.net.Uri;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -28,17 +36,29 @@ public class MainActivity extends Activity {
   private SpeechRecognizer recognizer;
   private boolean listening;
   private CancellationSignal biometricCancellation;
+  private String pendingFileText;
+  private WebView printView;
   private final Intent recognitionIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
 
   @Override public void onCreate(Bundle state) {
     super.onCreate(state);
     web = new WebView(this);
-    setContentView(web);
+    FrameLayout root = new FrameLayout(this);
+    root.addView(web, new FrameLayout.LayoutParams(-1, -1));
+    root.setOnApplyWindowInsetsListener((view, insets) -> {
+      view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+      return insets;
+    });
+    setContentView(root);
     WebSettings settings = web.getSettings();
     settings.setJavaScriptEnabled(true);
     settings.setDomStorageEnabled(true);
     settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
     settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+    settings.setAllowFileAccess(false);
+    settings.setAllowContentAccess(false);
+    // Required for JavaScript alert, confirm and prompt (including manager PINs).
+    web.setWebChromeClient(new WebChromeClient());
     web.addJavascriptInterface(new VoiceBridge(), "BakersDawgsAndroid");
     web.setWebViewClient(new WebViewClient() {
       @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
@@ -55,7 +75,7 @@ public class MainActivity extends Activity {
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
     // New build marker makes the installed Admin app fetch the current order-board code.
-    web.loadUrl(PAGE + "?v=58");
+    web.loadUrl(PAGE + "?v=59");
   }
 
   private void callback(String method, String value) {
@@ -68,7 +88,7 @@ public class MainActivity extends Activity {
       callback("onNativeVoiceStatus", "Already listening. Speak your kitchen command, or tap Stop Listening.");
       return;
     }
-    if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+    if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
       requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 7);
       return;
     }
@@ -143,6 +163,32 @@ public class MainActivity extends Activity {
   }
 
   private class VoiceBridge {
+    @JavascriptInterface public void saveText(String filename, String text, String mime) {
+      runOnUiThread(() -> {
+        if (pendingFileText != null) { Toast.makeText(MainActivity.this, "Finish the current save first.", Toast.LENGTH_SHORT).show(); return; }
+        pendingFileText = text;
+        Intent save = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        save.addCategory(Intent.CATEGORY_OPENABLE);
+        save.setType("application/json".equals(mime) ? "application/json" : "text/plain");
+        save.putExtra(Intent.EXTRA_TITLE, filename.replaceAll("[^A-Za-z0-9._-]", "_"));
+        try { startActivityForResult(save, 8); }
+        catch (Exception error) { pendingFileText = null; Toast.makeText(MainActivity.this, "No file-saving app is available.", Toast.LENGTH_LONG).show(); }
+      });
+    }
+    @JavascriptInterface public void printText(String title, String text) {
+      runOnUiThread(() -> {
+        if (printView != null) printView.destroy();
+        printView = new WebView(MainActivity.this);
+        printView.setWebViewClient(new WebViewClient() {
+          @Override public void onPageFinished(WebView view, String url) {
+            PrintManager manager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+            if (manager != null) manager.print(title, view.createPrintDocumentAdapter(title), new PrintAttributes.Builder().build());
+          }
+        });
+        String safe = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        printView.loadDataWithBaseURL(null, "<html><body><pre style='white-space:pre-wrap;font:14px sans-serif'>" + safe + "</pre></body></html>", "text/html", "UTF-8", null);
+      });
+    }
     @JavascriptInterface public void authenticateBiometric(String purpose) {
       runOnUiThread(() -> MainActivity.this.authenticateBiometric("enroll".equals(purpose) ? "enroll" : "unlock"));
     }
@@ -158,12 +204,26 @@ public class MainActivity extends Activity {
     }
   }
 
+  @Override protected void onActivityResult(int request, int result, Intent data) {
+    super.onActivityResult(request, result, data);
+    if (request != 8) return;
+    String text = pendingFileText;
+    pendingFileText = null;
+    if (result != RESULT_OK || data == null || data.getData() == null || text == null) return;
+    try (OutputStream out = getContentResolver().openOutputStream(data.getData())) {
+      if (out == null) throw new Exception("No output stream");
+      out.write(text.getBytes(StandardCharsets.UTF_8));
+      Toast.makeText(this, "File saved.", Toast.LENGTH_SHORT).show();
+    } catch (Exception error) { Toast.makeText(this, "Could not save the file. Try again.", Toast.LENGTH_LONG).show(); }
+  }
+
   @Override protected void onDestroy() {
     listening = false;
     if (biometricCancellation != null) biometricCancellation.cancel();
     if (recognizer != null) recognizer.destroy();
     if (tts != null) { tts.stop(); tts.shutdown(); }
     web.destroy();
+    if (printView != null) printView.destroy();
     super.onDestroy();
   }
   @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }

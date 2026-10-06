@@ -75,10 +75,12 @@ function bdReportText(){
  return lines.join("\n");
 }
 function downloadDailyReport(){
+ if(window.BakersDawgsAndroid?.saveText){window.BakersDawgsAndroid.saveText("Bakers_Dawgs_Closeout_"+bdLocalDayKey()+".txt",bdReportText(),"text/plain");return;}
  const blob=new Blob([bdReportText()],{type:"text/plain;charset=utf-8"}),a=document.createElement("a");
  a.href=URL.createObjectURL(blob);a.download="Bakers_Dawgs_Closeout_"+bdLocalDayKey()+".txt";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function printDailyReport(){
+ if(window.BakersDawgsAndroid?.printText){window.BakersDawgsAndroid.printText("Baker's Dawgs Daily Closeout",bdReportText());return;}
  const w=window.open("","_blank");if(!w){alert("Allow pop-ups to print/save the report.");return;}
  w.document.write("<pre style='white-space:pre-wrap;font:14px Arial;padding:24px'>"+bdReportText().replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+"</pre>");
  w.document.close();w.focus();w.print();

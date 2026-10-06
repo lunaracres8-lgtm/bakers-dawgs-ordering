@@ -185,3 +185,5 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 /* Owner tab: System Audit */
 .systemAuditTools{margin-top:12px}.systemAuditTools>.ownerToolsBody{padding:12px}.ownerAuditButton{width:100%;margin:0 0 10px}.systemAuditBody #systemAuditPanel{margin:0}.systemAuditBody .systemAuditHead{align-items:center}.systemAuditTools summary{cursor:pointer}
+
+.windowSaleConfirmation:not(:empty){padding:14px;margin-bottom:14px;border:2px solid #ffc21a;border-radius:10px;background:#203523;color:#fff;font-weight:700;line-height:1.5}.windowSaleConfirmation:empty{display:none}
