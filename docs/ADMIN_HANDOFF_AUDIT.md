@@ -1,6 +1,6 @@
 # Baker's Dawgs admin handoff audit — October 6, 2026
 
-The Android APK opens the live admin website at https://bakersdawgs.com/admin.html. Both layers were reviewed. Website fixes are deployed. APK build #370 is being verified separately.
+The Android APK opens the live admin website at https://bakersdawgs.com/admin.html. Both layers were reviewed. Website fixes are deployed. APK build #370 compiled successfully, passed its GitHub checks and published its download. The downloaded APK archive was verified.
 
 ## Changes
 
