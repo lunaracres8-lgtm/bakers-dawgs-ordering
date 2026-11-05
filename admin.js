@@ -1086,10 +1086,35 @@ function repeatLastOrder(){
 }
 function stopOrderSpeech(){ if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.stopSpeaking==="function") window.BakersDawgsAndroid.stopSpeaking(); if("speechSynthesis" in window) speechSynthesis.cancel(); }
 let kitchenRecognition=null,kitchenListening=false,kitchenPauseTimer=null,kitchenStarting=false,kitchenRecognizing=false;
+let kitchenRestartTimer=null,kitchenRetryDelay=400;
 function voiceStatus(msg){const el=document.querySelector("#voiceAssistantStatus");if(el)el.textContent=msg;}
-function onNativeVoiceStatus(msg){voiceStatus(msg);}
-function onNativeVoiceError(msg){kitchenListening=false;voiceStatus(msg);}
-function onNativeVoiceCommand(transcript){handleKitchenCommand(transcript);}
+function clearKitchenRestart(){clearTimeout(kitchenRestartTimer);kitchenRestartTimer=null;}
+function scheduleKitchenRestart(delay=kitchenRetryDelay){
+ clearKitchenRestart();
+ if(!kitchenListening)return;
+ kitchenRestartTimer=setTimeout(()=>{
+  kitchenRestartTimer=null;
+  // Stop may have been pressed after the speech service ended.
+  if(kitchenListening)startKitchenCapture();
+ },delay);
+}
+function onNativeVoiceStatus(msg){
+ if(!kitchenListening)return;
+ // Installed older APKs end each recognition session. Keep them hands-free too.
+ if(/No command heard\.|Command received\./i.test(msg)&&/Tap Start Listening/i.test(msg)){
+  kitchenStarting=false;kitchenRecognizing=false;
+  voiceStatus("Listening stays on — ready for your next kitchen command.");
+  scheduleKitchenRestart();return;
+ }
+ if(/listening for kitchen commands|already listening/i.test(msg)){
+  kitchenStarting=false;kitchenRecognizing=true;kitchenRetryDelay=400;
+ }
+ voiceStatus(msg);
+}
+function onNativeVoiceError(msg){
+ kitchenListening=false;kitchenStarting=false;kitchenRecognizing=false;clearKitchenRestart();voiceStatus(msg);
+}
+function onNativeVoiceCommand(transcript){if(kitchenListening)handleKitchenCommand(transcript);}
 function handleKitchenCommand(transcript){
  const said=String(transcript||"").toLowerCase().trim();
  if(/stop listening|pause baker|baker pause|pause assistant/.test(said)){stopKitchenListening("Voice assistant paused.");return;}
@@ -1101,28 +1126,59 @@ function handleKitchenCommand(transcript){
  if(m&&lastSpokenOrderId){const words={one:1,two:2,three:3,four:4,five:5};const n=words[m[1]]||Number(m[1]);speakKitchenOrder(lastSpokenOrderId,n-1);}
 }
 function startKitchenListening(){
- clearTimeout(kitchenPauseTimer);
+ clearTimeout(kitchenPauseTimer);clearKitchenRestart();
+ kitchenListening=true;kitchenRetryDelay=400;
+ startKitchenCapture();
+}
+function startKitchenCapture(){
+ if(!kitchenListening||kitchenRecognizing||kitchenStarting)return;
  if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.startListening==="function"){
-  kitchenListening=true;voiceStatus("Starting microphone…");window.BakersDawgsAndroid.startListening();return;
+  kitchenStarting=true;voiceStatus("Starting microphone…");
+  try{window.BakersDawgsAndroid.startListening();}
+  catch(e){onNativeVoiceError("Could not start microphone: "+e.message);}
+  return;
  }
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!SR){voiceStatus("Voice commands are unavailable in this browser. Read Order buttons may still work.");return;}
+ if(!SR){kitchenListening=false;voiceStatus("Voice commands are unavailable in this browser. Read Order buttons may still work.");return;}
  if(!kitchenRecognition){
-  kitchenRecognition=new SR(); kitchenRecognition.lang="en-US"; kitchenRecognition.continuous=true; kitchenRecognition.interimResults=false;
-  kitchenRecognition.onresult=e=>Array.from(e.results).slice(e.resultIndex).forEach(r=>handleKitchenCommand(r[0].transcript));
-  kitchenRecognition.onstart=()=>{kitchenStarting=false;kitchenRecognizing=true;};
-  kitchenRecognition.onend=()=>{kitchenStarting=false;kitchenRecognizing=false;if(kitchenListening)setTimeout(()=>startKitchenListening(),250);};
-  kitchenRecognition.onerror=e=>{if(e.error==="not-allowed"){kitchenListening=false;voiceStatus("Microphone permission is off.");}};
+  kitchenRecognition=new SR();kitchenRecognition.lang="en-US";kitchenRecognition.continuous=true;kitchenRecognition.interimResults=false;
+  kitchenRecognition.onresult=e=>{
+   for(const r of Array.from(e.results).slice(e.resultIndex)){
+    if(!kitchenListening)break;
+    if(r.isFinal!==false){kitchenRetryDelay=400;handleKitchenCommand(r[0].transcript);}
+   }
+  };
+  kitchenRecognition.onstart=()=>{
+   kitchenStarting=false;kitchenRecognizing=true;
+   if(!kitchenListening){kitchenRecognition.abort();return;}
+   voiceStatus("Listening for kitchen commands — stays on until Stop Listening.");
+  };
+  kitchenRecognition.onend=()=>{
+   kitchenStarting=false;kitchenRecognizing=false;
+   if(kitchenListening){voiceStatus("Listening stays on — reconnecting microphone…");scheduleKitchenRestart();}
+  };
+  kitchenRecognition.onerror=e=>{
+   if(!kitchenListening)return;
+   if(["not-allowed","service-not-allowed","audio-capture","language-not-supported"].includes(e.error)){
+    stopKitchenListening(e.error==="audio-capture"?"Microphone unavailable. Check the microphone and try Start Listening again.":"Microphone permission or speech service is unavailable. Check settings, then tap Start Listening.");
+   }else{
+    kitchenRetryDelay=e.error==="no-speech"?400:Math.min(kitchenRetryDelay*2,5000);
+    voiceStatus("Listening stays on — waiting for the speech service…");
+   }
+  };
  }
- if(kitchenRecognizing||kitchenStarting){voiceStatus("Already listening for kitchen commands");return;}
- kitchenListening=true;kitchenStarting=true;
- try{kitchenRecognition.start();voiceStatus("Listening for kitchen commands");}
- catch(e){kitchenStarting=false;if(String(e?.message||"").includes("already started")){kitchenRecognizing=true;voiceStatus("Already listening for kitchen commands");}else voiceStatus("Could not start microphone: "+e.message);}
+ kitchenStarting=true;
+ try{kitchenRecognition.start();voiceStatus("Listening for kitchen commands — stays on until Stop Listening.");}
+ catch(e){
+  kitchenStarting=false;
+  if(e.name==="InvalidStateError"||/already started/i.test(String(e.message||"")))kitchenRecognizing=true;
+  else{kitchenRetryDelay=Math.min(kitchenRetryDelay*2,5000);voiceStatus("Listening stays on — reconnecting microphone…");scheduleKitchenRestart();}
+ }
 }
-function stopKitchenListening(message="Voice assistant paused."){
- kitchenListening=false;kitchenStarting=false;clearTimeout(kitchenPauseTimer);
+function stopKitchenListening(message="Microphone off — tap Start Listening when you want voice commands."){
+ kitchenListening=false;kitchenStarting=false;kitchenRecognizing=false;clearTimeout(kitchenPauseTimer);clearKitchenRestart();
  if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.stopListening==="function")window.BakersDawgsAndroid.stopListening();
- if(kitchenRecognition){try{kitchenRecognition.stop();}catch(e){}}
+ if(kitchenRecognition){try{kitchenRecognition.abort();}catch(e){}}
  voiceStatus(message);
 }
 function pauseKitchenListening(minutes){

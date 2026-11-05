@@ -9,6 +9,8 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -34,7 +36,14 @@ public class MainActivity extends Activity {
   private WebView web;
   private TextToSpeech tts;
   private SpeechRecognizer recognizer;
+  // User intent outlives an individual Android recognition session.
   private boolean listening;
+  private boolean recognizing;
+  private boolean destroyed;
+  private int recognitionGeneration;
+  private long recognitionRetryDelay = 400;
+  private final Handler recognitionHandler = new Handler(Looper.getMainLooper());
+  private final Runnable recognitionRestart = () -> { if (listening && !destroyed) startRecognition(); };
   private CancellationSignal biometricCancellation;
   private String pendingFileText;
   private WebView printView;
@@ -75,19 +84,32 @@ public class MainActivity extends Activity {
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
     // New build marker makes the installed Admin app fetch the current order-board code.
-    web.loadUrl(PAGE + "?v=59");
+    web.loadUrl(PAGE + "?v=60");
   }
 
   private void callback(String method, String value) {
     String safe = org.json.JSONObject.quote(value);
-    runOnUiThread(() -> web.evaluateJavascript("window." + method + "&&window." + method + "(" + safe + ")", null));
+    runOnUiThread(() -> { if (!destroyed) web.evaluateJavascript("window." + method + "&&window." + method + "(" + safe + ")", null); });
+  }
+
+  private void scheduleRecognitionRestart(long delay) {
+    recognitionHandler.removeCallbacks(recognitionRestart);
+    if (listening && !destroyed) recognitionHandler.postDelayed(recognitionRestart, delay);
+  }
+
+  private void stopRecognition() {
+    listening = false;
+    recognizing = false;
+    recognitionHandler.removeCallbacks(recognitionRestart);
+    recognitionGeneration++;
+    SpeechRecognizer previous = recognizer;
+    recognizer = null;
+    if (previous != null) { previous.cancel(); previous.destroy(); }
   }
 
   private void startRecognition() {
-    if (listening) {
-      callback("onNativeVoiceStatus", "Already listening. Speak your kitchen command, or tap Stop Listening.");
-      return;
-    }
+    if (!listening || destroyed || recognizing) return;
+    recognitionHandler.removeCallbacks(recognitionRestart);
     if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
       requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 7);
       return;
@@ -98,41 +120,73 @@ public class MainActivity extends Activity {
       return;
     }
     if (recognizer == null) {
+      final int generation = ++recognitionGeneration;
       recognizer = SpeechRecognizer.createSpeechRecognizer(this);
       recognizer.setRecognitionListener(new RecognitionListener() {
-        @Override public void onReadyForSpeech(Bundle params) { callback("onNativeVoiceStatus", "Listening for kitchen commands"); }
+        @Override public void onReadyForSpeech(Bundle params) {
+          if (!listening || generation != recognitionGeneration) return;
+          recognitionRetryDelay = 400;
+          callback("onNativeVoiceStatus", "Listening for kitchen commands — stays on until Stop Listening.");
+        }
         @Override public void onBeginningOfSpeech() { }
         @Override public void onRmsChanged(float rms) { }
         @Override public void onBufferReceived(byte[] buffer) { }
+        // Android must deliver results or an error before the next session starts.
         @Override public void onEndOfSpeech() { }
         @Override public void onError(int error) {
-          if (!listening) return;
-          listening = false;
-          if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS || error == SpeechRecognizer.ERROR_CLIENT) {
-            callback("onNativeVoiceError", "Microphone unavailable. Check the app microphone permission.");
-          } else {
-            callback("onNativeVoiceStatus", "No command heard. Tap Start Listening when you need the kitchen assistant.");
+          if (!listening || destroyed || generation != recognitionGeneration) return;
+          recognizing = false;
+          if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS || error == SpeechRecognizer.ERROR_AUDIO
+              || error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED || error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE) {
+            stopRecognition();
+            callback("onNativeVoiceError", "Microphone or speech service unavailable. Check the app microphone permission and speech settings.");
+            return;
           }
+          boolean quiet = error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT;
+          recognitionRetryDelay = quiet ? 400 : Math.min(recognitionRetryDelay * 2, 8000);
+          if (error == SpeechRecognizer.ERROR_CLIENT) {
+            recognitionGeneration++;
+            SpeechRecognizer previous = recognizer;
+            recognizer = null;
+            if (previous != null) previous.destroy();
+          }
+          callback("onNativeVoiceStatus", "Listening stays on — ready for your next kitchen command.");
+          scheduleRecognitionRestart(recognitionRetryDelay);
         }
         @Override public void onResults(Bundle results) {
+          if (!listening || destroyed || generation != recognitionGeneration) return;
+          recognizing = false;
           ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
           if (matches != null && !matches.isEmpty()) callback("onNativeVoiceCommand", matches.get(0));
-          listening = false;
-          callback("onNativeVoiceStatus", "Command received. Tap Start Listening when you need it again.");
+          // Give a spoken Stop/Pause command time to cancel the restart.
+          scheduleRecognitionRestart(400);
         }
         @Override public void onPartialResults(Bundle results) { }
         @Override public void onEvent(int eventType, Bundle params) { }
       });
     }
-    listening = true;
-    recognizer.startListening(recognitionIntent);
+    recognizing = true;
+    try {
+      recognizer.startListening(recognitionIntent);
+    } catch (SecurityException error) {
+      stopRecognition();
+      callback("onNativeVoiceError", "Microphone permission is off. Enable it in Android app settings.");
+    } catch (RuntimeException error) {
+      recognizing = false;
+      recognitionRetryDelay = Math.min(recognitionRetryDelay * 2, 8000);
+      callback("onNativeVoiceStatus", "Listening stays on — reconnecting the speech service…");
+      scheduleRecognitionRestart(recognitionRetryDelay);
+    }
   }
 
   @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
     super.onRequestPermissionsResult(requestCode, permissions, results);
-    if (requestCode == 7) {
+    if (requestCode == 7 && listening) {
       if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) startRecognition();
-      else callback("onNativeVoiceError", "Microphone permission denied. Enable it in Android app settings.");
+      else {
+        stopRecognition();
+        callback("onNativeVoiceError", "Microphone permission denied. Enable it in Android app settings.");
+      }
     }
   }
 
@@ -198,9 +252,16 @@ public class MainActivity extends Activity {
       });
     }
     @JavascriptInterface public void stopSpeaking() { runOnUiThread(() -> { if (tts != null) tts.stop(); }); }
-    @JavascriptInterface public void startListening() { runOnUiThread(() -> startRecognition()); }
+    @JavascriptInterface public void startListening() {
+      runOnUiThread(() -> {
+        if (listening) return;
+        listening = true;
+        recognitionRetryDelay = 400;
+        startRecognition();
+      });
+    }
     @JavascriptInterface public void stopListening() {
-      runOnUiThread(() -> { listening = false; if (recognizer != null) recognizer.cancel(); });
+      runOnUiThread(() -> stopRecognition());
     }
   }
 
@@ -218,7 +279,8 @@ public class MainActivity extends Activity {
   }
 
   @Override protected void onDestroy() {
-    listening = false;
+    destroyed = true;
+    stopRecognition();
     if (biometricCancellation != null) biometricCancellation.cancel();
     if (recognizer != null) recognizer.destroy();
     if (tts != null) { tts.stop(); tts.shutdown(); }
