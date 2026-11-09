@@ -284,3 +284,10 @@ async function bdSaveBusinessBranding(b){
  try{await bdRequest(`${BD_URL}/rest/v1/business_branding?on_conflict=id`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(payload)});}
  catch(e){await bdRequest(`${BD_URL}/rest/v1/business_branding?on_conflict=id`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(base)});}
 }
+
+async function bdGetLoyaltyStatus(phone){
+ const response=await bdRequest(`${BD_URL}/rest/v1/rpc/bd_loyalty_status`,{
+  method:"POST",headers:bdHeaders(),body:JSON.stringify({customer_phone:phone})
+ });
+ return response.json();
+}

@@ -17,7 +17,8 @@ function harness(){
    if(method==='PATCH'){const row=orders.find(o=>o.id===id);if(row)Object.assign(row,JSON.parse(options.body));value=row?[row]:[];}
    else if(method==='DELETE'){const i=orders.findIndex(o=>o.id===id);if(i>=0)orders.splice(i,1);return new Response(null,{status:204});}
    else value=id?orders.filter(o=>o.id===id):orders;
-  }else if(u.pathname.includes('/auth/v1/user'))value={id:'e915fbd7-f087-471a-8a22-1c544ab6a263'};
+  }else if(u.pathname.includes('/rpc/bd_loyalty_status'))value={progress:0,rewards:0};
+  else if(u.pathname.includes('/auth/v1/user'))value={id:'e915fbd7-f087-471a-8a22-1c544ab6a263'};
   else if(u.pathname.includes('restaurant_settings'))value=[{id:1,ordering_open:true,prep_minutes:20}];
   return new Response(JSON.stringify(value),{status:200});
  };
@@ -61,7 +62,26 @@ test('delete requires approval and verifies removal',async t=>{
 test('discount, quantities, sold-out item and loyalty controls',async t=>{
  const h=harness();cleanup(t,h);const {w}=h;w.addWindowSaleItem('sold');assert.equal(w.auditState.cart.length,0);w.addWindowSaleItem('dog');w.changeWindowSaleQuantity(0,1);assert.equal(w.auditState.cart[0].quantity,2);
  w.auditState.approve();const answers=['1.00','Manager comp'];w.prompt=()=>answers.shift();await w.applyWindowDiscount();assert.equal(w.windowSubtotal(),5.56);w.document.querySelector('#windowPayment').value='Cash';await w.submitWindowSale(true);assert.equal(h.orders[0].total,5.94);
- w.checkWindowLoyalty();w.document.querySelector('#loyaltyPhone').value='8285551234';w.document.querySelector('#checkLoyaltyButton').click();assert.match(w.document.querySelector('#loyaltyResultBox').textContent,/0 completed visits/);
+ w.checkWindowLoyalty();w.document.querySelector('#loyaltyPhone').value='8285551234';await w.document.querySelector('#checkLoyaltyButton').onclick();assert.match(w.document.querySelector('#loyaltyResultBox').textContent,/0 of 5 paid hot dogs/);
+});
+test('a reward can be added once and saved as a zero-dollar completed sale',async t=>{
+ const h=harness();cleanup(t,h);const {w,orders}=h;
+ w.auditState.setMenu([{id:'classic',item_name:'Carolina Classic Hot Dawg',price:3.28,category:'Hot Dawgs',available:true}]);
+ w.bdGetLoyaltyStatus=async phone=>{assert.equal(phone,'8285551234');return {progress:0,rewards:1};};
+ w.checkWindowLoyalty();w.document.querySelector('#loyaltyPhone').value='+1 (828) 555-1234';
+ await w.document.querySelector('#checkLoyaltyButton').onclick();
+ assert.match(w.document.querySelector('#windowLoyaltyStatus').textContent,/FREE HOT DOG AVAILABLE/);
+ w.document.querySelector('#windowLoyaltyStatus button').click();
+ w.changeWindowSaleQuantity(0,1);
+ assert.equal(w.auditState.cart[0].quantity,1);
+ await w.submitWindowSale(false);
+ assert.equal(orders.length,0);
+ w.bdGetLoyaltyStatus=async()=>({progress:0,rewards:0});
+ await w.submitWindowSale(true);
+ assert.equal(orders.length,1);
+ assert.equal(orders[0].status,'Completed');
+ assert.equal(orders[0].total,0);
+ assert.equal(orders[0].items[0].options,'Carolina Classic Hot Dawg');
 });
 test('native exports and receipts use Android save and print',t=>{
  const h=harness();cleanup(t,h);const calls=[];h.w.BakersDawgsAndroid={saveText:(...args)=>calls.push(['save',...args]),printText:(...args)=>calls.push(['print',...args])};h.w.downloadDailyReport();h.w.printDailyReport();h.w.downloadSystemBackup();assert.deepEqual(calls.map(x=>x[0]),['save','print','save']);assert.match(calls[0][1],/Closeout_.*\.txt/);
