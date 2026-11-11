@@ -2,6 +2,8 @@
 name: Build Baker's Dawgs software packages
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -133,6 +135,7 @@ jobs:
           cp index.html app.js style.css config.js db.js manifest.json dist/customer/
           cp admin.html admin.js daily-closeout.js admin.css config.js db.js dist/admin/
       - name: Publish permanent APK downloads
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           set -e
