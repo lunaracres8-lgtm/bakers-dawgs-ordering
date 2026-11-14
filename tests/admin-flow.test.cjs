@@ -89,3 +89,38 @@ test('native exports and receipts use Android save and print',t=>{
 test('repeat ticket replaces old customer details; password requirements enforced',t=>{
  const h=harness();cleanup(t,h);const {w}=h;w.document.querySelector('#windowCustomerName').value='Old customer';w.bdCurrentOrders=[{id:'1234',customer_name:'New customer',phone:'8285551234',items:[{name:'Hot Dawg',price:3.28,quantity:1}]}];w.repeatOrderAtWindow('1234');assert.equal(w.document.querySelector('#windowCustomerName').value,'New customer');assert.equal(w.strongPassword('short'),false);assert.equal(w.strongPassword('LongPassword123!'),true);
 });
+test('birthday reward requires ID confirmation and stays tied to the customer phone',async t=>{
+ const h=harness();cleanup(t,h);const {w,orders}=h;
+ w.auditState.setMenu([
+  {id:'classic',item_name:'Carolina Classic Hot Dawg',price:3.28,category:'Hot Dawgs',available:true},
+  {id:'loaded',item_name:'Loaded Hot Dawg',price:4,category:'Hot Dawgs',available:true}
+ ]);
+ w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
+ w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};
+ w.addBirthdayReward();
+ const form=w.document.querySelector('.birthdayRewardDialog form');
+ assert.match(form.textContent,/Check a valid ID/);
+ assert.deepEqual(Array.from(form.elements.style.options,option=>option.value),['Carolina Classic Hot Dawg']);
+ form.elements.phone.value='828';
+ form.requestSubmit();
+ assert.equal(w.auditState.cart.length,0);
+ form.elements.phone.value='(828) 555-1234';
+ form.requestSubmit();
+ assert.equal(w.auditState.cart[0].name,'Free Hot Dawg (Birthday)');
+ assert.equal(w.auditState.cart[0].price,0);
+ assert.equal(w.document.querySelector('button[onclick="addBirthdayReward()"]').disabled,true);
+ w.changeWindowSaleQuantity(0,1);
+ assert.equal(w.auditState.cart[0].quantity,1);
+ await w.submitWindowSale(false);
+ assert.equal(orders.length,0);
+ w.document.querySelector('#windowCustomerPhone').value='8285559999';
+ await w.submitWindowSale(true);
+ assert.equal(orders.length,0);
+ w.document.querySelector('#windowCustomerPhone').value='+1 828-555-1234';
+ await w.submitWindowSale(true);
+ assert.equal(orders.length,1);
+ assert.equal(orders[0].total,0);
+ assert.equal(orders[0].payment_method,null);
+ assert.equal(orders[0].status,'Completed');
+ assert.equal(orders[0].items[0].options,'Carolina Classic Hot Dawg');
+});

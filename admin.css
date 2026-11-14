@@ -197,3 +197,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
  #windowLoyaltyStatus{grid-template-columns:1fr}
  #windowLoyaltyStatus select,#windowLoyaltyStatus button{grid-row:auto}
 }
+
+.birthdayRewardDialog{box-sizing:border-box;width:min(430px,calc(100% - 32px));max-height:calc(100% - 32px);padding:22px;border:2px solid #f1cb4c;border-radius:16px;background:#1a1d20;color:#fff}
+.birthdayRewardDialog::backdrop{background:#000b}
+.birthdayRewardDialog h2{margin:0 0 8px}
+.birthdayRewardDialog form>p{margin:0 0 14px}
+.birthdayRewardDialog label{display:block;margin-bottom:10px;font-weight:800}
+.birthdayRewardDialog input,.birthdayRewardDialog select{box-sizing:border-box;display:block;width:100%;margin-top:4px;padding:10px;border:1px solid #697078;border-radius:8px;background:#101214;color:#fff;font:inherit}
+.birthdayRewardDialog .birthdayRewardError{color:#ffe372}
+.birthdayRewardDialog .birthdayRewardError:empty{display:none}

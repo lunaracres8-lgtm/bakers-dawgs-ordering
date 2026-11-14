@@ -110,6 +110,7 @@ let windowSaleDraft={name:"",phone:"",payment:""};
 let windowSaleDiscount={amount:0,reason:""};
 let windowSaleLastAdded="";
 const loyaltyRewardName="Free Hot Dawg (Loyalty)";
+const birthdayRewardName="Free Hot Dawg (Birthday)";
 let windowLoyalty=null;
 let windowLoyaltyTimer;
 let windowSaleHoldTimer=null;
@@ -223,6 +224,53 @@ function addLoyaltyReward(phone,style){
  windowSaleLastAdded=loyaltyRewardName;
  renderWindowOrder(false);
 }
+function regularHotDogStyles(){
+ return windowMenuItems().filter(item=>item.category==="Hot Dawgs"&&!/loaded/i.test(item.item_name));
+}
+function isWindowReward(line){
+ return line.id==="loyalty-reward"||line.id==="birthday-reward";
+}
+function addBirthdayReward(){
+ if(windowSaleSaving||windowSaleCart.some(line=>line.id==="birthday-reward"))return;
+ saveWindowSaleDraft();
+ const styles=regularHotDogStyles();
+ if(!styles.length){alert("No regular hot dogs are available on the menu.");return;}
+
+ const dialog=document.createElement("dialog");
+ dialog.className="birthdayRewardDialog";
+ dialog.setAttribute("aria-labelledby","birthdayRewardHeading");
+ dialog.innerHTML=`<form method="dialog">
+  <h2 id="birthdayRewardHeading">Free birthday hot dog</h2>
+  <p>Check a valid ID and confirm the customer's birthday is today.</p>
+  <label>Customer phone <input name="phone" type="tel" maxlength="30" required></label>
+  <label>Hot dog style <select name="style" required></select></label>
+  <p class="birthdayRewardError" role="alert"></p>
+  <div class="buttonRow"><button type="button" class="secondaryButton">Cancel</button><button type="submit">ID checked · Add free hot dog</button></div>
+ </form>`;
+ const form=dialog.querySelector("form");
+ const phoneInput=form.elements.namedItem("phone");
+ const styleSelect=form.elements.namedItem("style");
+ const error=dialog.querySelector(".birthdayRewardError");
+ phoneInput.value=windowSaleDraft.phone;
+ for(const item of styles)styleSelect.append(new Option(item.item_name,item.item_name));
+ form.querySelector('button[type="button"]').onclick=()=>dialog.close();
+ form.onsubmit=event=>{
+  event.preventDefault();
+  if(windowSaleSaving||windowSaleCart.some(line=>line.id==="birthday-reward")){dialog.close();return;}
+  const phone=loyaltyPhoneKey(phoneInput.value);
+  if(!phone){error.textContent="Enter a full 10-digit phone number.";return;}
+  windowSaleDraft.phone=phoneInput.value.trim();
+  windowSaleCart.push({id:"birthday-reward",name:birthdayRewardName,price:0,quantity:1,options:styleSelect.value,phone});
+  windowSaleLastAdded=birthdayRewardName;
+  dialog.close();
+  renderWindowOrder(false);
+  scheduleWindowLoyaltyLookup();
+  document.getElementById("windowCustomerPhone")?.focus();
+ };
+ dialog.addEventListener("close",()=>dialog.remove(),{once:true});
+ document.body.append(dialog);
+ dialog.showModal();
+}
 function renderWindowLoyalty(){
  const panel=document.getElementById("windowLoyaltyStatus");
  if(!panel)return;
@@ -236,7 +284,7 @@ function renderWindowLoyalty(){
  const progress=document.createElement("span");
  progress.textContent=loyaltySummary(status);
  panel.append(title,progress);
- const styles=windowMenuItems().filter(item=>item.category==="Hot Dawgs"&&!/loaded/i.test(item.item_name));
+ const styles=regularHotDogStyles();
  if(!status.rewards||!styles.length||windowSaleCart.some(line=>line.id==="loyalty-reward"))return;
  const select=document.createElement("select");
  select.setAttribute("aria-label","Free hot dog style");
@@ -717,10 +765,10 @@ function renderWindowOrder(preserveDraft=true){
  const categories=[...new Set(menuItems.map(item=>item.category||"Menu"))];
  const items=menuItems.map(item=>{const line=windowSaleCart.find(line=>line.id===item.id);const itemId=encodeURIComponent(item.id);return `<button type="button" class="windowMenuItem ${line?"inCart":""}" onclick="addWindowSaleItem(decodeURIComponent('${itemId}'))" onpointerdown="startWindowItemHold(decodeURIComponent('${itemId}'))" onpointerup="endWindowItemHold()" onpointercancel="endWindowItemHold()" onpointerleave="endWindowItemHold()" oncontextmenu="return false"><span>${esc(item.item_name)}</span><b>$${Number(item.price||0).toFixed(2)}</b><small>${line?`✓ IN ORDER • ${line.quantity} • HOLD TO REMOVE`:esc(item.category||"Menu")}</small></button>`;}).join("");
  const subtotal=Number(windowSubtotal().toFixed(2)),tax=Number((subtotal*.0675).toFixed(2)),total=Number((subtotal+tax).toFixed(2));
- const cart=windowSaleCart.length?windowSaleCart.map((line,index)=>`<article class="windowCartLine"><div><b>${esc(line.name)}</b><small>${line.options?esc(line.options):`$${Number(line.price).toFixed(2)} each`}</small></div><div class="quantityControl"><button type="button" onclick="changeWindowSaleQuantity(${index},-1)">−</button><b>${line.quantity}</b><button type="button" onclick="changeWindowSaleQuantity(${index},1)" ${line.id==="loyalty-reward"?"disabled":""}>+</button></div><strong>$${(Number(line.price)*Number(line.quantity)).toFixed(2)}</strong><button type="button" class="removeWindowItem" onclick="removeWindowSaleItem(${index})">×</button></article>`).join(""):`<p class="windowEmpty">Add items from the menu to start a walk-up sale.</p>`;
- const hasReward=windowSaleCart.some(line=>line.id==="loyalty-reward");
+ const cart=windowSaleCart.length?windowSaleCart.map((line,index)=>`<article class="windowCartLine"><div><b>${esc(line.name)}</b><small>${line.options?esc(line.options):`$${Number(line.price).toFixed(2)} each`}</small></div><div class="quantityControl"><button type="button" onclick="changeWindowSaleQuantity(${index},-1)">−</button><b>${line.quantity}</b><button type="button" onclick="changeWindowSaleQuantity(${index},1)" ${isWindowReward(line)?"disabled":""}>+</button></div><strong>$${(Number(line.price)*Number(line.quantity)).toFixed(2)}</strong><button type="button" class="removeWindowItem" onclick="removeWindowSaleItem(${index})">×</button></article>`).join(""):`<p class="windowEmpty">Add items from the menu to start a walk-up sale.</p>`;
+ const hasReward=windowSaleCart.some(isWindowReward);
  const discount=windowSaleDiscount.amount?`<div class="discountLine"><span>Discount / comp — ${esc(windowSaleDiscount.reason)}</span><b>−$${Number(windowSaleDiscount.amount).toFixed(2)}</b><button type="button" onclick="clearWindowDiscount()">×</button></div>`:"";
- box.innerHTML=`<div class="windowTitle"><div><span class="eyebrow">COUNTER POS</span><b>Walk-up / window order</b><small>Cash and card sales are counted with online orders at closeout.</small></div><div class="windowTitleActions"><button type="button" class="secondaryButton" onclick="checkWindowLoyalty()">LOYALTY</button><button type="button" class="secondaryButton" onclick="clearWindowSale()">CLEAR ORDER</button></div></div><div class="windowCustomer"><label>Customer name <input id="windowCustomerName" maxlength="70" value="${esc(windowSaleDraft.name)}" placeholder="Walk-in customer"></label><label>Phone <input id="windowCustomerPhone" inputmode="tel" maxlength="30" value="${esc(windowSaleDraft.phone)}" placeholder="Optional"></label><label>Payment <select id="windowPayment"><option value="">Choose at payment</option>${(typeof BD_PAYMENT_METHODS!=="undefined"?BD_PAYMENT_METHODS:["Cash","Square — Other / Contactless"]).map(method=>`<option value="${esc(method)}" ${windowSaleDraft.payment===method?"selected":""}>${esc(method)}</option>`).join("")}</select></label></div><section id="windowLoyaltyStatus" class="loyaltyResult" aria-live="polite" hidden></section><div class="windowPOSGrid"><div><div class="windowMenuHeader"><b>Menu items</b><small>${categories.map(category=>esc(category)).join(" · ")}</small></div><div class="windowMenuGrid">${items||"<p>Menu is loading. Open the Menu tab once if it does not appear.</p>"}</div><div class="windowAddedNotice">${windowSaleLastAdded?`Last added: <b>${esc(windowSaleLastAdded)}</b>`:"Tap an item to add it to this order."}<small>Tap adds one. Hold an item to remove it from the order.</small></div></div><div class="windowCart"><h2>Current sale <small>${windowSaleCart.reduce((n,line)=>n+Number(line.quantity||0),0)} item${windowSaleCart.reduce((n,line)=>n+Number(line.quantity||0),0)===1?"":"s"} • $${total.toFixed(2)}</small></h2><div class="windowCartLines">${cart}</div>${discount}<button type="button" class="discountButton" onclick="applyWindowDiscount()">ADD DISCOUNT / COMP</button><div class="windowTotals"><span>Subtotal <b>$${subtotal.toFixed(2)}</b></span><span>NC tax (6.75%) <b>$${tax.toFixed(2)}</b></span><strong>Total <b>$${total.toFixed(2)}</b></strong></div><div class="windowActions"><button type="button" class="secondaryButton" onclick="submitWindowSale(false)" ${windowSaleCart.length&&!hasReward?"":"disabled"}>SEND TO KITCHEN</button><button type="button" onclick="submitWindowSale(true)" ${windowSaleCart.length?"":"disabled"}>COMPLETE SALE</button></div><small>Send to Kitchen creates a new kitchen ticket. Use Complete Sale to redeem a reward and record payment for any items that carry a charge.</small></div></div>`;
+ box.innerHTML=`<div class="windowTitle"><div><span class="eyebrow">COUNTER POS</span><b>Walk-up / window order</b><small>Cash and card sales are counted with online orders at closeout.</small></div><div class="windowTitleActions"><button type="button" class="secondaryButton" onclick="checkWindowLoyalty()">LOYALTY</button><button type="button" class="secondaryButton" onclick="addBirthdayReward()" ${windowSaleCart.some(line=>line.id==="birthday-reward")?"disabled":""}>BIRTHDAY REWARD</button><button type="button" class="secondaryButton" onclick="clearWindowSale()">CLEAR ORDER</button></div></div><div class="windowCustomer"><label>Customer name <input id="windowCustomerName" maxlength="70" value="${esc(windowSaleDraft.name)}" placeholder="Walk-in customer"></label><label>Phone <input id="windowCustomerPhone" inputmode="tel" maxlength="30" value="${esc(windowSaleDraft.phone)}" placeholder="Optional"></label><label>Payment <select id="windowPayment"><option value="">Choose at payment</option>${(typeof BD_PAYMENT_METHODS!=="undefined"?BD_PAYMENT_METHODS:["Cash","Square — Other / Contactless"]).map(method=>`<option value="${esc(method)}" ${windowSaleDraft.payment===method?"selected":""}>${esc(method)}</option>`).join("")}</select></label></div><section id="windowLoyaltyStatus" class="loyaltyResult" aria-live="polite" hidden></section><div class="windowPOSGrid"><div><div class="windowMenuHeader"><b>Menu items</b><small>${categories.map(category=>esc(category)).join(" · ")}</small></div><div class="windowMenuGrid">${items||"<p>Menu is loading. Open the Menu tab once if it does not appear.</p>"}</div><div class="windowAddedNotice">${windowSaleLastAdded?`Last added: <b>${esc(windowSaleLastAdded)}</b>`:"Tap an item to add it to this order."}<small>Tap adds one. Hold an item to remove it from the order.</small></div></div><div class="windowCart"><h2>Current sale <small>${windowSaleCart.reduce((n,line)=>n+Number(line.quantity||0),0)} item${windowSaleCart.reduce((n,line)=>n+Number(line.quantity||0),0)===1?"":"s"} • $${total.toFixed(2)}</small></h2><div class="windowCartLines">${cart}</div>${discount}<button type="button" class="discountButton" onclick="applyWindowDiscount()">ADD DISCOUNT / COMP</button><div class="windowTotals"><span>Subtotal <b>$${subtotal.toFixed(2)}</b></span><span>NC tax (6.75%) <b>$${tax.toFixed(2)}</b></span><strong>Total <b>$${total.toFixed(2)}</b></strong></div><div class="windowActions"><button type="button" class="secondaryButton" onclick="submitWindowSale(false)" ${windowSaleCart.length&&!hasReward?"":"disabled"}>SEND TO KITCHEN</button><button type="button" onclick="submitWindowSale(true)" ${windowSaleCart.length?"":"disabled"}>COMPLETE SALE</button></div><small>Send to Kitchen creates a new kitchen ticket. Use Complete Sale to redeem a reward and record payment for any items that carry a charge.</small></div></div>`;
  box.querySelector("#windowCustomerPhone").addEventListener("input",scheduleWindowLoyaltyLookup);
  renderWindowLoyalty();
  const notice=document.createElement("div");notice.className="windowSaleConfirmation";notice.setAttribute("role","status");notice.setAttribute("aria-live","polite");notice.textContent=windowSaleNotice;box.prepend(notice);
@@ -729,7 +777,7 @@ function renderWindowOrder(preserveDraft=true){
 function addWindowSaleItem(id){if(windowSaleSaving)return;if(windowSaleHoldHandled){windowSaleHoldHandled=false;return;}const item=editableMenuItems.find(item=>item.id===id);if(!item||item.available===false)return;const line=windowSaleCart.find(line=>line.id===id);if(line)line.quantity++;else windowSaleCart.push({id:item.id,name:item.item_name,price:Number(item.price),quantity:1});windowSaleLastAdded=item.item_name;renderWindowOrder();}
 function startWindowItemHold(id){clearTimeout(windowSaleHoldTimer);windowSaleHoldHandled=false;windowSaleHoldTimer=setTimeout(()=>{const item=editableMenuItems.find(item=>item.id===id);const index=windowSaleCart.findIndex(line=>line.id===id);if(index<0||!item)return;windowSaleCart.splice(index,1);windowSaleLastAdded=`Removed ${item.item_name}`;windowSaleHoldHandled=true;renderWindowOrder();},650);}
 function endWindowItemHold(){clearTimeout(windowSaleHoldTimer);}
-function changeWindowSaleQuantity(index,amount){const line=windowSaleCart[index];if(!line||line.id==="loyalty-reward"&&amount>0)return;line.quantity+=amount;if(line.quantity<1)windowSaleCart.splice(index,1);renderWindowOrder();}
+function changeWindowSaleQuantity(index,amount){const line=windowSaleCart[index];if(!line||isWindowReward(line)&&amount>0)return;line.quantity+=amount;if(line.quantity<1)windowSaleCart.splice(index,1);renderWindowOrder();}
 function removeWindowSaleItem(index){windowSaleCart.splice(index,1);renderWindowOrder();}
 function clearWindowSale(){if(windowSaleSaving)return;if(!windowSaleCart.length||confirm("Clear this walk-up order?")){windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";windowSaleNotice="Order cleared.";windowSalePending=null;renderWindowOrder(false);}}
 async function applyWindowDiscount(){
@@ -753,12 +801,12 @@ async function submitWindowSale(completeNow){
  const name=document.getElementById("windowCustomerName")?.value.trim()||"Walk-in Customer";
  const phone=document.getElementById("windowCustomerPhone")?.value.trim()||"Window sale";
  const subtotal=Number(windowSubtotal().toFixed(2)),tax=Number((subtotal*.0675).toFixed(2)),total=Number((subtotal+tax).toFixed(2));
- const reward=windowSaleCart.find(line=>line.id==="loyalty-reward");
- if(reward&&(!completeNow||reward.phone!==loyaltyPhoneKey(phone))){
+ const rewards=windowSaleCart.filter(isWindowReward);
+ if(rewards.some(reward=>!completeNow||reward.phone!==loyaltyPhoneKey(phone))){
   alert("Complete the sale with the phone number used for this reward, or remove the free hot dog.");
   return;
  }
- if(completeNow&&!payment&&!(reward&&total===0)){
+ if(completeNow&&!payment&&!(rewards.length&&total===0)){
   alert("Choose Cash or the Square payment type before completing this sale.");
   return;
  }
@@ -770,12 +818,17 @@ async function submitWindowSale(completeNow){
  try{
   await bdCreateStaffOrder(order);
   windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";windowSalePending=null;
-  windowSaleNotice=completeNow?`Sale completed • Ticket #${ticketCode(order)} • $${total.toFixed(2)} • ${payment||"Loyalty reward"}. Saved to daily sales.`:`Ticket #${ticketCode(order)} sent to the kitchen.`;
+  windowSaleNotice=completeNow?`Sale completed • Ticket #${ticketCode(order)} • $${total.toFixed(2)} • ${payment||(rewards.some(line=>line.id==="birthday-reward")?"Birthday reward":"Loyalty reward")}. Saved to daily sales.`:`Ticket #${ticketCode(order)} sent to the kitchen.`;
   if(completeNow)windowSaleNotice+=await availableLoyaltyReward(phone);
   windowLoyalty=null;
   await loadOrders();
  }catch(e){
-  if(reward&&String(e?.message).includes("No free hot dog is available")){
+  if(rewards.some(line=>line.id==="birthday-reward")&&String(e?.message).includes("A birthday hot dog was already redeemed today")){
+   windowSaleNotice="This phone number already redeemed a birthday hot dog today. Remove the birthday reward to continue.";
+   alert(windowSaleNotice);
+   return;
+  }
+  if(rewards.some(line=>line.id==="loyalty-reward")&&String(e?.message).includes("No free hot dog is available")){
    windowLoyalty=null;
    windowSaleNotice="That reward is no longer available. Remove the free hot dog to continue.";
    alert(windowSaleNotice);
