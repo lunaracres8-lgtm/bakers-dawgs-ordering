@@ -69,13 +69,10 @@ async function bdSignIn(email,password){
 async function bdResetPassword(email){
  const headers={"apikey":BD_KEY,"Content-Type":"application/json"};
  const body=JSON.stringify({email});
- const redirectTo="https://bakersdawgs.com/admin.html";
- let r=await fetch(`${BD_URL}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,{method:"POST",headers,body});
- if(!r.ok){
-  // Older WebViews and projects without an allow-listed redirect can reject redirect_to.
-  // Retry using the Supabase project's configured Site URL instead.
-  r=await fetch(`${BD_URL}/auth/v1/recover`,{method:"POST",headers,body});
- }
+ // Supabase accepts the legacy Pages host for recovery. Pages redirects this
+ // path to the current admin site while the browser retains the session fragment.
+ const redirectTo="https://lunaracres8-lgtm.github.io/bakers-dawgs-ordering/admin.html";
+ const r=await fetch(`${BD_URL}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,{method:"POST",headers,body});
  if(!r.ok) throw new Error(await r.text());
  return true;
 }
