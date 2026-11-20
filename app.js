@@ -314,6 +314,12 @@ function backdrop(e){
 }
 
 async function placeOrder(){
+ // Lock immediately, before network checks, so rapid taps cannot create duplicate tickets.
+ if(window.bdCustomerOrderSubmitting)return;
+ window.bdCustomerOrderSubmitting=true;
+ const submitBtn=document.querySelector('#placeOrderBtn');
+ if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='SENDING ORDER…';}
+ try{
  const customerName=document.querySelector("#name")?.value.trim()||"";
  const customerPhone=document.querySelector("#phone")?.value.trim()||"";
  if(customerName||customerPhone){ lastCustomer={name:customerName,phone:customerPhone}; localStorage.setItem("bdCustomer",JSON.stringify(lastCustomer)); }
@@ -351,10 +357,6 @@ async function placeOrder(){
  let subtotal=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
  let tax=taxFor(subtotal);
  let total=totalWithTax(subtotal);
- const submitBtn=document.querySelector("#placeOrderBtn");
- if(submitBtn?.disabled) return;
- if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent="SENDING ORDER…"; }
-
  const orderId=bdNewUuid();
  const customerTicket=orderId.replace(/\D/g,"").slice(-4).padStart(4,"0");
  let order={
@@ -399,6 +401,10 @@ async function placeOrder(){
    if(e?.status) detail += "\\nHTTP "+e.status;
   }
   alert("ORDER ERROR\\n\\n"+detail);
+ }
+ }finally{
+  window.bdCustomerOrderSubmitting=false;
+  if(submitBtn){submitBtn.disabled=false;submitBtn.textContent="PLACE PICKUP ORDER";}
  }
 }
 
