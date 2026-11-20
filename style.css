@@ -89,3 +89,25 @@ nav button{min-width:max-content;padding:12px 15px;border-radius:11px;background
  .featuredFood{margin:14px auto 16px}
  .feature{min-height:175px}
 }
+
+
+/* Homepage finish: clearer spacing and a single visual path to ordering */
+.quickInfo{max-width:900px;margin:14px auto 0;border:1px solid #353535;border-radius:13px;background:#17191b;box-shadow:0 6px 18px #0003}
+.quickInfo span{line-height:1.4}
+.deliveryNotice.compactDelivery{max-width:900px;margin:8px auto 0;border-radius:10px;background:#211a12;color:#e7d9c9;border:1px solid #4b3825;text-align:center}
+.compactDelivery b{color:#ffc21a}
+.featuredFood{margin-top:16px;margin-bottom:18px}
+.feature{border-color:#574323}
+.feature button{cursor:pointer}
+nav{scrollbar-width:thin}
+nav button{white-space:nowrap}
+@media(max-width:560px){
+ .quickInfo{margin:10px 12px 0;border-radius:12px}
+ .deliveryNotice.compactDelivery{margin:8px 12px 0}
+ .featuredFood{padding:0 12px;gap:10px}
+ .feature{min-height:160px;padding:15px}
+ .feature span{font-size:10px}
+ .feature b{font-size:20px}
+ nav{padding:8px 10px}
+ nav button{min-width:max-content;padding:11px 13px}
+}
