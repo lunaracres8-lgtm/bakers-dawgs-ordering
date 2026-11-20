@@ -50,3 +50,42 @@ header:after{content:"";position:absolute;inset:auto -20% -70px;height:150px;bac
 .field{min-height:48px;border-radius:12px}
 .cartbar{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 -8px 28px #0007}
 @media(max-width:560px){body{font-size:16px}.item{box-shadow:0 6px 18px #0004}.field{font-size:16px}.checkout{min-height:52px}.add{min-height:48px}}
+
+
+/* Homepage redesign: calm hierarchy, fewer competing blocks */
+.siteHero{padding:34px 16px 25px;background:radial-gradient(ellipse at 50% 0%,#792d08 0%,#24130d 42%,#101112 82%);border-bottom:3px solid #c9151b}
+.siteHero:after{display:none}
+.siteHero .kicker{font-size:11px;letter-spacing:3px;color:#f2d6b5}
+.siteHero h1{font-size:clamp(46px,11vw,68px);line-height:1.02;margin:12px 0 4px;letter-spacing:-2px}
+.siteHero h2{font-size:clamp(16px,4vw,20px);letter-spacing:1.5px;color:#f4d9bd;margin:10px 0}
+.siteHero .heroIntro{font-size:15px;color:#e1d8d0;margin:10px auto 17px;line-height:1.5}
+.heroActions{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap}
+.siteHero .hero,.siteHero .directions{width:auto;min-width:175px;margin:0;min-height:50px}
+.siteHero .hero{padding:14px 22px}
+.siteHero .directions{background:#17191b;border-color:#d8a52a;color:#ffe18a}
+.heroPerks{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:19px auto 0;max-width:760px}
+.heroPerks span{display:inline-block;background:#ffffff12;border:1px solid #ffffff24;border-radius:999px;padding:8px 11px;color:#f4eee8;font-size:12px;font-weight:800}
+.birthdayNote{font-size:12px!important;color:#c9bdb3!important;margin:12px 0 0!important}
+.quickInfo{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:12px;background:#17191b;border-bottom:1px solid #393939;color:#ddd;font-size:13px;text-align:center}
+.quickInfo span{padding:5px 9px}.quickInfo b{color:#ffc21a}
+.compactDelivery{padding:8px 12px;background:#17191b;color:#aaa;border:0;border-bottom:1px solid #292929;font-size:12px}
+.compactDelivery b{display:inline!important;color:#ffc21a;font-size:12px;margin-right:5px}
+.compactDelivery span{display:inline!important;font-size:12px}
+.featuredFood{margin:18px auto 20px;gap:12px}
+.feature{min-height:190px;border-radius:16px;padding:17px;background-color:#1b1d1f}
+.feature b{font-size:21px;line-height:1.15}
+.feature small{font-weight:600;color:#eee}
+.feature button{min-height:42px}
+nav{padding:9px 10px;gap:8px;background:#101112;border-bottom:1px solid #333}
+nav button{min-width:max-content;padding:12px 15px;border-radius:11px;background:#202326}
+@media(max-width:560px){
+ .siteHero{padding:28px 14px 21px}
+ .siteHero h1{font-size:48px}
+ .heroActions{display:grid;grid-template-columns:1fr;max-width:340px;margin:auto}
+ .siteHero .hero,.siteHero .directions{width:100%}
+ .heroPerks{gap:6px;margin-top:15px}
+ .heroPerks span{font-size:11px;padding:7px 9px}
+ .quickInfo{display:grid;gap:2px;padding:9px}
+ .featuredFood{margin:14px auto 16px}
+ .feature{min-height:175px}
+}
