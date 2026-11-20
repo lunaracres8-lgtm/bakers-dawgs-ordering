@@ -127,6 +127,8 @@ function customize(i){
  active=i;
  let x=menu[i];
  let food=x[0]==="Hot Dawgs"||x[0]==="Smoked Sausages";
+ let isCarolinaClassic=/carolina classic/i.test(String(x[1]||""));
+ let defaultToppings=isCarolinaClassic?["Yellow Mustard","Chili","Fresh Onions","Homestyle Slaw"]:[];
  let ques=x[1].includes("Quesadilla");
 
  modalBody.innerHTML=
@@ -135,7 +137,7 @@ function customize(i){
  <p>${x[2]}</p>
  ${food?`<h3>Toppings</h3>
  <div class="checks">${
- toppings.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join("")
+ toppings.map(t=>`<label><input type="checkbox" value="${t}" ${defaultToppings.includes(t)?"checked":""}> ${t}</label>`).join("")
  }</div>`:""}
  ${ques?'<label><input id="chiliAdd" type="checkbox"> Add chili +$0.50</label>':""}
  <label class="label">Special instructions</label>
