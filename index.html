@@ -21,15 +21,21 @@
 </script>
 <link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css?v=28"></head>
 <body>
-<header><div class="kicker">LENOIR, NORTH CAROLINA</div><h1 id="brandBusinessNameDisplay">BAKER'S <span>DAWGS</span></h1>
-<h2 id="brandTaglineDisplay">BEST HOT DAWGS IN TOWN</h2><p><b>Homemade Slaw • Homemade Sweet Tea</b><br>100% BEEF • 1501 Norwood St., Lenoir, NC</p>
-<p><b>Buy 5 hot dogs, get 1 free.</b><br>Give us your phone number to earn rewards on paid orders.</p>
-<p><b>Free hot dog on your birthday.</b><br>Show a valid ID at the window on your birthday.</p>
-<button class="hero" onclick="goMenu()">ORDER FOR PICKUP</button> <button class="buildDawg" type="button" onclick="startBuildYourDawg()">BUILD YOUR DAWG</button> <a class="directions" href="https://www.google.com/maps/search/?api=1&query=1501+Norwood+St%2C+Lenoir%2C+NC" target="_blank" rel="noopener">GET DIRECTIONS</a></header>
-<div class="cakePromo"><b>PAY AT PICKUP</b><span>No online payment required. Place your order here and pay when you pick it up.</span></div>
-<div class="cakePromo"><b>TUESDAY CAKE SPECIAL</b><span>FREE cake slice with purchase of a meal.</span></div>
-<div class="deliveryNotice"><b>DELIVERY COMING SOON</b><span>We’re working on bringing DoorDash delivery to Baker’s Dawgs. Pickup ordering is available here.</span></div>
-<section class="featuredFood" aria-label="Baker's Dawgs favorites"><div class="feature hotDawgFeature"><span>MOST ORDERED • CUSTOMER FAVORITE</span><b>Carolina Classic Hot Dawg</b><small>Our all-the-way dog: homemade slaw, yellow mustard, fresh onions & chili.</small><button type="button" onclick="showCat('Hot Dawgs')">ORDER THE CAROLINA CLASSIC</button></div><div class="feature cakeFeature"><span>SWEET TREAT</span><b>German Chocolate Cake</b><small>$5 a slice • available year-round</small><button type="button" onclick="showCat('Cakes')">SEE CAKES</button></div></section>
+<header class="siteHero">
+ <div class="kicker">LENOIR, NORTH CAROLINA</div>
+ <h1 id="brandBusinessNameDisplay">BAKER'S <span>DAWGS</span></h1>
+ <h2 id="brandTaglineDisplay">HOT, FRESH & READY FOR PICKUP</h2>
+ <p class="heroIntro">Made fresh to order at 1501 Norwood St., Lenoir, NC.</p>
+ <div class="heroActions">
+  <button class="hero" onclick="goMenu()">ORDER FOR PICKUP</button>
+  <a class="directions" href="https://www.google.com/maps/search/?api=1&query=1501+Norwood+St%2C+Lenoir%2C+NC" target="_blank" rel="noopener">GET DIRECTIONS</a>
+ </div>
+ <div class="heroPerks"><span>🌭 Homemade slaw</span><span>🥤 Homemade sweet tea</span><span>⭐ Buy 5 dogs, get 1 free</span></div>
+ <p class="birthdayNote">Birthday treat: one free hot dog on your birthday with valid ID.</p>
+</header>
+<div class="quickInfo"><span><b>PAY AT PICKUP</b> — No online payment needed</span><span><b>TUESDAYS</b> — Free cake slice with a meal</span></div>
+<div class="deliveryNotice compactDelivery"><b>PICKUP AVAILABLE</b><span>Delivery is coming soon. Order ahead and pay when you arrive.</span></div>
+<section class="featuredFood" aria-label="Baker's Dawgs favorites"><div class="feature hotDawgFeature"><span>OUR CUSTOMER FAVORITE</span><b>Carolina Classic</b><small>Homemade slaw, yellow mustard, fresh onions & chili.</small><button type="button" onclick="showCat('Hot Dawgs')">ORDER A CAROLINA CLASSIC</button></div><div class="feature cakeFeature"><span>MADE FRESH</span><b>German Chocolate Cake</b><small>$5 a slice • available year-round</small><button type="button" onclick="showCat('Cakes')">BROWSE CAKES</button></div></section>
 <div id="staffReturn" class="orderingBanner hidden"><b>STAFF SCREEN LOCKED</b><span>Tap below to return to the order board.</span><button type="button" class="checkout" onclick="returnToAdmin()">RETURN TO ADMIN</button></div>
 <div id="orderingBanner" class="orderingBanner hidden"><b>ONLINE ORDERING PAUSED</b><span>We are not accepting online pickup orders right now. Please check back soon.</span></div>
 <nav><button onclick="showCat('Hot Dawgs')">🌭 Hot Dawgs</button><button onclick="showCat('Hot Dawg Combos')">🍟 Combos</button><button onclick="showCat('Smoked Sausages')">🔥 Sausages</button><button onclick="showCat('Sandwiches')">🥪 Sandwiches</button><button onclick="showCat('Drinks & Sides')">🥤 Drinks & Sides</button><button onclick="showCat('Cakes')">🍰 Cakes</button></nav>
