@@ -847,6 +847,7 @@ async function submitWindowSale(completeNow){
  if(windowSalePending?.signature===signature)order.id=windowSalePending.id;
  else windowSalePending={id:order.id,signature};
  if(!navigator.onLine){
+  if(!payment||payment.toLowerCase()!=="cash"){alert("Choose Cash before saving an offline ticket. Card and unspecified payments cannot be confirmed offline.");return;}
   if(payment&&payment.toLowerCase()!=="cash"){alert("Offline mode supports CASH only. Card payments need confirmed Square processing.");return;}
   try{bdSaveOfflineWindowOrder(order);}catch(e){alert("Could not save offline ticket. Keep the order on screen and write it down.");return;}
   windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";windowSalePending=null;
