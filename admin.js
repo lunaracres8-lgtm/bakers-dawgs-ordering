@@ -154,12 +154,39 @@ function renderTimeClock(){
 }
 function clockInEmployee(){const input=document.getElementById("clockEmployeeName"),name=input?.value.trim();if(!name){alert("Enter the employee’s name first.");return;}const shifts=shiftsToday();if(shifts.some(shift=>!shift.out&&shift.name.toLowerCase()===name.toLowerCase())){alert(`${name} is already clocked in.`);return;}shifts.push({name,in:new Date().toISOString(),out:null});saveShifts(shifts);renderTimeClock();}
 function clockOut(index){const shifts=shiftsToday();if(!shifts[index]||shifts[index].out)return;shifts[index].out=new Date().toISOString();saveShifts(shifts);renderTimeClock();}
-function showNewOrderBanner(count){
+let bdUnacknowledgedOrderIds=new Set();
+let bdOrderAlertInterval=null;
+function bdStopOrderAlert(){if(bdOrderAlertInterval){clearInterval(bdOrderAlertInterval);bdOrderAlertInterval=null}}
+function bdUpdateOrderAlert(){
  let banner=document.getElementById("newOrderBanner");
- if(!banner){banner=document.createElement("button");banner.id="newOrderBanner";banner.type="button";banner.onclick=()=>{setAdminView("orders");banner.classList.remove("show");};document.body.append(banner);}
- banner.textContent=`🔔 ${count===1?"NEW ORDER":"NEW ORDERS"} — TAP TO OPEN`;
- banner.classList.add("show");clearTimeout(recentOrderBannerTimer);recentOrderBannerTimer=setTimeout(()=>banner.classList.remove("show"),9000);
+ if(!banner){banner=document.createElement("button");banner.id="newOrderBanner";banner.type="button";banner.onclick=bdAcknowledgeNewOrders;document.body.append(banner)}
+ const count=bdUnacknowledgedOrderIds.size;
+ banner.textContent=count?"🔔 "+count+" NEW ORDER"+(count===1?"":"S")+" — TAP TO ACKNOWLEDGE & READ":"";
+ banner.classList.toggle("show",count>0);
+ banner.hidden=!count;
+ if(count&&!bdOrderAlertInterval){playOrderAlert();bdOrderAlertInterval=setInterval(()=>{if(bdUnacknowledgedOrderIds.size)playOrderAlert();else bdStopOrderAlert()},12000)}
+ if(!count)bdStopOrderAlert();
 }
+function bdAcknowledgeNewOrders(){
+ const ids=[...bdUnacknowledgedOrderIds];bdUnacknowledgedOrderIds.clear();bdUpdateOrderAlert();
+ setAdminView("orders");
+ if(!ids.length)return;
+ // Acknowledging the alarm does not silently change the order's kitchen status.
+ // Read every item, option, item note, and order note.
+ let index=0;const readNext=()=>{
+  if(index>=ids.length)return;
+  const id=ids[index++],order=(window.bdCurrentOrders||[]).find(o=>String(o.id)===String(id));
+  if(!order){readNext();return}
+  if(window.BakersDawgsAndroid?.speak){speakKitchenOrder(id);return}
+  if(!("speechSynthesis" in window)){return}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(orderSpeechText(order));
+  const voice=bestKitchenVoice();if(voice){u.voice=voice;u.lang=voice.lang||"en-US"}
+  u.rate=.88;u.volume=1;u.onend=readNext;u.onerror=readNext;
+  lastSpokenOrderId=id;speechSynthesis.speak(u);
+ };readNext();
+}
+function showNewOrderBanner(count){bdUpdateOrderAlert()}
 async function requireManagerApproval(action){
  if(Date.now()<managerApprovalUntil)return true;
  const pin=prompt(`Manager PIN required to ${action}.`);if(pin===null)return false;
@@ -1135,8 +1162,10 @@ async function loadOrders(){
   const orders=await bdGetOrders();
   window.bdCurrentOrders=orders;
   const newIds=orders.filter(o=>o.status==="New"&&!knownOrderIds.has(o.id)).map(o=>o.id);
-  if(!firstOrderLoad&&newIds.length){ playOrderAlert();showNewOrderBanner(newIds.length); }
+  if(!firstOrderLoad&&newIds.length){ newIds.forEach(id=>bdUnacknowledgedOrderIds.add(id));bdUpdateOrderAlert(); }
   knownOrderIds=new Set(orders.map(o=>o.id));
+  for(const id of bdUnacknowledgedOrderIds){if(!orders.some(o=>o.id===id&&o.status==="New"))bdUnacknowledgedOrderIds.delete(id)}
+  bdUpdateOrderAlert();
   firstOrderLoad=false;
 
   const today=new Date().toDateString();
