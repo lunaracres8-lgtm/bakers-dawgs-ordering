@@ -115,6 +115,12 @@ function showCat(c){
  menuEl.scrollIntoView();
 }
 
+function orderCarolinaClassic(){
+ const i=menu.findIndex(item=>item[0]==="Hot Dawgs"&&/carolina classic/i.test(String(item[1]||"")));
+ if(i<0){showCat("Hot Dawgs");return;}
+ customize(i);
+}
+
 function startBuildYourDawg(){
  const loadedIndex=menu.findIndex(item=>String(item[1]||"").toLowerCase().includes("loaded hot dawg"));
  if(loadedIndex<0){goMenu();return;}
@@ -126,7 +132,7 @@ function customize(i){
  if(orderingStatusKnown&&!orderingOpen) return showOrderingPaused();
  active=i;
  let x=menu[i];
- let food=x[0]==="Hot Dawgs"||x[0]==="Smoked Sausages";
+ let food=x[0]==="Hot Dawgs"||x[0]==="Hot Dawg Combos"||x[0]==="Smoked Sausages";
  let isCarolinaClassic=/carolina classic/i.test(String(x[1]||""));
  let defaultToppings=isCarolinaClassic?["Yellow Mustard","Chili","Fresh Onions","Homestyle Slaw"]:[];
  let ques=x[1].includes("Quesadilla");
