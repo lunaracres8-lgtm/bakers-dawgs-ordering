@@ -242,7 +242,8 @@ async function loadEditableMenu(){
  try{
   const rows=await bdGetMenuItems();
   if(!rows?.length)return;
-  menu=rows.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[canonicalCategory(x.category),x.item_name,x.description||"",Number(x.price)]);
+  menu=rows.filter(x=>["Hot Dawgs","Hot Dawg Combos","Drinks & Sides"].includes(canonicalCategory(x.category)) && !/cake|three milks|3 milks|tres leches|sandwich|brat|sausage/i.test(String(x.item_name||""))).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[canonicalCategory(x.category),x.item_name,x.description||"",Number(x.price)]);
+  if(!menu.some(x=>/canned soda|can soda|12 oz can/i.test(x[1])))menu.push(["Drinks & Sides","Canned Soda","12 oz can",1.50]);
   cats=[...new Set(menu.map(x=>x[0]))];
   menuAvailability=Object.fromEntries(rows.map(x=>[x.item_name,x.available!==false]));
   render();update();
