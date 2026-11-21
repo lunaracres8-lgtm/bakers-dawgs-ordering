@@ -233,3 +233,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .bdOfflineDetails small{display:block;color:#c4c2bb;padding:0 16px 14px;line-height:1.4}
 
 .bdSectionToggle{display:block;margin:8px 10px 8px auto;padding:8px 13px;border:1px solid #ac8a38;border-radius:10px;background:#2a261e;color:#ffd369;font-weight:800;cursor:pointer}.bdSectionContent[hidden]{display:none!important}
+
+/* Anna's supply log is OWNER ONLY. Unscoped content otherwise appears on every tab. */
+body:not([data-admin-view="owner"]) #annaSlawDrawer{display:none!important}
+body[data-admin-view="owner"] #annaSlawDrawer{display:block}
+.bdSectionToggle{border-radius:12px!important;min-height:40px}
+.bdSectionContent[hidden]{display:none!important}
