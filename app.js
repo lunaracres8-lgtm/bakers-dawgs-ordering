@@ -19,7 +19,7 @@ async function applyBusinessBranding(){
 }
 
 const defaultMenu=[
-["Hot Dawgs","Carolina Classic Hot Dawg","Mustard, Anna's Anna's Homemade Slaw, chili and onions",3.28],
+["Hot Dawgs","Carolina Classic Hot Dawg","Mustard, Anna's Homemade Slaw, chili and onions",3.28],
 ["Hot Dawgs","Sauerkraut & Mustard Dawg","Sauerkraut and mustard",3.28],
 ["Hot Dawgs","Chili & Cheez Dawg","Chili and cheese",3.28],
 ["Hot Dawgs","Chili, Onion & Mustard Dawg","Chili, onions and mustard",3.28],
@@ -43,7 +43,7 @@ let menu=defaultMenu.map(item=>[...item]);
 
 const toppings=[
 "Yellow Mustard","Spicy Mustard","Chili","Cheese",
-"Fresh Onions","Anna's Anna's Homemade Slaw","Sauerkraut","Sweet Relish",
+"Fresh Onions","Anna's Homemade Slaw","Sauerkraut","Sweet Relish",
 "Grilled Onions","Grilled Green Peppers","BBQ Sauce"
 ];
 
@@ -116,7 +116,7 @@ function orderCarolinaClassic(){
  if(orderingStatusKnown&&!orderingOpen)return showOrderingPaused();
  const price=Number(menu[i][3]);
  modalBody.innerHTML=`<h2>Quick Order: Carolina Classic</h2>
- <p>Anna's Anna's Homemade Slaw, yellow mustard, fresh onions & chili — all included.</p>
+ <p>Anna's Homemade Slaw, yellow mustard, fresh onions & chili — all included.</p>
  <p><b>${money(price)} each + tax</b></p>
  <label class="label" for="classicQuickQty">How many Carolina Classics?</label>
  <input id="classicQuickQty" class="field" type="number" min="1" max="20" value="1" inputmode="numeric" oninput="updateClassicQuickTotal()">
@@ -140,7 +140,7 @@ function addClassicQuickOrder(){
  if(orderingStatusKnown&&!orderingOpen)return showOrderingPaused();
  const raw=Number(document.getElementById("classicQuickQty")?.value);
  if(!Number.isInteger(raw)||raw<1||raw>20)return alert("Choose between 1 and 20 hot dogs.");
- for(let n=0;n<raw;n++)cart.push({i,tops:["Yellow Mustard","Chili","Fresh Onions","Anna's Anna's Homemade Slaw"],notes:"",extra:0});
+ for(let n=0;n<raw;n++)cart.push({i,tops:["Yellow Mustard","Chili","Fresh Onions","Anna's Homemade Slaw"],notes:"",extra:0});
  save();
  openCart();
 }
@@ -158,7 +158,7 @@ function customize(i){
  let x=menu[i];
  let food=x[0]==="Hot Dawgs"||x[0]==="Hot Dawg Combos"||x[0]==="Smoked Sausages";
  let isCarolinaClassic=/carolina classic/i.test(String(x[1]||""));
- let defaultToppings=isCarolinaClassic?["Yellow Mustard","Chili","Fresh Onions","Anna's Anna's Homemade Slaw"]:[];
+ let defaultToppings=isCarolinaClassic?["Yellow Mustard","Chili","Fresh Onions","Anna's Homemade Slaw"]:[];
  let ques=x[1].includes("Quesadilla");
 
  modalBody.innerHTML=
