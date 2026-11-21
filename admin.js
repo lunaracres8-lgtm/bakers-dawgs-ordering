@@ -794,6 +794,10 @@ async function applyWindowDiscount(){
  alert(`Discount applied: −$${amount.toFixed(2)}.`);
 }
 function clearWindowDiscount(){windowSaleDiscount={amount:0,reason:""};renderWindowOrder();}
+const BD_OFFLINE_WINDOW_KEY="bdOfflineWindowOrdersV1";
+function bdOfflineWindowOrders(){try{return JSON.parse(localStorage.getItem(BD_OFFLINE_WINDOW_KEY)||"[]");}catch(_){return [];}}
+function bdSaveOfflineWindowOrder(order){const orders=bdOfflineWindowOrders();orders.push({...order,offline_saved_at:new Date().toISOString(),offline_sync_status:"pending"});localStorage.setItem(BD_OFFLINE_WINDOW_KEY,JSON.stringify(orders));}
+function bdDownloadOfflineWindowOrders(){const orders=bdOfflineWindowOrders();if(!orders.length)return alert("No offline tickets saved on this tablet.");const blob=new Blob([JSON.stringify(orders,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="bakers-dawgs-offline-tickets.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function submitWindowSale(completeNow){
  if(windowSaleSaving||!windowSaleCart.length)return;
  saveWindowSaleDraft();
@@ -814,6 +818,13 @@ async function submitWindowSale(completeNow){
  const signature=JSON.stringify({...order,id:null});
  if(windowSalePending?.signature===signature)order.id=windowSalePending.id;
  else windowSalePending={id:order.id,signature};
+ if(!navigator.onLine){
+  if(payment&&payment.toLowerCase()!=="cash"){alert("Offline mode supports CASH only. Card payments need confirmed Square processing.");return;}
+  try{bdSaveOfflineWindowOrder(order);}catch(e){alert("Could not save offline ticket. Keep the order on screen and write it down.");return;}
+  windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";windowSalePending=null;
+  windowSaleNotice="OFFLINE CASH TICKET SAVED ON THIS TABLET ONLY • Ticket #"+ticketCode(order)+". Tell the kitchen manually. Not synced. Export tickets before clearing browser data.";
+  renderWindowOrder(false);alert(windowSaleNotice);return;
+ }
  windowSaleSaving=true;windowSaleNotice="Saving sale…";renderWindowOrder();
  try{
   await bdCreateStaffOrder(order);
