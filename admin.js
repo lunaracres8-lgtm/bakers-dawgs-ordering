@@ -1494,3 +1494,32 @@ if(pinUnlockBtn)pinUnlockBtn.onclick=unlockWithPin;
 const staffPinInput=document.querySelector("#staffPin");
 if(staffPinInput)staffPinInput.addEventListener("keydown",e=>{if(e.key==="Enter")unlockWithPin();});
 setBiometricButtonLabels();
+
+
+/* Anna's Homemade Slaw reorder tracking: local-only until supplier workflow is configured. */
+const ANNA_SLAW_KEY="bdAnnaSlawRequestsV1";
+function annaSlawRows(){try{const v=JSON.parse(localStorage.getItem(ANNA_SLAW_KEY)||"[]");return Array.isArray(v)?v:[]}catch(_){return []}}
+function annaSlawSave(rows){localStorage.setItem(ANNA_SLAW_KEY,JSON.stringify(rows));annaSlawRender()}
+function annaSlawAddRequest(){
+ const gallons=Number(document.getElementById("annaSlawGallons")?.value);
+ const raw=document.getElementById("annaSlawPrice")?.value||"";
+ const price=raw.trim()===""?null:Number(raw);
+ if(!Number.isFinite(gallons)||gallons<=0||gallons>100||!Number.isFinite(gallons*4)||Math.round(gallons*4)!==gallons*4){alert("Enter gallons in quarter-gallon increments.");return}
+ if(price!==null&&(!Number.isFinite(price)||price<0)){alert("Enter a valid price or leave it blank.");return}
+ const rows=annaSlawRows();rows.push({id:Date.now()+"-"+Math.random().toString(36).slice(2,7),created:new Date().toISOString(),gallons,price,status:"Needed"});
+ try{annaSlawSave(rows)}catch(e){alert("Could not save on this device. Export existing records and free storage.");return}
+ alert("Slaw request recorded on this device. Contact Anna separately to place the order.");
+}
+function annaSlawStatus(id,status){if(!["Needed","Ordered","Received"].includes(status))return;annaSlawSave(annaSlawRows().map(r=>r.id===id?{...r,status}:r))}
+function annaSlawRender(){
+ const el=document.getElementById("annaSlawRequests");if(!el)return;
+ el.replaceChildren();const rows=annaSlawRows().slice().reverse();
+ if(!rows.length){el.textContent="No slaw requests recorded yet.";return}
+ for(const r of rows){const p=document.createElement("p");p.style.padding="8px";p.style.borderBottom="1px solid #ccc";
+ const date=new Date(r.created).toLocaleString();p.append(document.createTextNode(date+" — "+r.gallons+" gallon(s) — "+(r.price==null?"Price TBD":"$"+(r.price*r.gallons).toFixed(2)+" estimated")+" — "));
+ const sel=document.createElement("select");for(const status of ["Needed","Ordered","Received"]){const o=document.createElement("option");o.value=status;o.textContent=status;sel.append(o)}sel.value=r.status;sel.onchange=()=>annaSlawStatus(r.id,sel.value);p.append(sel);el.append(p)}
+}
+function annaSlawReport(){return "Anna's Homemade Slaw — Reorder Report\nCreated: "+new Date().toLocaleString()+"\nNot automatically sent to supplier\n\n"+annaSlawRows().map(r=>new Date(r.created).toLocaleString()+" | "+r.gallons+" gallon(s) | "+r.status+" | "+(r.price==null?"Price TBD":"$"+r.price.toFixed(2)+"/gallon")).join("\n")}
+function annaSlawExport(){const blob=new Blob([annaSlawReport()],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="annas-slaw-reorder-report.txt";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function annaSlawPrint(){const w=window.open("","_blank");if(!w){alert("Allow popups to print, or download the report.");return}const pre=w.document.createElement("pre");pre.textContent=annaSlawReport();w.document.body.append(pre);w.document.title="Anna's Slaw Reorder Report";w.print()}
+annaSlawRender();
