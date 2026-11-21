@@ -118,7 +118,37 @@ function showCat(c){
 function orderCarolinaClassic(){
  const i=menu.findIndex(item=>item[0]==="Hot Dawgs"&&/carolina classic/i.test(String(item[1]||"")));
  if(i<0){showCat("Hot Dawgs");return;}
- customize(i);
+ if(menuAvailability[menu[i][1]]===false)return alert("Sorry, the Carolina Classic is sold out right now.");
+ if(orderingStatusKnown&&!orderingOpen)return showOrderingPaused();
+ const price=Number(menu[i][3]);
+ modalBody.innerHTML=`<h2>Quick Order: Carolina Classic</h2>
+ <p>Homestyle slaw, yellow mustard, fresh onions & chili — all included.</p>
+ <p><b>${money(price)} each + tax</b></p>
+ <label class="label" for="classicQuickQty">How many Carolina Classics?</label>
+ <input id="classicQuickQty" class="field" type="number" min="1" max="20" value="1" inputmode="numeric" oninput="updateClassicQuickTotal()">
+ <div class="total">Total including tax <b id="classicQuickTotal">${money(totalWithTax(price))}</b></div>
+ <button class="checkout" onclick="addClassicQuickOrder()">ADD TO ORDER & CHECK OUT</button>
+ <button class="checkout" onclick="customize(${i})">CUSTOMIZE TOPPINGS</button>`;
+ openModal();
+}
+
+function updateClassicQuickTotal(){
+ const i=menu.findIndex(item=>item[0]==="Hot Dawgs"&&/carolina classic/i.test(String(item[1]||"")));
+ if(i<0)return;
+ const qty=Math.min(20,Math.max(1,Math.floor(Number(document.getElementById("classicQuickQty")?.value)||1)));
+ document.getElementById("classicQuickTotal").textContent=money(totalWithTax(qty*Number(menu[i][3])));
+}
+
+function addClassicQuickOrder(){
+ const i=menu.findIndex(item=>item[0]==="Hot Dawgs"&&/carolina classic/i.test(String(item[1]||"")));
+ if(i<0)return alert("Carolina Classic is unavailable.");
+ if(menuAvailability[menu[i][1]]===false)return alert("Carolina Classic is sold out.");
+ if(orderingStatusKnown&&!orderingOpen)return showOrderingPaused();
+ const raw=Number(document.getElementById("classicQuickQty")?.value);
+ if(!Number.isInteger(raw)||raw<1||raw>20)return alert("Choose between 1 and 20 hot dogs.");
+ for(let n=0;n<raw;n++)cart.push({i,tops:["Yellow Mustard","Chili","Fresh Onions","Homestyle Slaw"],notes:"",extra:0});
+ save();
+ openCart();
 }
 
 function startBuildYourDawg(){
