@@ -19,7 +19,7 @@
  }
 })();
 </script>
-<link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css?v=30"></head>
+<link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css?v=20261121"></head>
 <body>
 <header class="siteHero">
  <div class="kicker">LENOIR, NORTH CAROLINA</div>
@@ -28,21 +28,21 @@
  <p class="heroIntro">Made fresh to order at 1501 Norwood St., Lenoir, NC.</p>
  <div class="heroActions">
   <button class="hero" onclick="orderCarolinaClassic()">🌭 ORDER CAROLINA CLASSIC — QUICK CHECKOUT</button>
-  <button class="hero" onclick="goMenu()">VIEW FULL MENU</button>
+  <button class="hero secondaryHero" onclick="goMenu()">VIEW ALL HOT DOGS & COMBOS</button>
   <a class="directions" href="https://www.google.com/maps/search/?api=1&query=1501+Norwood+St%2C+Lenoir%2C+NC" target="_blank" rel="noopener">GET DIRECTIONS</a>
  </div>
- <p class="heroIntro"><strong>Tuesday $7 Lunch Special:</strong> Hot dog, chips, drink &amp; a free small slice of cake with combo purchase.</p>
- <div class="heroPerks"><span>🌭 Anna's Homemade Slaw</span><span>🥤 Homemade sweet tea</span><span>⭐ Buy 5 dogs, get 1 free</span></div>
+ <p class="heroIntro lunchSpecial"><strong>Tuesday $7 Lunch Special:</strong> Hot dog, chips, drink &amp; a free small slice of cake with combo purchase.</p>
+ <div class="heroPerks"><span>🌭 Anna's Homemade Slaw</span><span>🥤 Canned drinks $1.50</span><span>⭐ Buy 5 dogs, get 1 free</span></div>
  <p class="birthdayNote">Birthday treat: one free hot dog on your birthday with valid ID.</p>
 </header>
 <div class="quickInfo"><span><b>PAY AT PICKUP</b> — No online payment needed</span></div>
 <div class="deliveryNotice compactDelivery"><b>PICKUP AVAILABLE</b><span>Delivery is coming soon. Order ahead and pay when you arrive.</span></div>
-<section class="featuredFood" aria-label="Baker's Dawgs favorites"><div class="feature hotDawgFeature"><span>OUR CUSTOMER FAVORITE</span><b>Carolina Classic</b><small>Anna's Homemade Slaw, yellow mustard, fresh onions & chili.</small><button type="button" onclick="orderCarolinaClassic()">ORDER A CAROLINA CLASSIC</button></div></section>
+<section hidden class="featuredFood" aria-label="Baker's Dawgs favorites"><div class="feature hotDawgFeature"><span>OUR CUSTOMER FAVORITE</span><b>Carolina Classic</b><small>Anna's Homemade Slaw, yellow mustard, fresh onions & chili.</small><button type="button" onclick="orderCarolinaClassic()">ORDER A CAROLINA CLASSIC</button></div></section>
 <div id="staffReturn" class="orderingBanner hidden"><b>STAFF SCREEN LOCKED</b><span>Tap below to return to the order board.</span><button type="button" class="checkout" onclick="returnToAdmin()">RETURN TO ADMIN</button></div>
 <div id="orderingBanner" class="orderingBanner hidden"><b>ONLINE ORDERING PAUSED</b><span>We are not accepting online pickup orders right now. Please check back soon.</span></div>
-<nav><button onclick="showCat('Hot Dawgs')">🌭 Hot Dawgs</button><button onclick="showCat('Hot Dawg Combos')">🍟 Combos</button><button onclick="showCat('Drinks & Sides')">🥤 Drinks & Sides</button></nav>
+<nav aria-label="Menu categories"><button onclick="showCat('Hot Dawgs')">🌭 Hot Dawgs</button><button onclick="showCat('Hot Dawg Combos')">🍟 Combos</button><button onclick="showCat('Drinks & Sides')">🥤 Drinks & Sides</button></nav>
 <main id="menu"></main>
 <button id="cartBar" class="cartbar" onclick="openCart()">🛒 View Order <b id="cartCount">0</b><span>$<span id="cartTotal">0.00</span></span></button>
 <div id="modal" class="modal hidden" onclick="backdrop(event)"><section class="sheet"><button class="close" onclick="closeModal()">×</button><div id="modalBody"></div></section></div>
-<footer><b id="brandFooterName">Baker's Dawgs</b><br>Made fresh. Order ahead. Pick it up hot.<br><a class="contactLink callNow" href="tel:8282051139">CALL / TEXT (828) 205-1139</a><br><a class="contactLink" style="color:#ffffff!important;font-weight:900;text-decoration:underline;text-decoration-color:#ffc21a" href="mailto:dawgsbaker@gmail.com">dawgsbaker@gmail.com</a><br><a class="contactLink websiteLink" style="color:#ffffff!important;font-weight:900;text-decoration:underline;text-decoration-color:#ffc21a" href="https://www.bakersdawgs.com">www.bakersdawgs.com</a><section class="largeOrders"><b>FEEDING A CROWD?</b><span>For catering or large orders, call ahead so we can have it ready for you.</span><a href="tel:8282051139">CALL AHEAD</a></section><small class="madeByCredit">Made by Lunar Acres Restaurant Services</small></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0/dist/umd/supabase.min.js"></script><script src="config.js?v=38"></script><script src="db.js?v=48"></script><script src="app.js?v=60"></script></body></html>
+<footer><b id="brandFooterName">Baker's Dawgs</b><br>Made fresh. Order ahead. Pick it up hot.<br><a class="contactLink callNow" href="tel:8282051139">CALL / TEXT (828) 205-1139</a><br><a class="contactLink" style="color:#ffffff!important;font-weight:900;text-decoration:underline;text-decoration-color:#ffc21a" href="mailto:dawgsbaker@gmail.com">dawgsbaker@gmail.com</a><br><a class="contactLink websiteLink" style="color:#ffffff!important;font-weight:900;text-decoration:underline;text-decoration-color:#ffc21a" href="https://www.bakersdawgs.com">www.bakersdawgs.com</a><section class="largeOrders"><b>FEEDING A CROWD?</b><span>For catering or large orders, call ahead so we can have it ready for you.</span><a href="tel:8282051139">CALL AHEAD</a></section><a class="contactLink" href="menu.html">PRINTABLE MENU</a><br><small class="madeByCredit">Made by Lunar Acres Restaurant Services</small></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0/dist/umd/supabase.min.js"></script><script src="config.js?v=38"></script><script src="db.js?v=48"></script><script src="app.js?v=20261121"></script></body></html>

@@ -124,3 +124,11 @@ test('birthday reward requires ID confirmation and stays tied to the customer ph
  assert.equal(orders[0].status,'Completed');
  assert.equal(orders[0].items[0].options,'Carolina Classic Hot Dawg');
 });
+
+test('new orders alert on initial load, acknowledgement reads all tickets, acceptance reads automatically',async t=>{
+ const h=harness();cleanup(t,h);const {w}=h;const spoken=[];w.BakersDawgsAndroid={speak:text=>spoken.push(text)};
+ h.orders.push({id:'order-1234',customer_name:'Anna',status:'New',created_at:new Date().toISOString(),items:[{name:'Carolina Classic',quantity:2,options:'Slaw, mustard, chili, onions',notes:'Extra slaw'}],total:7},{id:'order-5678',customer_name:'John',status:'New',created_at:new Date().toISOString(),items:[{name:'Hot Dawg'}],total:3.5});
+ await w.loadOrders();assert.equal(w.document.querySelector('#newOrderBanner').hidden,false);w.bdAcknowledgeNewOrders();assert.equal(w.document.querySelector('#newOrderBanner').hidden,true);assert.match(spoken[0],/Anna/);assert.match(spoken[0],/John/);assert.match(spoken[0],/Quantity 2/);assert.match(spoken[0],/Extra slaw/);
+ await w.changeStatus('order-1234','Accepted');assert.equal(spoken.length,2);assert.match(spoken[1],/Slaw, mustard, chili, onions/);
+ assert.equal(w.document.querySelector('#annaSlawDrawer'),null);
+});

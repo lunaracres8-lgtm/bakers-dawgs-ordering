@@ -49,8 +49,8 @@
     if(next<0){speak("That's the first order.");return;}
     if(next>=list.length){speak("That's the last order.");return;}
     focusOrder(list[next].id);
-    speak("Order "+(next+1)+" of "+list.length+". "+(list[next].customer_name||"Customer")+".");
-    repeat();
+    if(typeof window.speakKitchenText==="function" && typeof window.orderSpeechText==="function")window.speakKitchenText("Order "+(next+1)+" of "+list.length+". "+window.orderSpeechText(list[next]));
+    else repeat();
   }
   const previous=window.handleKitchenCommand;
   window.handleKitchenCommand=function(transcript){

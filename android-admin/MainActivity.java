@@ -15,6 +15,7 @@ import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -38,6 +39,7 @@ public class MainActivity extends Activity {
   private SpeechRecognizer recognizer;
   // User intent outlives an individual Android recognition session.
   private boolean listening;
+  private boolean speaking;
   private boolean recognizing;
   private boolean destroyed;
   private int recognitionGeneration;
@@ -77,14 +79,25 @@ public class MainActivity extends Activity {
       }
     });
     tts = new TextToSpeech(this, status -> {
-      if (status == TextToSpeech.SUCCESS) tts.setLanguage(Locale.US);
+      if (status == TextToSpeech.SUCCESS) {
+        tts.setLanguage(Locale.US);
+        tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+          @Override public void onStart(String id) { }
+          @Override public void onDone(String id) { resumeAfterSpeech(); }
+          @Override public void onError(String id) { resumeAfterSpeech(); }
+        });
+      }
       else callback("onNativeVoiceError", "Android text-to-speech is unavailable. Check the device speech engine.");
     });
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
     recognitionIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
     // New build marker makes the installed Admin app fetch the current order-board code.
-    web.loadUrl(PAGE + "?v=61");
+    web.loadUrl(PAGE + "?v=20261121");
+  }
+
+  private void resumeAfterSpeech() {
+    runOnUiThread(() -> { speaking = false; if (listening && !destroyed) scheduleRecognitionRestart(400); });
   }
 
   private void callback(String method, String value) {
@@ -108,7 +121,7 @@ public class MainActivity extends Activity {
   }
 
   private void startRecognition() {
-    if (!listening || destroyed || recognizing) return;
+    if (!listening || speaking || destroyed || recognizing) return;
     recognitionHandler.removeCallbacks(recognitionRestart);
     if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
       requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 7);
@@ -248,10 +261,15 @@ public class MainActivity extends Activity {
     }
     @JavascriptInterface public void speak(String text) {
       runOnUiThread(() -> {
-        if (tts != null) { tts.stop(); tts.setSpeechRate(1.0f); tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "kitchen-order"); }
+        if (tts != null) {
+          boolean keepListening = listening;
+          stopRecognition(); listening = keepListening; speaking = true;
+          tts.stop(); tts.setSpeechRate(.88f);
+          if (tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "kitchen-order") == TextToSpeech.ERROR) resumeAfterSpeech();
+        }
       });
     }
-    @JavascriptInterface public void stopSpeaking() { runOnUiThread(() -> { if (tts != null) tts.stop(); }); }
+    @JavascriptInterface public void stopSpeaking() { runOnUiThread(() -> { if (tts != null) tts.stop(); resumeAfterSpeech(); }); }
     @JavascriptInterface public void startListening() {
       runOnUiThread(() -> {
         if (listening) return;

@@ -156,7 +156,8 @@ function clockInEmployee(){const input=document.getElementById("clockEmployeeNam
 function clockOut(index){const shifts=shiftsToday();if(!shifts[index]||shifts[index].out)return;shifts[index].out=new Date().toISOString();saveShifts(shifts);renderTimeClock();}
 let bdUnacknowledgedOrderIds=new Set();
 let bdOrderAlertInterval=null;
-function bdStopOrderAlert(){if(bdOrderAlertInterval){clearInterval(bdOrderAlertInterval);bdOrderAlertInterval=null}}
+let bdOrderAlertAudio=null;
+function bdStopOrderAlert(){if(bdOrderAlertAudio){bdOrderAlertAudio.close().catch(()=>{});bdOrderAlertAudio=null;}if(bdOrderAlertInterval){clearInterval(bdOrderAlertInterval);bdOrderAlertInterval=null}}
 function bdUpdateOrderAlert(){
  let banner=document.getElementById("newOrderBanner");
  if(!banner){banner=document.createElement("button");banner.id="newOrderBanner";banner.type="button";banner.onclick=bdAcknowledgeNewOrders;document.body.append(banner)}
@@ -189,18 +190,12 @@ function bdAcknowledgeNewOrders(){
  if(!ids.length)return;
  // Acknowledging the alarm does not silently change the order's kitchen status.
  // Read every item, option, item note, and order note.
- let index=0;const readNext=()=>{
-  if(index>=ids.length)return;
-  const id=ids[index++],order=(window.bdCurrentOrders||[]).find(o=>String(o.id)===String(id));
-  if(!order){readNext();return}
-  if(window.BakersDawgsAndroid?.speak){speakKitchenOrder(id);return}
-  if(!("speechSynthesis" in window)){return}
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(orderSpeechText(order));
-  const voice=bestKitchenVoice();if(voice){u.voice=voice;u.lang=voice.lang||"en-US"}
-  u.rate=.88;u.volume=1;u.onend=readNext;u.onerror=readNext;
-  lastSpokenOrderId=id;speechSynthesis.speak(u);
- };readNext();
+ const orders=ids.map(id=>(window.bdCurrentOrders||[]).find(o=>String(o.id)===String(id))).filter(Boolean);
+ if(!orders.length)return;
+ lastSpokenOrderId=orders[orders.length-1].id;
+ if(window.bdKitchenVoiceNavigation)window.bdKitchenVoiceNavigation.focusOrder(lastSpokenOrderId);
+ speakKitchenText(orders.map(order=>orderSpeechText(order)).join(". Next order. "));
+
 }
 function showNewOrderBanner(count){bdUpdateOrderAlert()}
 async function requireManagerApproval(action){
@@ -451,8 +446,10 @@ function playOrderAlert(){
    osc.connect(gain); gain.connect(master);
    osc.start(ctx.currentTime+start); osc.stop(ctx.currentTime+start+duration+.02);
   };
-  ring(659,0,.18); ring(784,.20,.18); ring(988,.40,.28);
-  setTimeout(()=>ctx.close(),1000);
+  if(bdOrderAlertAudio)bdOrderAlertAudio.close().catch(()=>{});
+  bdOrderAlertAudio=ctx;
+  for(let n=0;n<10;n++){ring(659,n,.18);ring(784,n+.20,.18);ring(988,n+.40,.28);}
+  setTimeout(()=>{ctx.close().catch(()=>{});if(bdOrderAlertAudio===ctx)bdOrderAlertAudio=null;},10500);
  }catch(e){}
  if(navigator.vibrate) navigator.vibrate([180,80,260]);
 }
@@ -1178,7 +1175,7 @@ async function loadOrders(){
   const orders=await bdGetOrders();
   window.bdCurrentOrders=orders;
   const newIds=orders.filter(o=>o.status==="New"&&!knownOrderIds.has(o.id)).map(o=>o.id);
-  if(!firstOrderLoad&&newIds.length){ newIds.forEach(id=>bdUnacknowledgedOrderIds.add(id));bdUpdateOrderAlert(); }
+  if(newIds.length){ newIds.forEach(id=>bdUnacknowledgedOrderIds.add(id));bdUpdateOrderAlert(); }
   knownOrderIds=new Set(orders.map(o=>o.id));
   for(const id of bdUnacknowledgedOrderIds){if(!orders.some(o=>o.id===id&&o.status==="New"))bdUnacknowledgedOrderIds.delete(id)}
   bdUpdateOrderAlert();
@@ -1282,9 +1279,9 @@ function orderSpeechText(o, itemIndex=null){
  const chosen=itemIndex===null?items:(items[itemIndex]?[items[itemIndex]]:[]);
  const lines=chosen.map((i,n)=>{
   const label=itemIndex===null?`Item ${n+1}`:`Item ${itemIndex+1}`;
-  return [label, i.name, i.options?`with ${i.options}`:"", i.notes?`Note: ${i.notes}`:""].filter(Boolean).join(". ");
+  return [label, Number(i.quantity||1)>1?`Quantity ${i.quantity}`:"", i.name, i.options?`with ${i.options}`:"", i.notes?`Note: ${i.notes}`:""].filter(Boolean).join(". ");
  });
- return [itemIndex===null?`Order for ${o.customer_name||"customer"}.`:"", ...lines, itemIndex===null&&o.notes?`Order note: ${o.notes}`:""].filter(Boolean).join(". ");
+ return [itemIndex===null?`Order ${ticketCode(o)} for ${o.customer_name||"customer"}.`:"", ...lines, itemIndex===null&&o.notes?`Order note: ${o.notes}`:""].filter(Boolean).join(". ");
 }
 function bestKitchenVoice(){
  const voices=speechSynthesis.getVoices();
@@ -1295,25 +1292,31 @@ function bestKitchenVoice(){
 function speakKitchenOrder(id,itemIndex=null){
  const o=(window.bdCurrentOrders||[]).find(x=>String(x.id)===String(id));
  if(!o){alert("Order is no longer on the board.");return;}
- const text=orderSpeechText(o,itemIndex);
+ if(window.bdKitchenVoiceNavigation)window.bdKitchenVoiceNavigation.focusOrder(id);
+ lastSpokenOrderId=o.id;
+ speakKitchenText(orderSpeechText(o,itemIndex));
+}
+function speakKitchenText(text){
  if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.speak==="function"){
-  window.BakersDawgsAndroid.speak(text);
-  lastSpokenOrderId=o.id;
-  return;
+  window.BakersDawgsAndroid.speak(text);return;
  }
  if(!("speechSynthesis" in window))return;
  speechSynthesis.cancel();
+ window.bdKitchenSpeaking=true;
+ if(kitchenRecognition){try{kitchenRecognition.abort();}catch(_){}}
  const u=new SpeechSynthesisUtterance(text);
- const voice=bestKitchenVoice(); if(voice){u.voice=voice;u.lang=voice.lang||"en-US";}
- u.rate=.88; u.pitch=1; u.volume=1;
+ const voice=bestKitchenVoice();if(voice){u.voice=voice;u.lang=voice.lang||"en-US";}
+ u.rate=.88;u.pitch=1;u.volume=1;
+ const finish=()=>{window.bdKitchenSpeaking=false;if(kitchenListening)scheduleKitchenRestart();};
+ u.onend=finish;u.onerror=finish;
  speechSynthesis.speak(u);
- lastSpokenOrderId=o.id;
 }
+
 function repeatLastOrder(){
  if(!lastSpokenOrderId){alert("Tap Read Order on an order first.");return;}
  speakKitchenOrder(lastSpokenOrderId);
 }
-function stopOrderSpeech(){ if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.stopSpeaking==="function") window.BakersDawgsAndroid.stopSpeaking(); if("speechSynthesis" in window) speechSynthesis.cancel(); }
+function stopOrderSpeech(){ window.bdKitchenSpeaking=false;if(kitchenListening)scheduleKitchenRestart(); if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.stopSpeaking==="function") window.BakersDawgsAndroid.stopSpeaking(); if("speechSynthesis" in window) speechSynthesis.cancel(); }
 let kitchenRecognition=null,kitchenListening=false,kitchenPauseTimer=null,kitchenStarting=false,kitchenRecognizing=false;
 let kitchenRestartTimer=null,kitchenRetryDelay=400;
 function voiceStatus(msg){const el=document.querySelector("#voiceAssistantStatus");if(el)el.textContent=msg;}
@@ -1360,7 +1363,7 @@ function startKitchenListening(){
  startKitchenCapture();
 }
 function startKitchenCapture(){
- if(!kitchenListening||kitchenRecognizing||kitchenStarting)return;
+ if(!kitchenListening||window.bdKitchenSpeaking||kitchenRecognizing||kitchenStarting)return;
  if(window.BakersDawgsAndroid&&typeof window.BakersDawgsAndroid.startListening==="function"){
   kitchenStarting=true;voiceStatus("Starting microphone…");
   try{window.BakersDawgsAndroid.startListening();}
@@ -1373,7 +1376,7 @@ function startKitchenCapture(){
   kitchenRecognition=new SR();kitchenRecognition.lang="en-US";kitchenRecognition.continuous=true;kitchenRecognition.interimResults=false;
   kitchenRecognition.onresult=e=>{
    for(const r of Array.from(e.results).slice(e.resultIndex)){
-    if(!kitchenListening)break;
+    if(!kitchenListening||window.bdKitchenSpeaking)break;
     if(r.isFinal!==false){kitchenRetryDelay=400;handleKitchenCommand(r[0].transcript);}
    }
   };
@@ -1425,7 +1428,11 @@ async function changeStatus(id,status){
  }
  try{
   await bdUpdateOrder(id,{status});
+  if(status==="Accepted"){
+   bdUnacknowledgedOrderIds.delete(id);bdUpdateOrderAlert();
+  }
   await loadOrders();
+  if(status==="Accepted"&&order)speakKitchenOrder(id);
   if(status==="Completed"&&order){
    const reward=await availableLoyaltyReward(order.phone);
    if(reward)alert(`Baker’s Dawgs Rewards${reward}`);

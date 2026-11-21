@@ -151,6 +151,16 @@ function startBuildYourDawg(){
  customize(loadedIndex);
 }
 
+function includedToppings(name){
+ const style=String(name||'').toLowerCase();
+ if(/carolina classic/.test(style))return ["Yellow Mustard","Chili","Fresh Onions","Anna's Homemade Slaw"];
+ if(/sauerkraut.*mustard/.test(style))return ["Sauerkraut","Yellow Mustard"];
+ if(/chili.*cheez|chili.*cheese/.test(style))return ["Chili","Cheese"];
+ if(/chili.*onion.*mustard/.test(style))return ["Chili","Fresh Onions","Yellow Mustard"];
+ if(/relish.*mustard/.test(style))return ["Sweet Relish","Yellow Mustard"];
+ return [];
+}
+
 function customize(i){
  if(menuAvailability[menu[i][1]]===false) return alert("Sorry, that item is sold out right now.");
  if(orderingStatusKnown&&!orderingOpen) return showOrderingPaused();
@@ -158,7 +168,7 @@ function customize(i){
  let x=menu[i];
  let food=x[0]==="Hot Dawgs"||x[0]==="Hot Dawg Combos"||x[0]==="Smoked Sausages";
  let isCarolinaClassic=/carolina classic/i.test(String(x[1]||""));
- let defaultToppings=isCarolinaClassic?["Yellow Mustard","Chili","Fresh Onions","Anna's Homemade Slaw"]:[];
+ let defaultToppings=includedToppings(x[1]);
  let ques=x[1].includes("Quesadilla");
 
  modalBody.innerHTML=
@@ -242,8 +252,9 @@ function canonicalCategory(category){
 }
 async function loadEditableMenu(){
  try{
+  if(window.bdCustomerOrderSubmitting||cart.length)return;
   const rows=await bdGetMenuItems();
-  if(!rows?.length)return;
+  if(window.bdCustomerOrderSubmitting||cart.length||!rows?.length)return;
   menu=rows.filter(x=>["Hot Dawgs","Hot Dawg Combos","Drinks & Sides","Desserts"].includes(canonicalCategory(x.category)) && !/cake|three milks|3 milks|tres leches|sandwich|bologna|baloney|brat|sausage|quesadilla|wrap|burger|taco|nachos/i.test(String(x.item_name||""))).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[canonicalCategory(x.category),x.item_name,x.description||"",Number(x.price)]);
   if(!menu.some(x=>/canned soda|can soda|12 oz can/i.test(x[1])))menu.push(["Drinks & Sides","Canned Soda","12 oz can",1.50]);
   menu=menu.filter(x=>!(/bottled (drink|soda)|16.?oz.*(soda|drink)/i.test(x[1])));
@@ -252,6 +263,19 @@ async function loadEditableMenu(){
   for(const name of ["Pepsi (12 oz can)","Mountain Dew (12 oz can)","Coca-Cola (12 oz can)"]){if(!menu.some(x=>x[1]===name))menu.push(["Drinks & Sides",name,"Ice cold",1.50]);}
   menu=menu.filter(x=>!(/cake|dessert/i.test(x[1])));
   menu.push(["Desserts","Chocolate Cake","Homestyle chocolate cake • $5 per slice",5.00]);
+  for(const combo of menu.filter(x=>x[0]==="Hot Dawg Combos")){
+   const name=combo[1].replace(/\s+combo$/i,"");
+   const sample=defaultMenu.find(x=>x[0]==="Hot Dawgs"&&x[1]===name);
+   if(sample&&!menu.some(x=>x[0]==="Hot Dawgs"&&x[1]===name))menu.push([...sample]);
+  }
+  menu=menu.map(x=>{
+   const included=includedToppings(x[1]);
+   if(!included.length)return x;
+   const description=included.join(", ")+(x[0]==="Hot Dawg Combos"?" • With chips & a canned drink":"");
+   return [x[0],x[1],description,x[3]];
+  });
+  const rank={"Hot Dawgs":0,"Hot Dawg Combos":1,"Drinks & Sides":2,"Desserts":3};
+  menu.sort((a,b)=>(rank[a[0]]??9)-(rank[b[0]]??9)||Number(/carolina classic/i.test(b[1]))-Number(/carolina classic/i.test(a[1])));
   cats=[...new Set(menu.map(x=>x[0]))];
   menuAvailability=Object.fromEntries(rows.map(x=>[x.item_name,x.available!==false]));
   render();update();
@@ -266,7 +290,7 @@ async function refreshOrderingStatus(){
   orderingStatusKnown=true;
   document.body.classList.toggle("ordering-paused",!orderingOpen);
   const hero=document.querySelector(".hero");
-  if(hero){ hero.textContent=orderingOpen?"ORDER FOR PICKUP":"ONLINE ORDERING PAUSED"; hero.disabled=!orderingOpen; }
+  if(hero){ hero.textContent=orderingOpen?"🌭 ORDER CAROLINA CLASSIC — QUICK CHECKOUT":"ONLINE ORDERING PAUSED"; hero.disabled=!orderingOpen; }
   const banner=document.querySelector("#orderingBanner");
   if(banner){ banner.classList.toggle("hidden",orderingOpen); }
  }catch(e){
@@ -397,7 +421,6 @@ async function placeOrder(){
  let tax=taxFor(subtotal);
  let total=totalWithTax(subtotal);
  const orderId=bdNewUuid();
- const customerTicket=orderId.replace(/\D/g,"").slice(-4).padStart(4,"0");
  let order={
   id:orderId,
   customer_name:nameEl.value.trim(),
@@ -419,6 +442,7 @@ async function placeOrder(){
 
  try{
  let saved=await bdCreateOrder(order);
+ const customerTicket=String(saved?.id||orderId).replace(/\D/g,"").slice(-4).padStart(4,"0");
   localStorage.setItem("bdLastCustomerReceipt",JSON.stringify({ticket:customerTicket,pickup:timeEl.value,total,items:order.items}));
   cart=[];
   save();
