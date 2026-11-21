@@ -243,7 +243,7 @@ async function loadEditableMenu(){
  try{
   const rows=await bdGetMenuItems();
   if(!rows?.length)return;
-  menu=rows.filter(x=>["Hot Dawgs","Hot Dawg Combos","Drinks & Sides"].includes(canonicalCategory(x.category)) && !/cake|three milks|3 milks|tres leches|sandwich|brat|sausage/i.test(String(x.item_name||""))).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[canonicalCategory(x.category),x.item_name,x.description||"",Number(x.price)]);
+  menu=rows.filter(x=>["Hot Dawgs","Hot Dawg Combos","Drinks & Sides"].includes(canonicalCategory(x.category)) && !/cake|three milks|3 milks|tres leches|sandwich|bologna|baloney|brat|sausage|quesadilla|wrap|burger|taco|nachos/i.test(String(x.item_name||""))).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[canonicalCategory(x.category),x.item_name,x.description||"",Number(x.price)]);
   if(!menu.some(x=>/canned soda|can soda|12 oz can/i.test(x[1])))menu.push(["Drinks & Sides","Canned Soda","12 oz can",1.50]);
   menu=menu.filter(x=>!(/bottled (drink|soda)|16.?oz.*(soda|drink)/i.test(x[1])));
   menu=menu.map(x=>/bottled water/i.test(x[1])?[x[0],x[1],x[2],1.00]:x);
