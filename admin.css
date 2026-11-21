@@ -224,3 +224,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 #annaSlawRequests p{margin:0!important;padding:12px!important;border-bottom:1px solid #454545!important;display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center}
 #annaSlawRequests p:last-child{border-bottom:0!important}
 @media(max-width:600px){.annaSlawDrawer>summary{flex-wrap:wrap}#annaSlawPanel button{width:100%;margin:6px 0}}
+
+/* Inline offline backup: never floats over order controls */
+.bdOfflineTicketsPanel{position:static!important;z-index:auto!important;max-width:none!important;margin:14px 0;padding:0!important;border:1px solid #554827!important;border-radius:13px;background:#1b1d1f;color:#fff;font:inherit;box-shadow:none}
+.bdOfflineDetails>summary{cursor:pointer;padding:13px 16px;color:#f8cd5c;font-size:13px;font-weight:800;list-style-position:inside}
+.bdOfflineActions{display:flex;flex-wrap:wrap;gap:9px;padding:6px 16px 12px}
+.bdOfflineActions button{background:#ffc21a;color:#211900;border:0;border-radius:10px;padding:10px 14px;font-weight:800;min-height:42px;cursor:pointer}
+.bdOfflineDetails small{display:block;color:#c4c2bb;padding:0 16px 14px;line-height:1.4}
