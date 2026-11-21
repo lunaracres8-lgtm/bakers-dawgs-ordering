@@ -819,11 +819,15 @@ async function bdSyncOfflineWindowOrders(){
 }
 function bdRenderOfflineControls(){
  let panel=document.getElementById("bdOfflineTicketsPanel");
- if(!panel){panel=document.createElement("section");panel.id="bdOfflineTicketsPanel";panel.style.cssText="position:fixed;bottom:12px;right:12px;z-index:9999;background:#191919;color:white;padding:10px;border:2px solid #ffc21a;border-radius:8px;max-width:290px;font:14px sans-serif";document.body.appendChild(panel);}
+ if(!panel){panel=document.createElement("section");panel.id="bdOfflineTicketsPanel";panel.className="bdOfflineTicketsPanel";const app=document.getElementById("app");const anchor=document.getElementById("dailyCloseout");if(anchor?.parentNode)anchor.parentNode.insertBefore(panel,anchor);else (app||document.body).appendChild(panel)}
  const orders=bdOfflineWindowOrders(),pending=orders.filter(o=>o.offline_sync_status!=="synced").length;
- panel.innerHTML='<strong>Offline ticket backup: '+pending+' pending</strong><div style="display:flex;gap:6px;margin-top:8px"><button type="button" id="bdExportOffline">Export</button><button type="button" id="bdSyncOffline">Sync now</button></div>';
- document.getElementById("bdExportOffline").onclick=bdDownloadOfflineWindowOrders;
- document.getElementById("bdSyncOffline").onclick=bdSyncOfflineWindowOrders;
+ panel.replaceChildren();
+ const details=document.createElement("details");details.className="bdOfflineDetails";
+ const summary=document.createElement("summary");summary.textContent="Offline ticket backup · "+pending+" pending";details.append(summary);
+ const actions=document.createElement("div");actions.className="bdOfflineActions";
+ for(const [label,fn] of [["Download backup",bdDownloadOfflineWindowOrders],["Sync pending tickets",bdSyncOfflineWindowOrders]]){const button=document.createElement("button");button.type="button";button.textContent=label;button.onclick=fn;actions.append(button)}
+ const note=document.createElement("small");note.textContent="Saved locally on this tablet until synced. Offline tickets do not reach the kitchen automatically.";
+ details.append(actions,note);panel.append(details);
 }
 window.addEventListener("DOMContentLoaded",bdRenderOfflineControls);
 async function submitWindowSale(completeNow){
