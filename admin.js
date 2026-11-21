@@ -169,7 +169,7 @@ function bdUpdateOrderAlert(){
 }
 function bdSetupCollapsibleSections(){
  const app=document.getElementById("app");if(!app)return;
- const sections=[...app.querySelectorAll(":scope > section")].filter(el=>!el.closest(".annaSlawDrawer")&&!["orders","dailyCloseout","annaSlawPanel"].includes(el.id));
+ const sections=[...app.querySelectorAll(":scope > section, :scope > div[data-admin-view], :scope > section[data-admin-view]")].filter(el=>!el.closest(".annaSlawDrawer")&&!["orders","dailyCloseout","annaSlawPanel"].includes(el.id)&&!el.classList.contains("adminViewTabs")&&!el.classList.contains("toolbar"));
  for(const section of sections){
   if(section.dataset.bdCollapsible)return;
   const title=section.querySelector("h2, .sectionTitle b, div > b");
