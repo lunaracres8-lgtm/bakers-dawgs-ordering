@@ -30,20 +30,12 @@ const defaultMenu=[
 ["Hot Dawg Combos","Chili & Cheez Dawg Combo","Hot Dawg, bag of chips, and drink • $7.00 total with tax",6.56],
 ["Hot Dawg Combos","Chili, Onion & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink • $7.00 total with tax",6.56],
 ["Hot Dawg Combos","Sweet Relish & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink • $7.00 total with tax",6.56],
-["Smoked Sausages","Brat / Bratwurst","German smoked sausage",6.00],
-["Smoked Sausages","Classic Plain Smoked Sausage","Johnsonville smoked sausage",6.00],
-["Smoked Sausages","Cheddar Cheez Smoked Sausage","Cheddar cheese smoked sausage",6.00],
-["Smoked Sausages","Jalapeño Smoked Sausage","Jalapeño smoked sausage",6.00],
-["Smoked Sausages","The Perfect Brat","BBQ sauce, sauerkraut and fresh chopped onions",6.00],
-["Sandwiches","Grilled Bologna on Toast (cut #5)","Choice of mustard, mayo and slaw",4.50],
-["Sandwiches","Grilled Cheez Quesadilla","Optional chili add-on",4.00],
-["Drinks & Sides","Bottled Drink / Soda","",2.00],
+["Drinks & Sides","Bottled Drink / Soda","16 oz bottle",2.00],
+["Drinks & Sides","Canned Soda","12 oz can",1.50],
 ["Drinks & Sides","Bottled Water","",1.50],
 ["Drinks & Sides","Sweet Tea with Ice","Homemade sweet tea • No refills",1.75],
 ["Drinks & Sides","Lemonade Sweet Tea with Ice","Made with our homemade sweet tea • No refills",2.75],
 ["Drinks & Sides","Chips","",1.80],
-["Cakes","German Chocolate Cake","Year-round • $5 per slice",5.00],
-["Cakes","3 Milks Cake","Fall only • evaporated milk • condensed milk • heavy cream",5.00]
 ];
 let menu=defaultMenu.map(item=>[...item]);
 
