@@ -37,6 +37,7 @@ const defaultMenu=[
 ["Drinks & Sides","Sweet Tea with Ice","Homemade sweet tea • No refills",1.75],
 ["Drinks & Sides","Lemonade Sweet Tea with Ice","Made with our homemade sweet tea • No refills",2.75],
 ["Drinks & Sides","Chips","",1.80],
+["Desserts","Chocolate Cake","Homestyle chocolate cake • $5 per slice",5.00],
 ];
 let menu=defaultMenu.map(item=>[...item]);
 
@@ -243,12 +244,14 @@ async function loadEditableMenu(){
  try{
   const rows=await bdGetMenuItems();
   if(!rows?.length)return;
-  menu=rows.filter(x=>["Hot Dawgs","Hot Dawg Combos","Drinks & Sides"].includes(canonicalCategory(x.category)) && !/cake|three milks|3 milks|tres leches|sandwich|bologna|baloney|brat|sausage|quesadilla|wrap|burger|taco|nachos/i.test(String(x.item_name||""))).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[canonicalCategory(x.category),x.item_name,x.description||"",Number(x.price)]);
+  menu=rows.filter(x=>["Hot Dawgs","Hot Dawg Combos","Drinks & Sides","Desserts"].includes(canonicalCategory(x.category)) && !/cake|three milks|3 milks|tres leches|sandwich|bologna|baloney|brat|sausage|quesadilla|wrap|burger|taco|nachos/i.test(String(x.item_name||""))).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[canonicalCategory(x.category),x.item_name,x.description||"",Number(x.price)]);
   if(!menu.some(x=>/canned soda|can soda|12 oz can/i.test(x[1])))menu.push(["Drinks & Sides","Canned Soda","12 oz can",1.50]);
   menu=menu.filter(x=>!(/bottled (drink|soda)|16.?oz.*(soda|drink)/i.test(x[1])));
   menu=menu.map(x=>/bottled water/i.test(x[1])?[x[0],x[1],x[2],1.00]:x);
   menu=menu.filter(x=>!(/canned soda|can soda|12 oz can/i.test(x[1])));
   for(const name of ["Pepsi (12 oz can)","Mountain Dew (12 oz can)","Coca-Cola (12 oz can)"]){if(!menu.some(x=>x[1]===name))menu.push(["Drinks & Sides",name,"Ice cold",1.50]);}
+  menu=menu.filter(x=>!(/cake|dessert/i.test(x[1])));
+  menu.push(["Desserts","Chocolate Cake","Homestyle chocolate cake • $5 per slice",5.00]);
   cats=[...new Set(menu.map(x=>x[0]))];
   menuAvailability=Object.fromEntries(rows.map(x=>[x.item_name,x.available!==false]));
   render();update();
