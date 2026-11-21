@@ -798,6 +798,34 @@ const BD_OFFLINE_WINDOW_KEY="bdOfflineWindowOrdersV1";
 function bdOfflineWindowOrders(){try{return JSON.parse(localStorage.getItem(BD_OFFLINE_WINDOW_KEY)||"[]");}catch(_){return [];}}
 function bdSaveOfflineWindowOrder(order){const orders=bdOfflineWindowOrders();orders.push({...order,offline_saved_at:new Date().toISOString(),offline_sync_status:"pending"});localStorage.setItem(BD_OFFLINE_WINDOW_KEY,JSON.stringify(orders));}
 function bdDownloadOfflineWindowOrders(){const orders=bdOfflineWindowOrders();if(!orders.length)return alert("No offline tickets saved on this tablet.");const blob=new Blob([JSON.stringify(orders,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="bakers-dawgs-offline-tickets.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+async function bdSyncOfflineWindowOrders(){
+ if(!navigator.onLine)return alert("Internet is unavailable. Offline tickets remain saved on this tablet.");
+ const pending=bdOfflineWindowOrders().filter(o=>o.offline_sync_status!=="synced");
+ if(!pending.length)return alert("No offline tickets waiting to sync.");
+ if(!confirm("Sync "+pending.length+" saved offline ticket(s)? Confirm cash was collected and kitchen tickets were handled. Do not repeat sales already entered manually."))return;
+ let done=0,failed=0;
+ for(const order of pending){
+  try{
+   const remote=await bdGetOrders();
+   if(!Array.isArray(remote))throw Error("Cannot verify existing orders");
+   if(!remote.some(o=>String(o.id)===String(order.id)))await bdCreateStaffOrder(order);
+   const rows=bdOfflineWindowOrders();const idx=rows.findIndex(o=>o.id===order.id);
+   if(idx>=0){rows[idx].offline_sync_status="synced";rows[idx].offline_synced_at=new Date().toISOString();localStorage.setItem(BD_OFFLINE_WINDOW_KEY,JSON.stringify(rows));}
+   done++;
+  }catch(e){console.warn("Offline sync pending",order.id,e);failed++;}
+ }
+ bdRenderOfflineControls();alert("Offline sync: "+done+" confirmed, "+failed+" still pending. Keep your export as a backup.");
+ if(done)try{await loadOrders();}catch(_){}
+}
+function bdRenderOfflineControls(){
+ let panel=document.getElementById("bdOfflineTicketsPanel");
+ if(!panel){panel=document.createElement("section");panel.id="bdOfflineTicketsPanel";panel.style.cssText="position:fixed;bottom:12px;right:12px;z-index:9999;background:#191919;color:white;padding:10px;border:2px solid #ffc21a;border-radius:8px;max-width:290px;font:14px sans-serif";document.body.appendChild(panel);}
+ const orders=bdOfflineWindowOrders(),pending=orders.filter(o=>o.offline_sync_status!=="synced").length;
+ panel.innerHTML='<strong>Offline ticket backup: '+pending+' pending</strong><div style="display:flex;gap:6px;margin-top:8px"><button type="button" id="bdExportOffline">Export</button><button type="button" id="bdSyncOffline">Sync now</button></div>';
+ document.getElementById("bdExportOffline").onclick=bdDownloadOfflineWindowOrders;
+ document.getElementById("bdSyncOffline").onclick=bdSyncOfflineWindowOrders;
+}
+window.addEventListener("DOMContentLoaded",bdRenderOfflineControls);
 async function submitWindowSale(completeNow){
  if(windowSaleSaving||!windowSaleCart.length)return;
  saveWindowSaleDraft();
@@ -823,7 +851,7 @@ async function submitWindowSale(completeNow){
   try{bdSaveOfflineWindowOrder(order);}catch(e){alert("Could not save offline ticket. Keep the order on screen and write it down.");return;}
   windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";windowSalePending=null;
   windowSaleNotice="OFFLINE CASH TICKET SAVED ON THIS TABLET ONLY • Ticket #"+ticketCode(order)+". Tell the kitchen manually. Not synced. Export tickets before clearing browser data.";
-  renderWindowOrder(false);alert(windowSaleNotice);return;
+  renderWindowOrder(false);bdRenderOfflineControls();alert(windowSaleNotice);return;
  }
  windowSaleSaving=true;windowSaleNotice="Saving sale…";renderWindowOrder();
  try{
