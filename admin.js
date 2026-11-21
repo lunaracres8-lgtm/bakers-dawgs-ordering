@@ -167,6 +167,22 @@ function bdUpdateOrderAlert(){
  if(count&&!bdOrderAlertInterval){playOrderAlert();bdOrderAlertInterval=setInterval(()=>{if(bdUnacknowledgedOrderIds.size)playOrderAlert();else bdStopOrderAlert()},12000)}
  if(!count)bdStopOrderAlert();
 }
+function bdSetupCollapsibleSections(){
+ const app=document.getElementById("app");if(!app)return;
+ const sections=[...app.querySelectorAll(":scope > section")].filter(el=>!el.closest(".annaSlawDrawer")&&!["orders","dailyCloseout","annaSlawPanel"].includes(el.id));
+ for(const section of sections){
+  if(section.dataset.bdCollapsible)return;
+  const title=section.querySelector("h2, .sectionTitle b, div > b");
+  if(!title)continue;
+  section.dataset.bdCollapsible="yes";
+  const button=document.createElement("button");button.type="button";button.className="bdSectionToggle";button.textContent="− Collapse";button.setAttribute("aria-expanded","true");
+  const children=[...section.children];const content=document.createElement("div");content.className="bdSectionContent";
+  for(const child of children)content.append(child);
+  section.append(button,content);
+  button.onclick=()=>{const closed=content.hidden=!content.hidden;button.textContent=closed?"+ Expand":"− Collapse";button.setAttribute("aria-expanded",String(!closed))};
+ }
+}
+window.addEventListener("DOMContentLoaded",bdSetupCollapsibleSections);
 function bdAcknowledgeNewOrders(){
  const ids=[...bdUnacknowledgedOrderIds];bdUnacknowledgedOrderIds.clear();bdUpdateOrderAlert();
  setAdminView("orders");
