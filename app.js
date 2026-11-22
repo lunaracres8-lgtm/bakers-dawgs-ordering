@@ -44,7 +44,7 @@ let menu=defaultMenu.map(item=>[...item]);
 const toppings=[
 "Yellow Mustard","Spicy Mustard","Chili","Cheese",
 "Fresh Onions","Anna's Homemade Slaw","Sauerkraut","Sweet Relish",
-"Grilled Onions","Grilled Green Peppers","BBQ Sauce"
+"Grilled Onions","BBQ Sauce"
 ];
 
 let cart=JSON.parse(localStorage.getItem("bdCart")||"[]");
