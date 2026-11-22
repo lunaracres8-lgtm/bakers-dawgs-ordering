@@ -286,7 +286,8 @@ async function loadEditableMenu(){
 async function refreshOrderingStatus(){
  try{
   const settings=await bdGetRestaurantSettings();
-  orderingOpen=settings?.ordering_open!==false&&isWithinAutoHours();
+  // The staff open/pause switch is authoritative, including outside scheduled hours.
+  orderingOpen=settings?.ordering_open!==false;
   prepMinutes=Number(settings?.prep_minutes)||20;
   orderingStatusKnown=true;
   document.body.classList.toggle("ordering-paused",!orderingOpen);
@@ -389,7 +390,8 @@ async function placeOrder(){
  if(customerName||customerPhone){ lastCustomer={name:customerName,phone:customerPhone}; localStorage.setItem("bdCustomer",JSON.stringify(lastCustomer)); }
  try{
   const settings=await bdGetRestaurantSettings();
-  orderingOpen=settings?.ordering_open!==false&&isWithinAutoHours();
+  // The staff open/pause switch is authoritative, including outside scheduled hours.
+  orderingOpen=settings?.ordering_open!==false;
   orderingStatusKnown=true;
   if(!orderingOpen) return showOrderingPaused();
  }catch(e){
