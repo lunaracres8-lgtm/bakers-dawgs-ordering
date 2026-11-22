@@ -28,3 +28,10 @@ test('rapid checkout taps create one ticket and keep toppings in the submitted r
 test('background menu refresh does not change the identity of a cart item',async t=>{
  const w=harness(t);w.customerState.setCart([{i:0,tops:[],extra:0}]);let called=false;w.bdGetMenuItems=async()=>{called=true;return []};await w.loadEditableMenu();assert.equal(called,false);assert.equal(w.customerState.menu[w.customerState.cart[0].i][1],'Carolina Classic Hot Dawg');
 });
+test('category selection survives background refresh and checkout rejects fractional quantities',async t=>{
+ const w=harness(t);w.document.querySelector('#menu').scrollIntoView=()=>{};
+ w.showCat('Drinks & Sides');await w.refreshMenuAvailability();
+ assert.deepEqual([...w.document.querySelectorAll('.category h2')].map(x=>x.textContent),['Drinks & Sides']);
+ assert.equal(w.document.querySelector('[data-category="Drinks & Sides"]').getAttribute('aria-pressed'),'true');
+ w.customize(0);w.document.querySelector('#qty').value='1.5';w.addCustomized();assert.equal(w.customerState.cart.length,0);
+});

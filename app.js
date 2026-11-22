@@ -6,7 +6,7 @@ async function applyBusinessBranding(){
  if(!b||!Object.keys(b).length)return;
  localStorage.setItem("bdBusinessBranding",JSON.stringify(b));
  const name=b.businessName||"Baker's Dawgs";
- const title=document.getElementById("brandBusinessNameDisplay");if(title)title.textContent=name.toUpperCase();
+ const title=document.getElementById("brandBusinessNameDisplay");if(title){if(/^baker[’']s dawgs$/i.test(name))title.innerHTML="BAKER'S <span>DAWGS</span>";else title.textContent=name.toUpperCase();}
  const foot=document.getElementById("brandFooterName");if(foot)foot.textContent=name;
  const tagline=document.getElementById("brandTaglineDisplay");if(tagline&&b.tagline)tagline.textContent=b.tagline;
  if(b.primary)document.documentElement.style.setProperty("--brand-primary",b.primary);
@@ -51,9 +51,12 @@ let cart=JSON.parse(localStorage.getItem("bdCart")||"[]");
 let active=null;
 let orderingOpen=true;
 let orderingStatusKnown=false;
+function restaurantLocalNow(){
+ return new Date(new Date().toLocaleString("en-US",{timeZone:"America/New_York"}));
+}
 function isWithinAutoHours(){
  const mode=window.bdAutoHours||"manual";if(mode==="manual")return true;
- const now=new Date(),day=now.getDay(),minutes=now.getHours()*60+now.getMinutes(),inRange=(start,end)=>minutes>=start&&minutes<end;
+ const now=restaurantLocalNow(),day=now.getDay(),minutes=now.getHours()*60+now.getMinutes(),inRange=(start,end)=>minutes>=start&&minutes<end;
  if(mode==="daily")return inRange(660,840);
  if(day>=1&&day<=3)return inRange(660,840);
  if(day===4||day===5)return inRange(660,840)||inRange(1020,1200);
@@ -70,14 +73,18 @@ let cats=[...new Set(menu.map(x=>x[0]))];
 
 const menuEl=document.querySelector("#menu");
 
-function render(cat){
+let selectedCategory=null;
+function render(cat=selectedCategory){
+ selectedCategory=cat;
+ document.querySelectorAll(".menuCategories button").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.category===cat)));
  menuEl.innerHTML=cats.filter(c=>!cat||c===cat).map(c=>
  `<section class="category">
- <h2>${c}</h2>
+ <h2>${c}</h2><p class="categoryIntro">${c==="Hot Dawgs"?"Every style is available on its own. Choose your toppings before adding.":c==="Hot Dawg Combos"?"Your favorite hot dog, plus chips and a canned drink.":c==="Drinks & Sides"?"Finish your order with something cold and a bag of chips.":"A little something sweet."}</p>
  <div class="grid">${
  menu.map((x,i)=>x[0]===c?
- `<article class="item ${menuAvailability[x[1]]===false?"soldout":""}">
- <div class="foodIcon">${(c==="Hot Dawgs"||c==="Hot Dawg Combos")?"🌭":c==="Smoked Sausages"?"🔥":c==="Sandwiches"?"🥪":c==="Cakes"?"🍰":"🥤"}</div>
+ `<article class="item ${/carolina classic/i.test(x[1])?"favoriteItem":""} ${menuAvailability[x[1]]===false?"soldout":""}">
+ ${/carolina classic/i.test(x[1])?`<span class="itemBadge">CUSTOMER FAVORITE</span>`:""}
+ <div class="foodIcon" aria-hidden="true">${(c==="Hot Dawgs"||c==="Hot Dawg Combos")?"🌭":c==="Smoked Sausages"?"🔥":c==="Sandwiches"?"🥪":(c==="Cakes"||c==="Desserts")?"🍰":"🥤"}</div>
  <h3>${x[1]}</h3>
  <p class="desc">${x[2]}</p>
  <div class="price">${money(x[3])} <small>+ tax</small></div>
@@ -100,7 +107,7 @@ function showStaffReturnIfLocked(){
 
 function goMenu(){
  if(orderingStatusKnown&&!orderingOpen) return showOrderingPaused();
- render();
+ render(null);
  menuEl.scrollIntoView({behavior:"smooth"});
 }
 
@@ -175,9 +182,9 @@ function customize(i){
  `<h2>${x[1]}</h2>
  <div class="bigprice">${money(x[3])} <small>+ tax</small></div>
  <p>${x[2]}</p>
- ${food?`<h3>Toppings</h3>
+ ${food?`<h3>Make it your way</h3><p class="toppingHelp">Checked toppings are included. Tap to add or remove.</p><p id="toppingSelection" class="toppingSelection" aria-live="polite"></p>
  <div class="checks">${
- toppings.map(t=>`<label><input type="checkbox" value="${t}" ${defaultToppings.includes(t)?"checked":""}> ${t}</label>`).join("")
+ toppings.map(t=>`<label><input type="checkbox" onchange="updateToppingSelection()" value="${t}" ${defaultToppings.includes(t)?"checked":""}> ${t}</label>`).join("")
  }</div>`:""}
  ${ques?'<label><input id="chiliAdd" type="checkbox"> Add chili +$0.50</label>':""}
  <label class="label">Special instructions</label>
@@ -186,11 +193,18 @@ function customize(i){
  <input id="qty" class="field" type="number" min="1" max="20" value="1">
  <button class="checkout" onclick="addCustomized()">Add to Order</button>`;
 
+ updateToppingSelection();
  openModal();
 }
 
+function updateToppingSelection(){
+ const target=document.getElementById("toppingSelection");
+ if(target)target.textContent="Selected: "+([...document.querySelectorAll(".checks input:checked")].map(input=>input.value).join(", ")||"Plain — no toppings");
+}
+
 function addCustomized(){
- let q=Math.max(1,+qty.value||1);
+ const q=Number(document.getElementById("qty").value);
+ if(!Number.isInteger(q)||q<1||q>20)return alert("Choose between 1 and 20 items.");
  let tops=[...document.querySelectorAll(".checks input:checked")].map(x=>x.value);
  let notes=itemNotes.value;
  let extra=document.querySelector("#chiliAdd")?.checked?.5:0;
@@ -215,6 +229,7 @@ function save(){
 
 function update(){
  cartCount.textContent=cart.length;
+ document.getElementById("cartBar").classList.toggle("emptyCart",!cart.length);
  const subtotal=cart.reduce((s,x)=>s+menu[x.i][3]+(x.extra||0),0);
  cartTotal.textContent=totalWithTax(subtotal).toFixed(2);
 }
@@ -293,11 +308,16 @@ async function refreshOrderingStatus(){
   orderingStatusKnown=true;
   document.body.classList.toggle("ordering-paused",!orderingOpen);
   const hero=document.querySelector(".hero");
-  if(hero){ hero.textContent=orderingOpen?"🌭 ORDER CAROLINA CLASSIC — QUICK CHECKOUT":"ONLINE ORDERING PAUSED"; hero.disabled=!orderingOpen; }
+  if(hero){ hero.textContent=orderingOpen?"ORDER NOW":"ONLINE ORDERING PAUSED"; hero.disabled=!orderingOpen; }
+  const status=document.getElementById("pickupStatus");
+  if(status){status.textContent=orderingOpen?"Accepting pickup orders · Allow about "+prepMinutes+" minutes":"Online ordering paused";status.dataset.open=String(orderingOpen);}
+  const hours=document.getElementById("businessHours");
+  if(hours){const mode=window.bdAutoHours||"manual";if(mode==="standard")hours.textContent="Mon–Wed: 11 AM–2 PM · Thu–Fri: 11 AM–2 PM & 5–8 PM";else if(mode==="daily")hours.textContent="Every day: 11 AM–2 PM";}
   const banner=document.querySelector("#orderingBanner");
   if(banner){ banner.classList.toggle("hidden",orderingOpen); }
  }catch(e){
   orderingStatusKnown=false;
+  const status=document.getElementById("pickupStatus");if(status){status.textContent="Pickup status unavailable · Call (828) 205-1139";delete status.dataset.open;}
  }
 }
 
@@ -360,13 +380,27 @@ function removeItem(n){
  openCart();
 }
 
+let modalReturnFocus=null;
 function openModal(){
+ if(modal.classList.contains("hidden"))modalReturnFocus=document.activeElement;
  modal.classList.remove("hidden");
+ document.body.classList.add("modalOpen");
+ modal.querySelector(".sheet").focus();
 }
-
 function closeModal(){
  modal.classList.add("hidden");
+ document.body.classList.remove("modalOpen");
+ modalReturnFocus?.focus();
 }
+document.addEventListener("keydown",event=>{
+ if(modal.classList.contains("hidden"))return;
+ if(event.key==="Escape"){closeModal();return;}
+ if(event.key!=="Tab")return;
+ const elements=[...modal.querySelectorAll('button:not(:disabled),input:not(:disabled),select,textarea,a[href]')].filter(el=>el.tabIndex>=0&&el.getAttribute("aria-hidden")!=="true");
+ const first=elements[0],last=elements[elements.length-1];
+ if(event.shiftKey&&(document.activeElement===first||document.activeElement===modal.querySelector(".sheet"))){event.preventDefault();last?.focus();}
+ else if(!event.shiftKey&&(document.activeElement===last||document.activeElement===modal.querySelector(".sheet"))){event.preventDefault();first?.focus();}
+});
 
 function printLastCustomerReceipt(){
  const r=JSON.parse(localStorage.getItem("bdLastCustomerReceipt")||"null");if(!r)return;

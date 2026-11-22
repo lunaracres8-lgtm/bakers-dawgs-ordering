@@ -283,3 +283,13 @@ footer{background:linear-gradient(#140d08e8,#100b08);border-top:2px solid #80503
 input,select,textarea{accent-color:#d31520}
 button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #ffdf7d;outline-offset:3px}
 @media(max-width:520px){header h1::before{font-size:.55em}.category>h2{font-size:24px}}
+
+/* Staff polish: readable tickets, stable tabs, and compact optional tools. */
+body{font-size:16px;line-height:1.45}
+.adminViewTabs{position:sticky;top:0;z-index:8;background:#100d0b!important;padding:10px 0!important;grid-template-columns:repeat(5,minmax(110px,1fr));overflow-x:auto;margin-top:0!important}
+.adminViewTabs button{min-height:50px;font-size:14px;white-space:nowrap}.adminViewTabs button.active{box-shadow:inset 0 -3px #fff0c9}
+.bdSectionToggle{min-height:44px;font-size:14px;border-radius:8px;padding:8px 14px;margin-bottom:8px}.bdSectionContent[hidden]{display:none!important}
+.kitchenTickets{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:20px}.kitchenTicket{border-radius:16px;overflow:hidden;border-width:2px}.kitchenTicket header{padding:16px;font-size:16px}.kitchenTicket h2{font-size:28px;line-height:1.2}.kitchenTicket li{padding:14px 0;line-height:1.4}.kitchenTicket li>b{font-size:23px}.kitchenTicket li small{display:block;font-size:18px;line-height:1.5;margin-top:8px;color:#fff1ce}.kitchenTicket button{min-height:58px;font-size:18px}.kitchenNote{font-size:20px;font-weight:700;background:#5b3219;padding:14px;border-left:4px solid #ffcf59}
+.toolbar{gap:8px;flex-wrap:wrap}.toolbar button{min-height:44px;font-size:14px}.order .line{font-size:18px;line-height:1.5}.order .line small{font-size:16px}.ownerTools>summary,.ownerPrepSettings>summary{min-height:56px;font-size:16px}.voiceButtons button{min-height:46px;font-size:14px}
+button:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #ffe19a;outline-offset:3px}.metrics small{font-size:14px}.adminViewTabs button:active{filter:brightness(1.2)}
+@media(max-width:520px){.adminViewTabs{grid-template-columns:repeat(5,minmax(105px,1fr));gap:6px}.adminViewTabs button{font-size:14px;padding:12px}.kitchenTicket li>b{font-size:22px}}
