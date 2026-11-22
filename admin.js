@@ -932,8 +932,8 @@ async function loadRestaurantControls(){
   const prep=document.querySelector("#prepMinutes"); if(prep) prep.value=String(prepMinutes);
   const status=document.querySelector("#orderingStatus");
   const btn=document.querySelector("#orderingToggle");
-  if(status) status.textContent=orderingOpen?"Customers can place pickup orders":"Ordering is paused";
-  if(btn){ btn.disabled=false; btn.textContent=orderingOpen?"PAUSE ORDERS":"OPEN ORDERS"; btn.classList.toggle("closed",!orderingOpen); }
+  if(status) status.textContent=orderingOpen?"OPEN — Customers can place pickup orders":"PAUSED — Customers cannot place pickup orders";
+  if(btn){ btn.disabled=false; btn.textContent=orderingOpen?"OPEN · TAP TO PAUSE":"PAUSED · TAP TO OPEN"; btn.classList.toggle("closed",!orderingOpen); }
  }catch(e){
   const status=document.querySelector("#orderingStatus");
   if(status) status.textContent="Controls unavailable";
