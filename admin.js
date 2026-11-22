@@ -1514,8 +1514,17 @@ if(recoveryToken){
   try{
    await bdUpdatePassword(recoveryToken,p);
    history.replaceState(null,"",location.pathname);
+   document.querySelector("#newPassword").value="";
+   document.querySelector("#confirmPassword").value="";
+   document.querySelector("#password").value="";
+   if(recoveryBox){ recoveryBox.classList.add("hidden"); recoveryBox.style.display="none"; }
+   document.querySelector("#pinGate")?.classList.add("hidden");
+   const board=document.querySelector("#app");
+   if(board){ board.classList.add("hidden"); board.style.display="none"; }
+   if(loginBox){ loginBox.classList.remove("hidden"); loginBox.style.display="grid"; }
+   save.disabled=false;
    alert("Password updated. Sign in with your new password.");
-   location.reload();
+   document.querySelector("#email")?.focus();
   }catch(e){
    save.disabled=false;
    alert("Could not update password. Request a new reset link and try again.");
