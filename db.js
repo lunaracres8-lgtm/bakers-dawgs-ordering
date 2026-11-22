@@ -213,7 +213,7 @@ async function bdSetOrderingOpen(open){
 }
 
 async function bdGetMenuAvailability(){
- const r=await bdRequest(`${BD_URL}/rest/v1/menu_availability?select=item_name,available`,{headers:bdHeaders()});
+ const r=await bdRequest(`${BD_URL}/rest/v1/menu_availability?select=item_name,available`,{cache:"no-store",headers:{"apikey":BD_KEY,"Authorization":`Bearer ${BD_KEY}`,"Content-Type":"application/json"}});
  return r.json();
 }
 async function bdSetMenuAvailability(itemName,available){
@@ -223,7 +223,7 @@ async function bdSetMenuAvailability(itemName,available){
  });
 }
 async function bdGetMenuItems(){
- const r=await bdRequest(`${BD_URL}/rest/v1/menu_items?select=id,category,item_name,description,price,available,sort_order&order=sort_order.asc`,{headers:bdHeaders()});
+ const r=await bdRequest(`${BD_URL}/rest/v1/menu_items?select=id,category,item_name,description,price,available,sort_order&order=sort_order.asc`,{cache:"no-store",headers:{"apikey":BD_KEY,"Authorization":`Bearer ${BD_KEY}`,"Content-Type":"application/json"}});
  return r.json();
 }
 async function bdSaveMenuItem(item){
