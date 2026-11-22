@@ -259,6 +259,7 @@ async function loadEditableMenu(){
   if(!menu.some(x=>/canned soda|can soda|12 oz can/i.test(x[1])))menu.push(["Drinks & Sides","Canned Soda","12 oz can",1.50]);
   menu=menu.filter(x=>!(/bottled (drink|soda)|16.?oz.*(soda|drink)/i.test(x[1])));
   menu=menu.map(x=>/bottled water/i.test(x[1])?[x[0],x[1],x[2],1.00]:x);
+  if(!menu.some(x=>/bottled water/i.test(x[1])))menu.push(["Drinks & Sides","Bottled Water","",1.00]);
   menu=menu.filter(x=>!(/canned soda|can soda|12 oz can/i.test(x[1])));
   for(const name of ["Pepsi (12 oz can)","Mountain Dew (12 oz can)","Coca-Cola (12 oz can)"]){if(!menu.some(x=>x[1]===name))menu.push(["Drinks & Sides",name,"Ice cold",1.50]);}
   menu=menu.filter(x=>!(/cake|dessert/i.test(x[1])));
