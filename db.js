@@ -132,8 +132,8 @@ async function bdCreateOrder(order){
  // Customer checkout must always use the public key, never a stale staff token
  // left in this browser from an earlier admin login.
  // Keep the same request UUID when a customer retries after a slow/lost response.
- // PostgREST ignores a repeated primary-key insert, so a delayed second tap or
- // network retry cannot create a second ticket for the same checkout.
+ // Reuse the primary key on retries; a duplicate key confirms the earlier
+ // submission. Plain INSERT preserves the insert-only public access policy.
  const signature=JSON.stringify({...order,id:null});
  const pendingKey="bdCustomerPendingOrder";
  let payload={...order}, pending=null;
@@ -143,8 +143,13 @@ async function bdCreateOrder(order){
   pending={id:payload.id,signature};
   try{localStorage.setItem(pendingKey,JSON.stringify(pending));}catch(_){}
  }
- const headers={"apikey":BD_KEY,"Authorization":`Bearer ${BD_KEY}`,"Content-Type":"application/json","Prefer":"resolution=ignore-duplicates,return=minimal"};
- await bdRequest(`${BD_URL}/rest/v1/orders?on_conflict=id`,{method:"POST",headers,body:JSON.stringify(payload)});
+ const headers={"apikey":BD_KEY,"Authorization":`Bearer ${BD_KEY}`,"Content-Type":"application/json","Prefer":"return=minimal"};
+ try{
+  await bdRequest(`${BD_URL}/rest/v1/orders`,{method:"POST",headers,body:JSON.stringify(payload)});
+ }catch(error){
+  let detail;try{detail=JSON.parse(error.message);}catch(_){}
+  if(!(error.status===409&&detail?.code==="23505"&&String(detail.message).includes("orders_pkey")))throw error;
+ }
  try{
   const saved=JSON.parse(localStorage.getItem(pendingKey)||"null");
   if(saved?.signature===signature)localStorage.removeItem(pendingKey);
