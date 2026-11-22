@@ -949,7 +949,7 @@ async function loadRestaurantControls(){
 async function loadMenuAvailability(){
  try{
   let items=[];
-  try{items=await bdGetMenuItems();}catch(_){items=[];}
+  try{items=(await bdGetMenuItems()).filter(item=>item.category!=="Archived");}catch(_){items=[];}
   if(items.length){editableMenuItems=items;if(!localStorage.getItem("bdSampleMenuTemplate"))localStorage.setItem("bdSampleMenuTemplate",JSON.stringify(items));}
   // menu_items is the canonical owner-controlled menu. Keep the public availability table synchronized so the customer site cannot show stale SOLD OUT states after an admin change.
   if(items.length){
@@ -969,7 +969,7 @@ async function loadMenuAvailability(){
   if(box) box.innerHTML=visibleItems.map(item=>{
    const available=item.available!==false&&menuAvailability[item.item_name]!==false;
    const price=Number.isFinite(Number(item.price))&&item.price!==""?`$${Number(item.price).toFixed(2)}`:"";
-   return `<article class="menuAdminItem ${available?"available":"soldout"}"><div class="menuItemInfo"><span class="menuCategory">${esc(item.category||"Menu item")}</span><strong>${esc(item.item_name)}</strong>${item.description?`<small>${esc(item.description)}</small>`:""}</div><div class="menuItemActions"><b>${price}</b><button type="button" class="availabilityButton" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(item.item_name)}\'),this)">${available?"AVAILABLE":"SOLD OUT"}</button><button type="button" class="editItemButton" onclick="openMenuItemEditor(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">EDIT</button><button type="button" class="secondaryButton" onclick="duplicateMenuItem(decodeURIComponent('${encodeURIComponent(item.id)}'))">DUPLICATE</button><button type="button" class="deleteItemButton" onclick="removeMenuItem(decodeURIComponent('${encodeURIComponent(item.id)}'),this)">DELETE</button></div></article>`;
+   return `<article class="menuAdminItem ${available?"available":"soldout"}"><div class="menuItemInfo"><span class="menuCategory">${esc(item.category||"Menu item")}</span><strong>${esc(item.item_name)}</strong>${item.description?`<small>${esc(item.description)}</small>`:""}</div><div class="menuItemActions"><b>${price}</b><button type="button" class="availabilityButton" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(item.item_name)}\'),this)">${available?"AVAILABLE · MARK SOLD OUT":"SOLD OUT · MAKE AVAILABLE"}</button><button type="button" class="editItemButton" onclick="openMenuItemEditor(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">EDIT</button><button type="button" class="secondaryButton" onclick="duplicateMenuItem(decodeURIComponent('${encodeURIComponent(item.id)}'))">DUPLICATE</button><button type="button" class="deleteItemButton" onclick="removeMenuItem(decodeURIComponent('${encodeURIComponent(item.id)}'),this)">DELETE</button></div></article>`;
    }).join("");
   updateSetupChecklist();
   renderWindowOrder();
