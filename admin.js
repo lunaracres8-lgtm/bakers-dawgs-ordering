@@ -156,8 +156,9 @@ function clockInEmployee(){const input=document.getElementById("clockEmployeeNam
 function clockOut(index){const shifts=shiftsToday();if(!shifts[index]||shifts[index].out)return;shifts[index].out=new Date().toISOString();saveShifts(shifts);renderTimeClock();}
 let bdUnacknowledgedOrderIds=new Set();
 let bdOrderAlertInterval=null;
+const bdAlertedOrderIds=new Set();
 let bdOrderAlertAudio=null;
-function bdStopOrderAlert(){if(bdOrderAlertAudio){bdOrderAlertAudio.close().catch(()=>{});bdOrderAlertAudio=null;}if(bdOrderAlertInterval){clearInterval(bdOrderAlertInterval);bdOrderAlertInterval=null}}
+function bdStopOrderAlert(){if(navigator.vibrate)navigator.vibrate(0);if(bdOrderAlertAudio){bdOrderAlertAudio.close().catch(()=>{});bdOrderAlertAudio=null;}if(bdOrderAlertInterval){clearInterval(bdOrderAlertInterval);bdOrderAlertInterval=null}}
 function bdUpdateOrderAlert(){
  let banner=document.getElementById("newOrderBanner");
  if(!banner){banner=document.createElement("button");banner.id="newOrderBanner";banner.type="button";banner.onclick=bdAcknowledgeNewOrders;document.body.append(banner)}
@@ -165,7 +166,8 @@ function bdUpdateOrderAlert(){
  banner.textContent=count?"🔔 "+count+" NEW ORDER"+(count===1?"":"S")+" — TAP TO ACKNOWLEDGE & READ":"";
  banner.classList.toggle("show",count>0);
  banner.hidden=!count;
- if(count&&!bdOrderAlertInterval){playOrderAlert();bdOrderAlertInterval=setInterval(()=>{if(bdUnacknowledgedOrderIds.size)playOrderAlert();else bdStopOrderAlert()},12000)}
+ const freshIds=[...bdUnacknowledgedOrderIds].filter(id=>!bdAlertedOrderIds.has(id));
+ if(freshIds.length){freshIds.forEach(id=>bdAlertedOrderIds.add(id));playOrderAlert(5);}
  if(!count)bdStopOrderAlert();
 }
 function bdSetupCollapsibleSections(){
@@ -426,32 +428,36 @@ function toggleSound(){
  localStorage.setItem("bdSoundEnabled",String(soundEnabled));
  const btn=document.querySelector("#soundToggle");
  if(btn) btn.textContent=soundEnabled?"🔔 Alerts On":"🔕 Alerts Off";
- if(soundEnabled) playOrderAlert();
+ bdStopOrderAlert();
+ playOrderAlert(1,true);
 }
 
-function playOrderAlert(){
- if(!soundEnabled) return;
+function playOrderAlert(durationSeconds=5,preview=false){
+ if(!soundEnabled&&!preview) return;
+ bdStopOrderAlert();
  try{
   const ctx=new (window.AudioContext||window.webkitAudioContext)();
-  const master=ctx.createGain();
-  master.gain.value=.45;
-  master.connect(ctx.destination);
-  const ring=(frequency,start,duration)=>{
-   const osc=ctx.createOscillator(),gain=ctx.createGain();
-   osc.type="sine"; osc.frequency.value=frequency;
-   gain.gain.setValueAtTime(0,ctx.currentTime+start);
-   gain.gain.linearRampToValueAtTime(.8,ctx.currentTime+start+.02);
-   gain.gain.setValueAtTime(.8,ctx.currentTime+start+duration-.04);
-   gain.gain.linearRampToValueAtTime(0,ctx.currentTime+start+duration);
-   osc.connect(gain); gain.connect(master);
-   osc.start(ctx.currentTime+start); osc.stop(ctx.currentTime+start+duration+.02);
-  };
-  if(bdOrderAlertAudio)bdOrderAlertAudio.close().catch(()=>{});
   bdOrderAlertAudio=ctx;
-  for(let n=0;n<10;n++){ring(659,n,.18);ring(784,n+.20,.18);ring(988,n+.40,.28);}
-  setTimeout(()=>{ctx.close().catch(()=>{});if(bdOrderAlertAudio===ctx)bdOrderAlertAudio=null;},10500);
+  const master=ctx.createGain();master.gain.value=.4;master.connect(ctx.destination);
+  const duration=preview?1:Math.min(5,Math.max(1,Number(durationSeconds)||5));
+  const chime=(frequency,start)=>{
+   for(const [ratio,volume] of [[1,.65],[2,.15],[3,.035]]){
+    const osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.type="sine";osc.frequency.value=frequency*ratio;
+    const at=ctx.currentTime+start,end=ctx.currentTime+Math.min(duration,start+.85);
+    gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(volume,at+.008);
+    gain.gain.exponentialRampToValueAtTime(.0001,end);
+    osc.connect(gain);gain.connect(master);osc.start(at);osc.stop(end);
+   }
+  };
+  for(let start=0;start<duration;start+=1.6){chime(880,start);if(start+.35<duration)chime(659.25,start+.35);}
+  ctx.resume?.().catch(()=>{});
+  bdOrderAlertInterval=setTimeout(()=>{
+   if(bdOrderAlertAudio===ctx){bdOrderAlertAudio=null;bdOrderAlertInterval=null;}
+   ctx.close().catch(()=>{});
+  },duration*1000);
  }catch(e){}
- if(navigator.vibrate) navigator.vibrate([180,80,260]);
+ if(navigator.vibrate) navigator.vibrate(preview?80:[180,80,260]);
 }
 
 
@@ -1544,6 +1550,7 @@ if(recoveryToken){
 setInterval(()=>{
  if(bdHasSavedSession()){
   loadOrders();
+  loadRestaurantControls();
  }
 },5000);
 
