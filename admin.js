@@ -833,7 +833,7 @@ function chooseDiscountReason(){
   dialog.style.cssText="max-width:420px;width:calc(100% - 32px);padding:24px;border:2px solid #ffc21a;border-radius:16px;background:#15100b;color:#fff;";
   const title=document.createElement("h2");title.textContent="Reason for discount";dialog.append(title);
   const finish=value=>{dialog.close();dialog.remove();resolve(value);};
-  ["Wrong order","Customer paid twice","Customer service","Promotion","Other"].forEach(reason=>{
+  ["Wrong order","Item not available","Customer paid twice","Customer service","Promotion","Other"].forEach(reason=>{
    const button=document.createElement("button");button.type="button";button.textContent=reason;
    button.style.cssText="display:block;width:100%;min-height:48px;margin:10px 0;font-size:16px;";
    button.onclick=()=>{if(reason==="Other"){const custom=prompt("Other discount reason:");if(custom?.trim())finish(custom.trim());}else finish(reason);};
