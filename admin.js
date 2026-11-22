@@ -826,6 +826,25 @@ function endWindowItemHold(){clearTimeout(windowSaleHoldTimer);}
 function changeWindowSaleQuantity(index,amount){const line=windowSaleCart[index];if(!line||isWindowReward(line)&&amount>0)return;line.quantity+=amount;if(line.quantity<1)windowSaleCart.splice(index,1);renderWindowOrder();}
 function removeWindowSaleItem(index){windowSaleCart.splice(index,1);renderWindowOrder();}
 function clearWindowSale(){if(windowSaleSaving)return;if(!windowSaleCart.length||confirm("Clear this walk-up order?")){windowSaleCart=[];windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";windowSaleNotice="Order cleared.";windowSalePending=null;renderWindowOrder(false);}}
+function chooseDiscountReason(){
+ return new Promise(resolve=>{
+  const dialog=document.createElement("dialog");
+  dialog.setAttribute("aria-label","Choose discount reason");
+  dialog.style.cssText="max-width:420px;width:calc(100% - 32px);padding:24px;border:2px solid #ffc21a;border-radius:16px;background:#15100b;color:#fff;";
+  const title=document.createElement("h2");title.textContent="Reason for discount";dialog.append(title);
+  const finish=value=>{dialog.close();dialog.remove();resolve(value);};
+  ["Wrong order","Customer paid twice","Customer service","Promotion","Other"].forEach(reason=>{
+   const button=document.createElement("button");button.type="button";button.textContent=reason;
+   button.style.cssText="display:block;width:100%;min-height:48px;margin:10px 0;font-size:16px;";
+   button.onclick=()=>{if(reason==="Other"){const custom=prompt("Other discount reason:");if(custom?.trim())finish(custom.trim());}else finish(reason);};
+   dialog.append(button);
+  });
+  const note=document.createElement("p");note.textContent="Customer paid twice records the reason only. Any refund must be handled separately.";dialog.append(note);
+  const cancel=document.createElement("button");cancel.type="button";cancel.textContent="Cancel";cancel.onclick=()=>finish(null);dialog.append(cancel);
+  dialog.addEventListener("cancel",event=>{event.preventDefault();finish(null);});
+  document.body.append(dialog);dialog.showModal();
+ });
+}
 async function applyWindowDiscount(){
  if(!windowSaleCart.length){alert("Add at least one menu item before applying a discount or comp.");return;}
  if(!await requireManagerApproval("add a discount or comp"))return;
@@ -833,7 +852,7 @@ async function applyWindowDiscount(){
  const amount=Number(prompt(`Discount amount before tax (up to $${subtotal.toFixed(2)}):`)||0);
  if(!Number.isFinite(amount)||amount<=0){alert("Enter a discount amount greater than zero.");return;}
  if(amount>subtotal){alert("The discount cannot be more than the items in this sale.");return;}
- const reason=prompt("Reason for discount or comp:");
+ const reason=await chooseDiscountReason();
  if(!reason?.trim()){alert("A reason is required.");return;}
  windowSaleDiscount={amount,reason:reason.trim()};
  renderWindowOrder();
