@@ -319,3 +319,15 @@ async function bdGetLoyaltyStatus(phone){
  });
  return response.json();
 }
+
+function bdPublicHeaders(){return {apikey:BD_KEY,Authorization:`Bearer ${BD_KEY}`,"Content-Type":"application/json"};}
+async function bdCustomerRpc(name,payload){
+ const r=await bdRequest(`${BD_URL}/rest/v1/rpc/${name}`,{method:'POST',headers:bdPublicHeaders(),body:JSON.stringify(payload)});return r.json();
+}
+async function bdCustomerProgress(id,phone){return bdCustomerRpc('bd_customer_order_progress',{receipt_id:id,customer_phone:phone});}
+async function bdCustomerRewards(phone){return bdCustomerRpc('bd_customer_rewards',{customer_phone:phone});}
+async function bdSubmitCustomerReview(payload){return bdCustomerRpc('bd_submit_customer_review',payload);}
+async function bdLoadShowcase(){const r=await bdRequest(`${BD_URL}/rest/v1/customer_showcase?id=eq.1&select=photos`,{headers:bdPublicHeaders()});return (await r.json())[0]?.photos||[];}
+async function bdSaveShowcase(photos){await bdRequest(`${BD_URL}/rest/v1/customer_showcase?id=eq.1`,{method:'PATCH',headers:{...bdHeaders(),Prefer:'return=representation'},body:JSON.stringify({photos})}).then(async r=>{if(!(await r.json()).length)throw new Error('Sign in as the owner to save photos.');});}
+async function bdLoadCustomerReviews(owner=false){const r=await bdRequest(`${BD_URL}/rest/v1/customer_reviews?select=${owner?'*':'id,display_name,rating,body,created_at'}&order=created_at.desc&limit=30`,{headers:owner?bdHeaders():bdPublicHeaders()});return r.json();}
+async function bdModerateReview(id,approved){const r=await bdRequest(`${BD_URL}/rest/v1/customer_reviews?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{...bdHeaders(),Prefer:'return=representation'},body:JSON.stringify({approved})});if(!(await r.json()).length)throw new Error('Sign in as the owner to approve reviews.');}

@@ -345,6 +345,8 @@ function openCart(){
  </div>`).join("")
  :"<p>Your order is empty.</p>"}
 
+ ${typeof comboOffer==="function"?comboOffer():""}
+ <button type="button" class="continueShopping" onclick="closeModal();goMenu()">KEEP ADDING ITEMS</button>
  <div class="total" style="padding-bottom:4px">Subtotal <b>${money(subtotal)}</b></div>
  <div class="total" style="padding-top:4px;padding-bottom:4px">NC sales tax (6.75%) <b>${money(tax)}</b></div>
  <div class="total" style="padding-top:8px">Total <b>${money(total)}</b></div>
@@ -382,12 +384,14 @@ function removeItem(n){
 
 let modalReturnFocus=null;
 function openModal(){
+ if(!document.getElementById("customerTrackingResult")&&typeof stopCustomerTracking==="function")stopCustomerTracking();
  if(modal.classList.contains("hidden"))modalReturnFocus=document.activeElement;
  modal.classList.remove("hidden");
  document.body.classList.add("modalOpen");
  modal.querySelector(".sheet").focus();
 }
 function closeModal(){
+ if(typeof stopCustomerTracking==="function")stopCustomerTracking();
  modal.classList.add("hidden");
  document.body.classList.remove("modalOpen");
  modalReturnFocus?.focus();
@@ -406,7 +410,7 @@ function printLastCustomerReceipt(){
  const r=JSON.parse(localStorage.getItem("bdLastCustomerReceipt")||"null");if(!r)return;
  const rows=r.items.map(i=>`<tr><td>${String(i.name).replace(/[<>&]/g,"")}</td><td>$${Number(i.price||0).toFixed(2)}</td></tr>`).join("");
  const w=window.open("","_blank");if(!w){alert("Allow pop-ups to print your receipt.");return;}
- w.document.write(`<main style="font:16px Arial;max-width:360px;margin:20px auto"><h1>Baker's Dawgs</h1><h2>Order #${r.ticket}</h2><p>Pickup: ${String(r.pickup).replace(/[<>&]/g,"")}</p><table style="width:100%">${rows}</table><hr><h2>Total: $${Number(r.total).toFixed(2)}</h2><p>Pay at pickup. Thank you!</p></main>`);w.document.close();w.focus();w.print();
+ w.document.write(`<main style="font:16px Arial;max-width:360px;margin:20px auto"><h1>Baker's Dawgs</h1><h2>Order #${r.ticket}</h2><p>Reference: ${String(r.id||"Unavailable").replace(/[<>&]/g,"")}<br>Pickup: ${String(r.pickup).replace(/[<>&]/g,"")}</p><table style="width:100%">${rows}</table><hr><h2>Total: $${Number(r.total).toFixed(2)}</h2><p>Pay at pickup. Thank you!</p></main>`);w.document.close();w.focus();w.print();
 }
 
 function backdrop(e){
@@ -481,7 +485,7 @@ async function placeOrder(){
  try{
  let saved=await bdCreateOrder(order);
  const customerTicket=String(saved?.id||orderId).replace(/\D/g,"").slice(-4).padStart(4,"0");
-  localStorage.setItem("bdLastCustomerReceipt",JSON.stringify({ticket:customerTicket,pickup:timeEl.value,total,items:order.items}));
+  localStorage.setItem("bdLastCustomerReceipt",JSON.stringify({id:saved?.id||orderId,phone:phoneEl.value.trim(),ticket:customerTicket,pickup:timeEl.value,total,items:order.items,repeatItems:cart.map(x=>({name:menu[x.i][1],category:menu[x.i][0],tops:x.tops||[],notes:x.notes||"",extra:x.extra||0}))}));
   cart=[];
   save();
 
@@ -490,7 +494,7 @@ async function placeOrder(){
   <p class="successLead">Your order is in the kitchen. It will be ready around your pickup time.</p><p><b>PAY AT PICKUP</b><br>No online payment was taken. Please pay at the restaurant when you pick up your order.</p>
   <div class="orderNumber">CONFIRMATION #${customerTicket}</div></div>
   <p><b>Pickup:</b> ${timeEl.value}<br><b>Subtotal:</b> ${money(subtotal)}<br><b>NC sales tax (6.75%):</b> ${money(tax)}<br><b>Total:</b> ${money(total)}</p>
-  <button class="checkout" onclick="printLastCustomerReceipt()">PRINT RECEIPT</button><button class="checkout" onclick="closeModal()">DONE</button>`;
+  <p class="receiptReference">Full order reference: <span>${saved?.id||orderId}</span><br>Saved on this device for order tracking.</p><button class="checkout" onclick="showOrderProgress()">TRACK MY ORDER</button><button class="checkout" onclick="printLastCustomerReceipt()">PRINT RECEIPT</button><button class="checkout" onclick="closeModal()">DONE</button>`;
  }catch(e){
   if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent="PLACE PICKUP ORDER"; }
   console.error("Baker's Dawgs customer order insert failed:", e);
