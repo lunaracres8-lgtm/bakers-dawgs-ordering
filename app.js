@@ -278,7 +278,8 @@ async function loadEditableMenu(){
   const rank={"Hot Dawgs":0,"Hot Dawg Combos":1,"Drinks & Sides":2,"Desserts":3};
   menu.sort((a,b)=>(rank[a[0]]??9)-(rank[b[0]]??9)||Number(/carolina classic/i.test(b[1]))-Number(/carolina classic/i.test(a[1])));
   cats=[...new Set(menu.map(x=>x[0]))];
-  menuAvailability=Object.fromEntries(rows.map(x=>[x.item_name,x.available!==false]));
+  menuAvailability=Object.fromEntries(rows.filter(x=>canonicalCategory(x.category)!=="Archived").map(x=>[x.item_name,x.available!==false]));
+  if(Object.hasOwn(menuAvailability,"Carolina Classic"))menuAvailability["Carolina Classic Hot Dawg"]=menuAvailability["Carolina Classic"];
   render();update();
  }catch(e){}
 }
