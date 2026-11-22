@@ -253,3 +253,33 @@ body[data-admin-view="owner"] #annaSlawDrawer{display:block}
 .bdVoiceSelected{outline:3px solid #ffcf4d;outline-offset:3px}
 @media(max-width:520px){.adminViewTabs button{font-size:11px!important}.toolbar button{flex:1 1 140px}#newOrderBanner{font-size:17px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+
+/* Baker's Dawgs menu-inspired theme, shared across every screen. */
+:root{--bd-menu-red:#d31520;--bd-menu-white:#fff8f1;--bd-menu-panel:#100d0b;--bd-menu-edge:#805033}
+html{background:#241209}
+body{
+ background-color:#241209;
+ background-image:repeating-linear-gradient(0deg,transparent 0 116px,#0b0503 117px 121px,#71401f 122px,transparent 124px),repeating-linear-gradient(2deg,#ffffff03 0 1px,transparent 2px 7px,#00000019 8px 10px,transparent 11px 17px),linear-gradient(90deg,#241209,#4a2915 30%,#29150c 65%,#482711);
+ color:var(--bd-menu-white);
+}
+header,.siteHero{background:linear-gradient(110deg,#100b08ed,#28140bd9,#100b08ed);border-bottom:4px solid var(--bd-menu-red);box-shadow:0 8px 24px #0006}
+header h1,.siteHero h1{color:#fff8f1;text-shadow:2px 2px 0 #080604,-1px -1px 0 #080604,0 4px 0 #a90c15;letter-spacing:-1px;font-style:italic;font-weight:1000}
+header h1 span,.siteHero h1 span{color:#f0222b;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,0 4px 0 #100705}
+header h1::before{content:"🌭";display:inline-block;font-style:normal;font-size:.68em;margin-right:.22em}
+.category>h2{background:linear-gradient(115deg,#b50a13,#e2202a 55%,#9e0810);border:1px solid #f25b52;border-radius:7px;color:#fff;padding:13px 16px;font-weight:1000;letter-spacing:1px;text-transform:uppercase;box-shadow:0 4px 12px #0007}
+.item,.order,.login section,.sheet,.quickInfo,.largeOrders,.restaurantControls,.menuControls,.voiceAssistant,.dailyCloseout,.metrics>div,.ownerTools,.menuManager,.ownerPrepSettings,.loyaltyModal section,.birthdayRewardDialog{
+ background:linear-gradient(140deg,#1b1410,#0e0c0b);border-color:var(--bd-menu-edge);box-shadow:0 6px 20px #0006;color:var(--bd-menu-white)
+}
+.price,.bigprice,.total{color:#fff8f1}
+nav,.adminViewTabs,.toolbar{background:#100d0bf5!important;border-color:#805033;box-shadow:0 5px 14px #0007}
+nav button,.adminViewTabs button{background:#281a13;color:#fff;border-color:#805033}
+.hero,.add,.checkout,.cartbar,.login button,.actions .primary{background:linear-gradient(#e2212b,#ae0913);color:#fff;border-color:#f14b50}
+.sheet{border-top:3px solid #d31520}
+.orderhead{background:linear-gradient(110deg,#8f1018,#b01620);color:#fff}
+.order.new{border-color:#ffc400}.order.late{border-color:#ff3b30}
+.orderbody,.line,.customer{color:#fff8f1}
+footer{background:linear-gradient(#140d08e8,#100b08);border-top:2px solid #805033;margin-top:24px}
+input,select,textarea{accent-color:#d31520}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #ffdf7d;outline-offset:3px}
+@media(max-width:520px){header h1::before{font-size:.55em}.category>h2{font-size:24px}}
