@@ -214,7 +214,15 @@ async function bdSetOrderingOpen(open){
 
 async function bdGetMenuAvailability(){
  const r=await bdRequest(`${BD_URL}/rest/v1/menu_availability?select=item_name,available`,{cache:"no-store",headers:{"apikey":BD_KEY,"Authorization":`Bearer ${BD_KEY}`,"Content-Type":"application/json"}});
- return r.json();
+ const rows=await r.json();
+ // The current name controls older carts and the quick-order fallback too.
+ const current=rows.find(x=>x.item_name==="Carolina Classic");
+ if(current){
+  const legacy=rows.find(x=>x.item_name==="Carolina Classic Hot Dawg");
+  if(legacy)legacy.available=current.available;
+  else rows.push({item_name:"Carolina Classic Hot Dawg",available:current.available});
+ }
+ return rows;
 }
 async function bdSetMenuAvailability(itemName,available){
  await bdRequest(`${BD_URL}/rest/v1/menu_availability?on_conflict=item_name`,{
