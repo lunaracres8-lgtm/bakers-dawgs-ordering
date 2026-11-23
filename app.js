@@ -31,6 +31,7 @@ const defaultMenu=[
 ["Hot Dawg Combos","Chili, Onion & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink • $7.00 total with tax",6.56],
 ["Hot Dawg Combos","Sweet Relish & Mustard Dawg Combo","Hot Dawg, bag of chips, and drink • $7.00 total with tax",6.56],
 ["Drinks & Sides","Pepsi (12 oz can)","Ice cold",1.50],
+["Drinks & Sides","Wild Cherry Pepsi (bottle)","Ice cold",2.00],
 ["Drinks & Sides","Mountain Dew (12 oz can)","Ice cold",1.50],
 ["Drinks & Sides","Coca-Cola (12 oz can)","Ice cold",1.50],
 ["Drinks & Sides","Bottled Water","",1.00],
