@@ -33,6 +33,7 @@ const defaultMenu=[
 ["Drinks & Sides","Pepsi (12 oz can)","Ice cold",1.50],
 ["Drinks & Sides","Mountain Dew (12 oz can)","Ice cold",1.50],
 ["Drinks & Sides","Coca-Cola (12 oz can)","Ice cold",1.50],
+["Drinks & Sides","Bottled Drinks","16 oz bottle",2.00],
 ["Drinks & Sides","Bottled Water","",1.00],
 ["Drinks & Sides","Sweet Tea with Ice","Homemade sweet tea • No refills",1.75],
 ["Drinks & Sides","Lemonade Sweet Tea with Ice","Made with our homemade sweet tea • No refills",2.75],
@@ -272,7 +273,7 @@ async function loadEditableMenu(){
   if(window.bdCustomerOrderSubmitting||cart.length||!rows?.length)return;
   menu=rows.filter(x=>["Hot Dawgs","Hot Dawg Combos","Drinks & Sides","Desserts"].includes(canonicalCategory(x.category)) && !/cake|three milks|3 milks|tres leches|sandwich|bologna|baloney|brat|sausage|quesadilla|wrap|burger|taco|nachos/i.test(String(x.item_name||""))).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[canonicalCategory(x.category),x.item_name,x.description||"",Number(x.price)]);
   if(!menu.some(x=>/canned soda|can soda|12 oz can/i.test(x[1])))menu.push(["Drinks & Sides","Canned Soda","12 oz can",1.50]);
-  menu=menu.filter(x=>!(/bottled (drink|soda)|16.?oz.*(soda|drink)/i.test(x[1])));
+  if(!menu.some(x=>/bottled (drink|soda)|16.?oz.*(soda|drink)/i.test(x[1])))menu.push(["Drinks & Sides","Bottled Drinks","16 oz bottle",2.00]);
   menu=menu.map(x=>/bottled water/i.test(x[1])?[x[0],x[1],x[2],1.00]:x);
   if(!menu.some(x=>/bottled water/i.test(x[1])))menu.push(["Drinks & Sides","Bottled Water","",1.00]);
   menu=menu.filter(x=>!(/canned soda|can soda|12 oz can/i.test(x[1])));
