@@ -10,7 +10,7 @@ Continue this existing project; do not recreate the app or ask Robbie to locate 
 
 ## Confirmed menu instructions
 - Canned soft drinks: $1.50. Never change this to $1.
-- Remove 16-ounce bottled soft drinks. Water's earlier listed price is $1; distinguish water from bottled soda.
+- Bottled soft drinks are available at $2.00 (updated November 23, 2026). Keep bottled water separate.
 - Carolina Classic first: Anna's Homemade Slaw, yellow mustard, fresh onions, chili.
 - List every hot dog style under Hot Dawgs, with its ingredients. Styles must be available individually, even when also offered as combos.
 - Each main hot dog style may also have its own combo, with chips and a canned drink.
