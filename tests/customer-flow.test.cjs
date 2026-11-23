@@ -15,10 +15,10 @@ test('each hot dog style selects its included toppings and supports removing sla
  }
  w.customize(0);[...w.document.querySelectorAll('.checks input')].find(x=>/Slaw/.test(x.value)).checked=false;w.addCustomized();assert.equal(w.customerState.cart[0].tops.some(x=>/Slaw/.test(x)),false);
 });
-test('cloud combo-only menu retains standalone choices, Carolina ingredients and canned pricing',async t=>{
+test('cloud combo-only menu retains standalone choices, Carolina ingredients and bottled and canned pricing',async t=>{
  const w=harness(t);await new Promise(resolve=>setImmediate(resolve));
  w.bdGetMenuItems=async()=>[{category:'Hot Dawg Combos',item_name:'Carolina Classic Hot Dawg Combo',price:6.56},{category:'Drinks & Sides',item_name:'Bottled Drink / Soda',price:2}];
- await w.loadEditableMenu();const menu=w.customerState.menu;assert.equal(menu[0][1],'Carolina Classic Hot Dawg');assert.match(menu[0][2],/Slaw/);assert.equal(menu.some(x=>/Bottled Drink/.test(x[1])),false);assert.equal(menu.find(x=>x[1]==='Bottled Water')?.[3],1);assert.ok(menu.filter(x=>/12 oz can/.test(x[1])).every(x=>x[3]===1.5));
+ await w.loadEditableMenu();const menu=w.customerState.menu;assert.equal(menu[0][1],'Carolina Classic Hot Dawg');assert.match(menu[0][2],/Slaw/);assert.equal(menu.find(x=>/Bottled Drink/.test(x[1]))?.[3],2);assert.equal(menu.find(x=>x[1]==='Bottled Water')?.[3],1);assert.ok(menu.filter(x=>/12 oz can/.test(x[1])).every(x=>x[3]===1.5));
 });
 test('rapid checkout taps create one ticket and keep toppings in the submitted receipt',async t=>{
  const w=harness(t);w.orderCarolinaClassic();w.addClassicQuickOrder();w.document.querySelector('#name').value='Test Customer';w.document.querySelector('#phone').value='8285551234';w.document.querySelector('#time').selectedIndex=1;w.document.querySelector('#humanCheck').checked=true;
