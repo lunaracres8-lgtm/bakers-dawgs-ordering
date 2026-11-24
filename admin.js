@@ -57,8 +57,8 @@ function upgradeCustomizationUI(){
  if(manager&&!manager.dataset.upgraded){
   manager.dataset.upgraded="1";
   manager.classList.add("menuManager");
-  manager.querySelector("div")?.replaceWith(Object.assign(document.createElement("div"),{className:"sectionTitle",innerHTML:`<div><span class="eyebrow">MENU BUILDER</span><b>Menu items</b><small>Edit prices and descriptions, add an item, or remove one before handing this template to the next owner.</small></div><button type="button" onclick="openMenuItemEditor()">＋ ADD MENU ITEM</button>`}));
-  manager.insertAdjacentHTML("beforeend",`<div id="menuBuilderFooter" class="menuBuilderFooter"><button type="button" class="secondaryButton" onclick="restoreSampleMenu()">RESTORE SAMPLE MENU</button><small>Menu changes save immediately and update the customer screen.</small></div>`);
+  (manager.querySelector(":scope > .bdSectionContent > div:first-child")||manager.querySelector(":scope > div:first-of-type"))?.replaceWith(Object.assign(document.createElement("div"),{className:"sectionTitle",innerHTML:`<div><span class="eyebrow">MENU BUILDER</span><b>Menu items</b><small>Edit prices, descriptions, and availability.</small></div><button type="button" onclick="openMenuItemEditor()">＋ ADD MENU ITEM</button>`}));
+  (manager.querySelector(":scope > .bdSectionContent")||manager).insertAdjacentHTML("beforeend",`<div id="menuBuilderFooter" class="menuBuilderFooter"><button type="button" class="secondaryButton" onclick="restoreSampleMenu(this)">RESTORE SAMPLE MENU</button><small>Menu changes save immediately and update the customer screen.</small></div>`);
   manager.querySelector(".sectionTitle")?.insertAdjacentHTML("afterend",`<div id="menuFilterTabs" class="menuFilterTabs"></div>`);
  }
 }
@@ -101,7 +101,7 @@ let orderingOpen=null;
 let prepMinutes=20;
 let menuAvailability={};
 let soundEnabled=localStorage.getItem("bdSoundEnabled")!=="false";
-const adminMenuItems=["Carolina Classic Hot Dawg","Sauerkraut & Mustard Dawg","Chili & Cheez Dawg","Chili, Onion & Mustard Dawg","Sweet Relish & Mustard Dawg","Loaded Hot Dawg","Brat / Bratwurst","Classic Plain Smoked Sausage","Cheddar Cheez Smoked Sausage","Jalapeño Smoked Sausage","The Perfect Brat","Grilled Bologna on Toast (cut #5)","Grilled Cheez Quesadilla","Bottled Drink / Soda","Bottled Water","Sweet Tea with Ice","Lemonade Sweet Tea with Ice","Chips","German Chocolate Cake","3 Milks Cake"];
+const sampleMenu = [["flyer-0","Hot Dawgs","Carolina Classic","Anna's Homemade Slaw, mustard, chili & onions",3.28],["hot-sauerkraut","Hot Dawgs","Sauerkraut & Mustard Dawg","Sauerkraut & yellow mustard",3.28],["flyer-1","Hot Dawgs","Chili & Cheez Dawg","Chili & cheese",3.28],["hot-4","Hot Dawgs","Chili, Onion & Mustard Dawg","Chili, fresh onions & yellow mustard",3.28],["hot-5","Hot Dawgs","Sweet Relish & Mustard Dawg","Sweet relish & yellow mustard",3.28],["flyer-4","Hot Dawgs","Loaded Dawg","Choose 6–8 toppings",4.25],["flyer-5","Hot Dawg Combos","Carolina Classic Combo","Includes chips and a canned drink",6.56],["combo-2","Hot Dawg Combos","Sauerkraut & Mustard Dawg Combo","Includes chips and a canned drink",6.56],["combo-3","Hot Dawg Combos","Chili & Cheez Dawg Combo","Includes chips and a canned drink",6.56],["combo-chili-onion","Hot Dawg Combos","Chili, Onion & Mustard Dawg Combo","Includes chips and a canned drink",6.56],["combo-5","Hot Dawg Combos","Sweet Relish & Mustard Dawg Combo","Includes chips and a canned drink",6.56],["flyer-10","Drinks & Sides","12 oz can","Mountain Dew • Pepsi • Diet Pepsi",1.5],["drink-wild-cherry-pepsi","Drinks & Sides","Wild Cherry Pepsi (bottle)","Ice cold",2],["drink-2","Drinks & Sides","Bottled Water","",1],["flyer-9","Drinks & Sides","Chips","",1.8]];
 let editableMenuItems=[];
 let currentMenuCategory="All";
 let previewMode="phone";
@@ -550,7 +550,7 @@ async function runSystemCheck(){
   ["Staff session","Checking the signed-in staff account and session refresh.",async()=>{if(!bdHasSavedSession())throw new Error("No saved staff session. Sign in again.");if(!await bdRefreshSession())throw new Error("Staff session could not be refreshed.");const u=await bdCurrentStaffUser();return "Signed in as "+(u.email||"staff user");}],
   ["Restaurant controls","Checking ordering status and preparation settings.",async()=>{const x=await bdGetRestaurantSettings();if(!x)throw new Error("Restaurant settings did not respond.");return "Ordering controls responded";}],
   ["Menu database","Checking menu categories, prices, availability, and records.",async()=>{const x=await bdGetMenuItems();if(!Array.isArray(x))throw new Error("Menu query did not return a list.");const bad=x.filter(i=>!i.id||!i.category||!i.item_name||Number.isNaN(Number(i.price)));if(bad.length)throw new Error(bad.length+" menu item(s) have missing/invalid fields.");return x.length+" menu item(s) checked";}],
-  ["Menu availability","Checking category/item availability controls.",async()=>{const x=await bdGetMenuAvailability();if(!Array.isArray(x))throw new Error("Menu availability did not return a list.");const items=await bdGetMenuItems();const byName=Object.fromEntries((x||[]).map(v=>[v.item_name,v.available!==false]));const mismatches=items.filter(v=>Object.prototype.hasOwnProperty.call(byName,v.item_name)&&byName[v.item_name]!== (v.available!==false));if(mismatches.length)throw new Error(mismatches.length+" menu item(s) have mismatched availability.");return "Availability is synchronized for "+items.length+" menu item(s)";}],
+  ["Menu availability","Checking category/item availability controls.",async()=>{const x=await bdGetMenuAvailability();if(!Array.isArray(x))throw new Error("Menu availability did not return a list.");const items=(await bdGetMenuItems()).filter(item=>item.category!=="Archived");const byName=Object.fromEntries((x||[]).map(v=>[v.item_name,v.available!==false]));const mismatches=items.filter(v=>byName[v.item_name]!== (v.available!==false));if(mismatches.length)throw new Error(mismatches.length+" menu item(s) have mismatched availability.");return "Availability is synchronized for "+items.length+" menu item(s)";}],
   ["Order board","Checking orders and required order fields.",async()=>{const x=await bdGetOrders();if(!Array.isArray(x))throw new Error("Orders query did not return a list.");const bad=x.filter(o=>!o.id||!o.created_at);if(bad.length)throw new Error(bad.length+" order(s) have missing required fields.");return x.length+" order(s) checked";}],
   ["Customer order write path","Submitting and cleaning up a clearly marked TEST order to verify the real customer order API path.",async()=>{const id=bdNewUuid();const order={id,customer_name:"SYSTEM AUDIT TEST",phone:"5555550100",pickup_time:"2099-12-31T23:59",notes:"AUTOMATED SYSTEM AUDIT — DELETE AFTER TEST",items:[{name:"System Audit Test Item",options:"",notes:"",price:0}],total:0,status:"New"};await bdCreateOrder(order);try{const rows=await bdGetOrders();if(!Array.isArray(rows)||!rows.some(o=>String(o.id)===id))throw new Error("Order write succeeded but the new test order was not visible to the staff order board.");}finally{await bdDeleteOrder(id);}return "Customer order submission, staff visibility, and cleanup all passed";}],
   ["Order update path","Testing that the authenticated staff order-update path is callable without changing a real customer order.",async()=>{const id=bdNewUuid();const order={id,customer_name:"SYSTEM AUDIT UPDATE TEST",phone:"5555550101",pickup_time:"2099-12-31T23:59",notes:"AUTOMATED SYSTEM AUDIT — DELETE AFTER TEST",items:[],total:0,status:"New"};await bdCreateStaffOrder(order);try{await bdUpdateOrder(id,{status:"Accepted"});}finally{await bdDeleteOrder(id);}return "Staff order update and cleanup passed";}],
@@ -761,7 +761,7 @@ function setupAdminViews(){
  const app=document.getElementById("app");if(!app||app.dataset.viewsReady)return;
  app.dataset.viewsReady="1";
  const owner=app.querySelector(".ownerBranding");
- const menu=[...app.querySelectorAll(".menuControls")].find(section=>section!==owner);
+ const menu=app.querySelector('#menuAvailabilityControls')?.closest('.menuControls');
  const windowSale=document.createElement("section");
  windowSale.id="windowSale";
  windowSale.className="windowSale";
@@ -789,6 +789,7 @@ function setAdminView(view,preserveDraft=true){
  document.querySelectorAll(".adminViewTabs button").forEach(button=>button.classList.toggle("active",button.dataset.view===activeAdminView));
  if(activeAdminView==="window")renderWindowOrder(preserveDraft);
  if(activeAdminView==="kitchen")renderKitchenDisplay();
+ if(activeAdminView==="menu"){if(editableMenuItems.length)renderMenuAvailability();else loadMenuAvailability();}
 }
 
 function renderKitchenDisplay(){
@@ -1000,22 +1001,22 @@ async function loadRestaurantControls(){
 }
 
 async function loadMenuAvailability(){
+ const box=document.getElementById("menuAvailabilityControls");
  try{
-  let items=[];
-  try{items=(await bdGetMenuItems()).filter(item=>item.category!=="Archived");}catch(_){items=[];}
-  if(items.length){editableMenuItems=items;if(!localStorage.getItem("bdSampleMenuTemplate"))localStorage.setItem("bdSampleMenuTemplate",JSON.stringify(items));}
-  // menu_items is the canonical owner-controlled menu. Keep the public availability table synchronized so the customer site cannot show stale SOLD OUT states after an admin change.
-  if(items.length){
-   for(const item of items){
-    try{
-     await bdRequest(BD_URL+`/rest/v1/menu_availability?on_conflict=item_name`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({item_name:item.item_name,available:item.available!==false,updated_at:new Date().toISOString()})});
-    }catch(_){}
-   }
-  }
-  const rows=items.length?items:await bdGetMenuAvailability();
-  menuAvailability=Object.fromEntries((rows||[]).map(r=>[r.item_name,r.available!==false]));
-  const box=document.querySelector("#menuAvailabilityControls");
-  const displayItems=editableMenuItems.length?editableMenuItems:adminMenuItems.map((name,index)=>({id:"legacy-"+index,item_name:name,category:"Current menu",description:"",price:"",available:menuAvailability[name]!==false,sort_order:index}));
+  editableMenuItems=(await bdGetMenuItems()).filter(item=>item.category!=="Archived");
+  menuAvailability=Object.fromEntries(editableMenuItems.map(item=>[item.item_name,item.available!==false]));
+  renderMenuAvailability();
+  updateSetupChecklist();
+  renderWindowOrder();
+ }catch(error){
+  console.error("Could not load current menu",error);
+  if(box)box.textContent="Could not load the menu. Reopen the Menu tab to retry.";
+ }
+}
+
+function renderMenuAvailability(){
+ const box=document.getElementById("menuAvailabilityControls");
+ const displayItems=editableMenuItems;
   const tabs=document.getElementById("menuFilterTabs");const categories=["All",...new Set(displayItems.map(x=>x.category||"Menu item"))];if(!categories.includes(currentMenuCategory))currentMenuCategory="All";
   if(tabs)tabs.innerHTML=categories.map(category=>`<button type="button" class="${category===currentMenuCategory?"active":""}" onclick="setMenuCategory(decodeURIComponent(\'${encodeURIComponent(category)}\'))">${esc(category)}</button>`).join("");
   const visibleItems=displayItems.filter(item=>currentMenuCategory==="All"||item.category===currentMenuCategory);
@@ -1024,20 +1025,52 @@ async function loadMenuAvailability(){
    const price=Number.isFinite(Number(item.price))&&item.price!==""?`$${Number(item.price).toFixed(2)}`:"";
    return `<article class="menuAdminItem ${available?"available":"soldout"}"><div class="menuItemInfo"><span class="menuCategory">${esc(item.category||"Menu item")}</span><strong>${esc(item.item_name)}</strong>${item.description?`<small>${esc(item.description)}</small>`:""}</div><div class="menuItemActions"><b>${price}</b><button type="button" class="availabilityButton" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(item.item_name)}\'),this)">${available?"AVAILABLE · MARK SOLD OUT":"SOLD OUT · MAKE AVAILABLE"}</button><button type="button" class="editItemButton" onclick="openMenuItemEditor(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">EDIT</button><button type="button" class="secondaryButton" onclick="duplicateMenuItem(decodeURIComponent('${encodeURIComponent(item.id)}'))">DUPLICATE</button><button type="button" class="deleteItemButton" onclick="removeMenuItem(decodeURIComponent('${encodeURIComponent(item.id)}'),this)">DELETE</button></div></article>`;
    }).join("");
-  updateSetupChecklist();
-  renderWindowOrder();
- }catch(e){
-  const box=document.querySelector("#menuAvailabilityControls");
-  if(box) box.textContent="Menu controls unavailable.";
- }
+  if(box&&!visibleItems.length)box.textContent="No items in this category.";
 }
-function setMenuCategory(category){currentMenuCategory=category;loadMenuAvailability();}
+function setMenuCategory(category){currentMenuCategory=category;renderMenuAvailability();}
 async function duplicateMenuItem(id){const item=editableMenuItems.find(x=>x.id===id);if(!item)return;const duplicate={...item,id:"item-"+Date.now(),item_name:item.item_name+" Copy",sort_order:Number(item.sort_order||0)+.5};try{await bdSaveMenuItem(duplicate);await loadMenuAvailability();}catch(e){alert("Could not duplicate that menu item.");}}
 async function moveMenuItem(id,direction){const current=editableMenuItems.find(x=>x.id===id);if(!current)return;const same=editableMenuItems.filter(x=>x.category===current.category).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));const index=same.findIndex(x=>x.id===id),swap=same[index+direction];if(!swap)return;const old=current.sort_order;current.sort_order=swap.sort_order;swap.sort_order=old;try{await bdSaveMenuItem(current);await bdSaveMenuItem(swap);await loadMenuAvailability();}catch(e){alert("Could not move that menu item.");}}
-async function restoreSampleMenu(){
- const saved=localStorage.getItem("bdSampleMenuTemplate");if(!saved){alert("Open the upgraded menu once before using Restore Sample Menu.");return;}
- if(!confirm("Restore the original sample menu? This removes menu changes made after the template was first opened on this device."))return;
- try{for(const item of editableMenuItems)await bdDeleteMenuItem(item.id);for(const item of JSON.parse(saved))await bdSaveMenuItem(item);await loadMenuAvailability();alert("Sample menu restored.");}catch(e){alert("Could not restore the sample menu.");}
+async function restoreSampleMenu(button){
+ if(!button.dataset.confirmRestore){
+  button.dataset.confirmRestore="1";
+  button.textContent="TAP AGAIN TO RESTORE CURRENT MENU";
+  setTimeout(()=>{
+   if(button.disabled)return;
+   delete button.dataset.confirmRestore;
+   button.textContent="RESTORE SAMPLE MENU";
+  },5000);
+  return;
+ }
+ button.disabled=true;
+ button.textContent="RESTORING…";
+ try{
+  if(!await bdRefreshSession())throw new Error("Sign in again before restoring the menu.");
+  const previous=await bdGetMenuItems();
+  const preset=sampleMenu.map(([id,category,item_name,description,price],sort_order)=>({id,category,item_name,description,price,sort_order,available:true}));
+  const presetIds=new Set(preset.map(item=>item.id));
+  const archived=previous.filter(item=>!presetIds.has(item.id)&&item.category!=="Archived")
+   .map(item=>({...item,category:"Archived",available:false}));
+  await bdRequest(BD_URL+"/rest/v1/menu_items?on_conflict=id",{
+   method:"POST",headers:{...bdHeaders(),Prefer:"resolution=merge-duplicates,return=minimal"},
+   body:JSON.stringify([...preset,...archived])
+  });
+  const availability=new Map(previous.map(item=>[item.item_name,false]));
+  for(const item of preset)availability.set(item.item_name,true);
+  await bdRequest(BD_URL+"/rest/v1/menu_availability?on_conflict=item_name",{
+   method:"POST",headers:{...bdHeaders(),Prefer:"resolution=merge-duplicates,return=minimal"},
+   body:JSON.stringify([...availability].map(([item_name,available])=>({item_name,available,updated_at:new Date().toISOString()})))
+  });
+  currentMenuCategory="All";
+  await loadMenuAvailability();
+  alert("Baker’s Dawgs menu restored. All current items are available.");
+ }catch(error){
+  await loadMenuAvailability();
+  alert("Could not finish restoring the menu. "+(error.message||"Try again when online."));
+ }finally{
+  delete button.dataset.confirmRestore;
+  button.disabled=false;
+  button.textContent="RESTORE SAMPLE MENU";
+ }
 }
 
 function openMenuItemEditor(id=""){
@@ -1198,10 +1231,10 @@ async function toggleMenuItem(name,button){
   });
   item.available=!available;
   // Keep the public availability table in lockstep with the owner-controlled record.
-  try{await bdRequest(BD_URL+`/rest/v1/menu_availability?on_conflict=item_name`,{method:"POST",headers:{...bdHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({item_name:item.item_name,available:item.available,updated_at:new Date().toISOString()})});}catch(_){}
+  await bdSetMenuAvailability(item.item_name,item.available);
   await loadMenuAvailability();
  }catch(e){
-  if(button){button.disabled=false;button.textContent=available?"AVAILABLE":"SOLD OUT";}
+  await loadMenuAvailability();
   const detail=String(e?.message||"Unknown error").replace(/\\s+/g," ").trim();
   alert("Could not update that menu item.\\n\\n"+detail);
  }

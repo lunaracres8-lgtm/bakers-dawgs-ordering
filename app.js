@@ -21,7 +21,19 @@ async function applyBusinessBranding(){
 const canFlavors=["Mountain Dew","Pepsi","Diet Pepsi"];
 const canNames=canFlavors.map(flavor=>flavor+" (12 oz can)");
 const isCanListing=name=>/^(canned drinks?|canned soda|can soda|12 oz can)$/i.test(name)||/\(12 oz can\)$/i.test(name);
-const defaultMenu=[
+const defaultMenu=[["Hot Dawgs","Carolina Classic","Anna's Homemade Slaw, mustard, chili & onions",3.28],["Hot Dawgs","Sauerkraut & Mustard Dawg","Sauerkraut & yellow mustard",3.28],["Hot Dawgs","Chili & Cheez Dawg","Chili & cheese",3.28],["Hot Dawgs","Chili, Onion & Mustard Dawg","Chili, fresh onions & yellow mustard",3.28],["Hot Dawgs","Sweet Relish & Mustard Dawg","Sweet relish & yellow mustard",3.28],["Hot Dawgs","Loaded Dawg","Choose 6–8 toppings",4.25],["Hot Dawg Combos","Carolina Classic Combo","Includes chips and a canned drink",6.56],["Hot Dawg Combos","Sauerkraut & Mustard Dawg Combo","Includes chips and a canned drink",6.56],["Hot Dawg Combos","Chili & Cheez Dawg Combo","Includes chips and a canned drink",6.56],["Hot Dawg Combos","Chili, Onion & Mustard Dawg Combo","Includes chips and a canned drink",6.56],["Hot Dawg Combos","Sweet Relish & Mustard Dawg Combo","Includes chips and a canned drink",6.56],["Drinks & Sides","Mountain Dew (12 oz can)","Ice cold",1.5],["Drinks & Sides","Pepsi (12 oz can)","Ice cold",1.5],["Drinks & Sides","Diet Pepsi (12 oz can)","Ice cold",1.5],["Drinks & Sides","Wild Cherry Pepsi (bottle)","Ice cold",2],["Drinks & Sides","Bottled Water","",1],["Drinks & Sides","Chips","",1.8]];
+let menu=defaultMenu.map(item=>[...item]);
+
+const toppings=[
+"Yellow Mustard","Spicy Mustard","Chili","Cheese",
+"Fresh Onions","Anna's Homemade Slaw","Sauerkraut","Sweet Relish",
+"Grilled Onions","BBQ Sauce"
+];
+
+let cart=JSON.parse(localStorage.getItem("bdCart")||"[]");
+if(cart.length){
+ const savedMenu=JSON.parse(localStorage.getItem("bdCartMenu")||"null");
+ menu=savedMenu||[
 ["Hot Dawgs","Carolina Classic Hot Dawg","Mustard, Anna's Homemade Slaw, chili and onions",3.28],
 ["Hot Dawgs","Sauerkraut & Mustard Dawg","Sauerkraut and mustard",3.28],
 ["Hot Dawgs","Chili & Cheez Dawg","Chili and cheese",3.28],
@@ -43,15 +55,7 @@ const defaultMenu=[
 ["Desserts","Chocolate Cake","Homestyle chocolate cake • $5 per slice",5.00],
 ["Drinks & Sides","Diet Pepsi (12 oz can)","Ice cold",1.50],
 ];
-let menu=defaultMenu.map(item=>[...item]);
-
-const toppings=[
-"Yellow Mustard","Spicy Mustard","Chili","Cheese",
-"Fresh Onions","Anna's Homemade Slaw","Sauerkraut","Sweet Relish",
-"Grilled Onions","BBQ Sauce"
-];
-
-let cart=JSON.parse(localStorage.getItem("bdCart")||"[]");
+}
 let active=null;
 let orderingOpen=true;
 let orderingStatusKnown=false;
@@ -168,7 +172,7 @@ function addClassicQuickOrder(){
 }
 
 function startBuildYourDawg(){
- const loadedIndex=menu.findIndex(item=>String(item[1]||"").toLowerCase().includes("loaded hot dawg"));
+ const loadedIndex=menu.findIndex(item=>/^loaded (?:hot )?dawg$/i.test(item[1]));
  if(loadedIndex<0){goMenu();return;}
  customize(loadedIndex);
 }
@@ -223,7 +227,7 @@ function addCustomized(){
  let tops=[...document.querySelectorAll(".checks input:checked")].map(x=>x.value);
  let notes=itemNotes.value;
  let extra=document.querySelector("#chiliAdd")?.checked?.5:0;
- let isLoaded=String(menu[active]?.[1]||"").toLowerCase().includes("loaded hot dawg");
+ let isLoaded=/^loaded (?:hot )?dawg$/i.test(menu[active]?.[1]);
  if(isLoaded&&(tops.length<6||tops.length>8)){
   alert("Choose 6 to 8 toppings for the Loaded Hot Dawg.");
   return;
@@ -239,6 +243,8 @@ function addCustomized(){
 
 function save(){
  localStorage.setItem("bdCart",JSON.stringify(cart));
+ if(cart.length)localStorage.setItem("bdCartMenu",JSON.stringify(menu));
+ else localStorage.removeItem("bdCartMenu");
  update();
 }
 
@@ -285,21 +291,17 @@ async function loadEditableMenu(){
  try{
   if(window.bdCustomerOrderSubmitting||cart.length||active!==null)return;
   const rows=await bdGetMenuItems();
-  if(window.bdCustomerOrderSubmitting||cart.length||active!==null||!rows?.length)return;
-  menu=rows.filter(x=>["Hot Dawgs","Hot Dawg Combos","Drinks & Sides","Desserts"].includes(canonicalCategory(x.category)) && !/cake|three milks|3 milks|tres leches|sandwich|bologna|baloney|brat|sausage|quesadilla|wrap|burger|taco|nachos/i.test(String(x.item_name||""))).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(x=>[canonicalCategory(x.category),x.item_name,x.description||"",Number(x.price)]);
-  const can=menu.find(x=>x[0]==="Drinks & Sides"&&/^(12 oz can|canned drinks?)$/i.test(x[1]));
-  menu=menu.filter(x=>!(/bottled (drink|soda)|16.?oz.*(soda|drink)/i.test(x[1])));
-  menu=menu.map(x=>/bottled water/i.test(x[1])?[x[0],x[1],x[2],1.00]:x);
-  if(!menu.some(x=>/bottled water/i.test(x[1])))menu.push(["Drinks & Sides","Bottled Water","",1.00]);
-  menu=menu.filter(x=>x[0]!=="Drinks & Sides"||!isCanListing(x[1]));
-  menu.push(...canNames.map(name=>["Drinks & Sides",name,"Ice cold",can?.[3]??1.50]));
-  menu=menu.filter(x=>!(/cake|dessert/i.test(x[1])));
-  menu.push(["Desserts","Chocolate Cake","Homestyle chocolate cake • $5 per slice",5.00]);
-  for(const combo of menu.filter(x=>x[0]==="Hot Dawg Combos")){
-   const name=combo[1].replace(/\s+combo$/i,"");
-   const sample=defaultMenu.find(x=>x[0]==="Hot Dawgs"&&x[1]===name);
-   if(sample&&!menu.some(x=>x[0]==="Hot Dawgs"&&x[1]===name))menu.push([...sample]);
-  }
+  if(window.bdCustomerOrderSubmitting||cart.length||active!==null)return;
+  menu=rows.filter(item=>canonicalCategory(item.category)!=="Archived")
+   .sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))
+   .flatMap(item=>{
+    const category=canonicalCategory(item.category);
+    const price=Number(item.price);
+    if(category==="Drinks & Sides"&&isCanListing(item.item_name)){
+     return /^12 oz can$/i.test(item.item_name)?canNames.map(name=>[category,name,"Ice cold",price]):[];
+    }
+    return [[category,item.item_name,item.description||"",price]];
+   });
   menu=menu.map(x=>{
    const included=includedToppings(x[1]);
    if(!included.length)return x;
@@ -310,7 +312,6 @@ async function loadEditableMenu(){
   menu.sort((a,b)=>(rank[a[0]]??9)-(rank[b[0]]??9)||Number(/carolina classic/i.test(b[1]))-Number(/carolina classic/i.test(a[1])));
   cats=[...new Set(menu.map(x=>x[0]))];
   menuAvailability=Object.fromEntries(rows.filter(x=>canonicalCategory(x.category)!=="Archived").map(x=>[x.item_name,x.available!==false]));
-  if(can)menuAvailability["12 oz can"]=menuAvailability[can[1]];
   if(Object.hasOwn(menuAvailability,"Carolina Classic"))menuAvailability["Carolina Classic Hot Dawg"]=menuAvailability["Carolina Classic"];
   render();update();
  }catch(e){}
@@ -458,7 +459,10 @@ async function placeOrder(){
  try{
   const rows=await bdGetMenuAvailability();
   const liveAvailability=Object.fromEntries((rows||[]).map(r=>[r.item_name,r.available!==false]));
-  const soldOutInCart=cart.find(x=>liveAvailability[menu[x.i][1]]===false);
+  const soldOutInCart=cart.find(x=>{
+   const name=menu[x.i][1];
+   return liveAvailability[name]===false||(canNames.includes(name)&&liveAvailability["12 oz can"]===false);
+  });
   if(soldOutInCart) return alert(`${menu[soldOutInCart.i][1]} is now sold out. Please remove it from your order.`);
  }catch(e){
   return alert("We could not confirm menu availability. Please try again.");
