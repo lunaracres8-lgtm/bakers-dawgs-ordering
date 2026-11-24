@@ -33,7 +33,6 @@ const defaultMenu=[
 ["Drinks & Sides","Pepsi (12 oz can)","Ice cold",1.50],
 ["Drinks & Sides","Wild Cherry Pepsi (bottle)","Ice cold",2.00],
 ["Drinks & Sides","Mountain Dew (12 oz can)","Ice cold",1.50],
-["Drinks & Sides","Coca-Cola (12 oz can)","Ice cold",1.50],
 ["Drinks & Sides","Bottled Water","",1.00],
 ["Drinks & Sides","Sweet Tea with Ice","Homemade sweet tea • No refills",1.75],
 ["Drinks & Sides","Lemonade Sweet Tea with Ice","Made with our homemade sweet tea • No refills",2.75],
@@ -277,7 +276,7 @@ async function loadEditableMenu(){
   menu=menu.map(x=>/bottled water/i.test(x[1])?[x[0],x[1],x[2],1.00]:x);
   if(!menu.some(x=>/bottled water/i.test(x[1])))menu.push(["Drinks & Sides","Bottled Water","",1.00]);
   menu=menu.filter(x=>!(/canned soda|can soda|12 oz can/i.test(x[1])));
-  for(const name of ["Pepsi (12 oz can)","Mountain Dew (12 oz can)","Coca-Cola (12 oz can)"]){if(!menu.some(x=>x[1]===name))menu.push(["Drinks & Sides",name,"Ice cold",1.50]);}
+  for(const name of ["Pepsi (12 oz can)","Mountain Dew (12 oz can)"]){if(!menu.some(x=>x[1]===name))menu.push(["Drinks & Sides",name,"Ice cold",1.50]);}
   menu=menu.filter(x=>!(/cake|dessert/i.test(x[1])));
   menu.push(["Desserts","Chocolate Cake","Homestyle chocolate cake • $5 per slice",5.00]);
   for(const combo of menu.filter(x=>x[0]==="Hot Dawg Combos")){
