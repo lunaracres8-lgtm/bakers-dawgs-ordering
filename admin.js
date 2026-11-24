@@ -105,6 +105,8 @@ const adminMenuItems=["Carolina Classic Hot Dawg","Sauerkraut & Mustard Dawg","C
 let editableMenuItems=[];
 let currentMenuCategory="All";
 let previewMode="phone";
+const windowCanFlavors=["Mountain Dew","Pepsi","Diet Pepsi"];
+const isWindowCan=item=>/^(12 oz can|canned drinks?)$/i.test(item.item_name);
 let windowSaleCart=[];
 let windowSaleDraft={name:"",phone:"",payment:""};
 let windowSaleDiscount={amount:0,reason:""};
@@ -245,8 +247,9 @@ function repeatOrderAtWindow(id){
  windowSaleCart=[];
  const menu=windowMenuItems();
  for(const line of order.items||[]){
-  const item=menu.find(entry=>entry.item_name===line.name);
-  if(item)windowSaleCart.push({id:item.id,name:item.item_name,price:Number(item.price),quantity:Math.max(1,Number(line.quantity)||1)});
+  const canFlavor=windowCanFlavors.find(flavor=>line.name===flavor+" (12 oz can)"||(isWindowCan({item_name:line.name})&&line.options===flavor));
+  const item=canFlavor?menu.find(isWindowCan):menu.find(entry=>entry.item_name===line.name);
+  if(item)windowSaleCart.push({id:item.id,name:item.item_name,price:Number(item.price),quantity:Math.max(1,Number(line.quantity)||1),options:canFlavor});
  }
  windowSaleDraft={name:order.customer_name||"",phone:order.phone||"",payment:""};windowSaleLastAdded=`Repeated ticket #${ticketCode(order)}`;windowSalePending=null;windowSaleNotice="";setAdminView("window",false);
 }
@@ -809,7 +812,17 @@ function renderWindowOrder(preserveDraft=true){
  if(preserveDraft)saveWindowSaleDraft();
  const menuItems=windowMenuItems();
  const categories=[...new Set(menuItems.map(item=>item.category||"Menu"))];
- const items=menuItems.map(item=>{const line=windowSaleCart.find(line=>line.id===item.id);const itemId=encodeURIComponent(item.id);return `<button type="button" class="windowMenuItem ${line?"inCart":""}" onclick="addWindowSaleItem(decodeURIComponent('${itemId}'))" onpointerdown="startWindowItemHold(decodeURIComponent('${itemId}'))" onpointerup="endWindowItemHold()" onpointercancel="endWindowItemHold()" onpointerleave="endWindowItemHold()" oncontextmenu="return false"><span>${esc(item.item_name)}</span><b>$${Number(item.price||0).toFixed(2)}</b><small>${line?`✓ IN ORDER • ${line.quantity} • HOLD TO REMOVE`:esc(item.category||"Menu")}</small></button>`;}).join("");
+ const items=menuItems.map(item=>{
+  const itemId=encodeURIComponent(item.id).replace(/'/g,"%27");
+  const price=`$${Number(item.price||0).toFixed(2)}`;
+  const button=(label,details,flavor="")=>{
+   const line=windowSaleCart.find(line=>line.id===item.id&&(line.options||"")===flavor);
+   const args=`decodeURIComponent('${itemId}'), '${flavor}'`;
+   return `<button type="button" class="windowMenuItem ${line?"inCart":""}" onclick="addWindowSaleItem(${args})" onpointerdown="startWindowItemHold(${args})" onpointerup="endWindowItemHold()" onpointercancel="endWindowItemHold()" onpointerleave="endWindowItemHold()" oncontextmenu="return false"><span>${esc(label)}</span><b>${details}</b><small>${line?`✓ IN ORDER • ${line.quantity} • HOLD TO REMOVE`:esc(flavor?"Tap to add":item.category||"Menu")}</small></button>`;
+  };
+  if(isWindowCan(item))return `<section class="windowCanGroup" aria-label="12 oz can"><b>12 oz can · ${price}</b>${windowCanFlavors.map(flavor=>button(flavor,"",flavor)).join("")}</section>`;
+  return button(item.item_name,price);
+ }).join("");
  const subtotal=Number(windowSubtotal().toFixed(2)),tax=Number((subtotal*.0675).toFixed(2)),total=Number((subtotal+tax).toFixed(2));
  const cart=windowSaleCart.length?windowSaleCart.map((line,index)=>`<article class="windowCartLine"><div><b>${esc(line.name)}</b><small>${line.options?esc(line.options):`$${Number(line.price).toFixed(2)} each`}</small></div><div class="quantityControl"><button type="button" onclick="changeWindowSaleQuantity(${index},-1)">−</button><b>${line.quantity}</b><button type="button" onclick="changeWindowSaleQuantity(${index},1)" ${isWindowReward(line)?"disabled":""}>+</button></div><strong>$${(Number(line.price)*Number(line.quantity)).toFixed(2)}</strong><button type="button" class="removeWindowItem" onclick="removeWindowSaleItem(${index})">×</button></article>`).join(""):`<p class="windowEmpty">Add items from the menu to start a walk-up sale.</p>`;
  const hasReward=windowSaleCart.some(isWindowReward);
@@ -820,8 +833,29 @@ function renderWindowOrder(preserveDraft=true){
  const notice=document.createElement("div");notice.className="windowSaleConfirmation";notice.setAttribute("role","status");notice.setAttribute("aria-live","polite");notice.textContent=windowSaleNotice;box.prepend(notice);
  if(windowSaleSaving)box.querySelectorAll("button,input,select").forEach(control=>control.disabled=true);
 }
-function addWindowSaleItem(id){if(windowSaleSaving)return;if(windowSaleHoldHandled){windowSaleHoldHandled=false;return;}const item=editableMenuItems.find(item=>item.id===id);if(!item||item.available===false)return;const line=windowSaleCart.find(line=>line.id===id);if(line)line.quantity++;else windowSaleCart.push({id:item.id,name:item.item_name,price:Number(item.price),quantity:1});windowSaleLastAdded=item.item_name;renderWindowOrder();}
-function startWindowItemHold(id){clearTimeout(windowSaleHoldTimer);windowSaleHoldHandled=false;windowSaleHoldTimer=setTimeout(()=>{const item=editableMenuItems.find(item=>item.id===id);const index=windowSaleCart.findIndex(line=>line.id===id);if(index<0||!item)return;windowSaleCart.splice(index,1);windowSaleLastAdded=`Removed ${item.item_name}`;windowSaleHoldHandled=true;renderWindowOrder();},650);}
+function addWindowSaleItem(id,flavor=""){
+ if(windowSaleSaving)return;
+ if(windowSaleHoldHandled){windowSaleHoldHandled=false;return;}
+ const item=windowMenuItems().find(item=>item.id===id);
+ if(!item||(isWindowCan(item)?!windowCanFlavors.includes(flavor):Boolean(flavor)))return;
+ const line=windowSaleCart.find(line=>line.id===id&&(line.options||"")===flavor);
+ if(line)line.quantity++;
+ else windowSaleCart.push({id:item.id,name:item.item_name,price:Number(item.price),quantity:1,options:flavor});
+ windowSaleLastAdded=flavor||item.item_name;
+ renderWindowOrder();
+}
+function startWindowItemHold(id,flavor=""){
+ clearTimeout(windowSaleHoldTimer);
+ windowSaleHoldHandled=false;
+ windowSaleHoldTimer=setTimeout(()=>{
+  const index=windowSaleCart.findIndex(line=>line.id===id&&(line.options||"")===flavor);
+  if(index<0)return;
+  const [line]=windowSaleCart.splice(index,1);
+  windowSaleLastAdded=`Removed ${flavor||line.name}`;
+  windowSaleHoldHandled=true;
+  renderWindowOrder();
+ },650);
+}
 function endWindowItemHold(){clearTimeout(windowSaleHoldTimer);}
 function changeWindowSaleQuantity(index,amount){const line=windowSaleCart[index];if(!line||isWindowReward(line)&&amount>0)return;line.quantity+=amount;if(line.quantity<1)windowSaleCart.splice(index,1);renderWindowOrder();}
 function removeWindowSaleItem(index){windowSaleCart.splice(index,1);renderWindowOrder();}
