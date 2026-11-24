@@ -234,7 +234,11 @@ async function bdGetMenuItems(){
  const r=await bdRequest(`${BD_URL}/rest/v1/menu_items?select=id,category,item_name,description,price,available,sort_order&order=sort_order.asc`,{cache:"no-store",headers:{"apikey":BD_KEY,"Authorization":`Bearer ${BD_KEY}`,"Content-Type":"application/json"}});
  return r.json();
 }
-async function bdSaveMenuItem(item){
+function bdMenuLabel(name){
+ return String(name).replace(/\(bottle\)/gi,"(Bottle)").replace(/\b12 oz can\b/gi,"12 oz Can");
+}
+
+async function bdSaveMenuItem(item,isExisting=false){
  const payload={
   id:item.id,
   category:String(item.category||"").trim(),
@@ -251,10 +255,6 @@ async function bdSaveMenuItem(item){
  // Use separate INSERT/PATCH calls instead of PostgREST upsert. This makes
  // permission failures much clearer and avoids requiring upsert-specific
  // INSERT+UPDATE behavior when a brand-new item is being created.
- const isExisting=Array.isArray(window.editableMenuItems)
-   ? window.editableMenuItems.some(x=>String(x.id)===String(item.id))
-   : false;
-
  const save=async()=>{
   if(isExisting){
    await bdRequest(`${BD_URL}/rest/v1/menu_items?id=eq.${encodeURIComponent(item.id)}`,{

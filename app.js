@@ -90,7 +90,7 @@ function renderCanChoices(){
   return `<button class="add" type="button" onclick="customize(${itemIndex})" ${soldOut?"disabled":""}>${canFlavors[index]}${soldOut?" · Sold Out":""}</button>`;
  }).join("");
  const item=menu.find(entry=>canNames.includes(entry[1]));
- return item?`<article class="item"><div class="foodIcon" aria-hidden="true">🥤</div><h3>12 oz can</h3><div class="price">${money(item[3])} <small>+ tax</small></div><div class="canChoices">${choices}</div></article>`:"";
+ return item?`<article class="item"><div class="foodIcon" aria-hidden="true">🥤</div><h3>12 oz Can</h3><div class="price">${money(item[3])} <small>+ tax</small></div><div class="canChoices">${choices}</div></article>`:"";
 }
 function render(cat=selectedCategory){
  selectedCategory=cat;
@@ -104,7 +104,7 @@ function render(cat=selectedCategory){
  `<article class="item ${/carolina classic/i.test(x[1])?"favoriteItem":""} ${menuAvailability[x[1]]===false?"soldout":""}">
  ${/carolina classic/i.test(x[1])?`<span class="itemBadge">CUSTOMER FAVORITE</span>`:""}
  <div class="foodIcon" aria-hidden="true">${(c==="Hot Dawgs"||c==="Hot Dawg Combos")?"🌭":c==="Smoked Sausages"?"🔥":c==="Sandwiches"?"🥪":(c==="Cakes"||c==="Desserts")?"🍰":"🥤"}</div>
- <h3>${x[1]}</h3>
+ <h3>${bdMenuLabel(x[1])}</h3>
  <p class="desc">${x[2]}</p>
  <div class="price">${money(x[3])} <small>+ tax</small></div>
  ${menuAvailability[x[1]]===false?`<div class="soldoutLabel">SOLD OUT</div><button class="add" disabled>Sold Out</button>`:`<button class="add" onclick="customize(${i})">Customize & Add</button>`}
@@ -198,7 +198,7 @@ function customize(i){
  let ques=x[1].includes("Quesadilla");
 
  modalBody.innerHTML=
- `<h2>${x[1]}</h2>
+ `<h2>${bdMenuLabel(x[1])}</h2>
  <div class="bigprice">${money(x[3])} <small>+ tax</small></div>
  <p>${x[2]}</p>
  ${food?`<h3>Make it your way</h3><p class="toppingHelp">Checked toppings are included. Tap to add or remove.</p><p id="toppingSelection" class="toppingSelection" aria-live="polite"></p>

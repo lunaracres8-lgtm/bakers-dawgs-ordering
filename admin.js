@@ -821,8 +821,8 @@ function renderWindowOrder(preserveDraft=true){
    const args=`decodeURIComponent('${itemId}'), '${flavor}'`;
    return `<button type="button" class="windowMenuItem ${line?"inCart":""}" onclick="addWindowSaleItem(${args})" onpointerdown="startWindowItemHold(${args})" onpointerup="endWindowItemHold()" onpointercancel="endWindowItemHold()" onpointerleave="endWindowItemHold()" oncontextmenu="return false"><span>${esc(label)}</span><b>${details}</b><small>${line?`✓ IN ORDER • ${line.quantity} • HOLD TO REMOVE`:esc(flavor?"Tap to add":item.category||"Menu")}</small></button>`;
   };
-  if(isWindowCan(item))return `<section class="windowCanGroup" aria-label="12 oz can"><b>12 oz can · ${price}</b>${windowCanFlavors.map(flavor=>button(flavor,"",flavor)).join("")}</section>`;
-  return button(item.item_name,price);
+  if(isWindowCan(item))return `<section class="windowCanGroup" aria-label="12 oz can"><b>12 oz Can · ${price}</b>${windowCanFlavors.map(flavor=>button(flavor,"",flavor)).join("")}</section>`;
+  return button(bdMenuLabel(item.item_name),price);
  }).join("");
  const subtotal=Number(windowSubtotal().toFixed(2)),tax=Number((subtotal*.0675).toFixed(2)),total=Number((subtotal+tax).toFixed(2));
  const cart=windowSaleCart.length?windowSaleCart.map((line,index)=>`<article class="windowCartLine"><div><b>${esc(line.name)}</b><small>${line.options?esc(line.options):`$${Number(line.price).toFixed(2)} each`}</small></div><div class="quantityControl"><button type="button" onclick="changeWindowSaleQuantity(${index},-1)">−</button><b>${line.quantity}</b><button type="button" onclick="changeWindowSaleQuantity(${index},1)" ${isWindowReward(line)?"disabled":""}>+</button></div><strong>$${(Number(line.price)*Number(line.quantity)).toFixed(2)}</strong><button type="button" class="removeWindowItem" onclick="removeWindowSaleItem(${index})">×</button></article>`).join(""):`<p class="windowEmpty">Add items from the menu to start a walk-up sale.</p>`;
@@ -1023,13 +1023,33 @@ function renderMenuAvailability(){
   if(box) box.innerHTML=visibleItems.map(item=>{
    const available=item.available!==false&&menuAvailability[item.item_name]!==false;
    const price=Number.isFinite(Number(item.price))&&item.price!==""?`$${Number(item.price).toFixed(2)}`:"";
-   return `<article class="menuAdminItem ${available?"available":"soldout"}"><div class="menuItemInfo"><span class="menuCategory">${esc(item.category||"Menu item")}</span><strong>${esc(item.item_name)}</strong>${item.description?`<small>${esc(item.description)}</small>`:""}</div><div class="menuItemActions"><b>${price}</b><button type="button" class="availabilityButton" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(item.item_name)}\'),this)">${available?"AVAILABLE · MARK SOLD OUT":"SOLD OUT · MAKE AVAILABLE"}</button><button type="button" class="editItemButton" onclick="openMenuItemEditor(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">EDIT</button><button type="button" class="secondaryButton" onclick="duplicateMenuItem(decodeURIComponent('${encodeURIComponent(item.id)}'))">DUPLICATE</button><button type="button" class="deleteItemButton" onclick="removeMenuItem(decodeURIComponent('${encodeURIComponent(item.id)}'),this)">DELETE</button></div></article>`;
+   return `<article class="menuAdminItem ${available?"available":"soldout"}"><div class="menuItemInfo"><span class="menuCategory">${esc(item.category||"Menu item")}</span><strong>${esc(bdMenuLabel(item.item_name))}</strong>${item.description?`<small>${esc(item.description)}</small>`:""}</div><div class="menuItemActions"><b>${price}</b><button type="button" class="availabilityButton" onclick="toggleMenuItem(decodeURIComponent(\'${encodeURIComponent(item.item_name)}\'),this)">${available?"AVAILABLE · MARK SOLD OUT":"SOLD OUT · MAKE AVAILABLE"}</button><button type="button" class="editItemButton" onclick="openMenuItemEditor(decodeURIComponent(\'${encodeURIComponent(item.id)}\'))">EDIT</button><button type="button" class="secondaryButton" onclick="duplicateMenuItem(decodeURIComponent('${encodeURIComponent(item.id)}'),this)">DUPLICATE</button><button type="button" class="deleteItemButton" onclick="removeMenuItem(decodeURIComponent('${encodeURIComponent(item.id)}'),this)">DELETE</button></div></article>`;
    }).join("");
   if(box&&!visibleItems.length)box.textContent="No items in this category.";
 }
 function setMenuCategory(category){currentMenuCategory=category;renderMenuAvailability();}
-async function duplicateMenuItem(id){const item=editableMenuItems.find(x=>x.id===id);if(!item)return;const duplicate={...item,id:"item-"+Date.now(),item_name:item.item_name+" Copy",sort_order:Number(item.sort_order||0)+.5};try{await bdSaveMenuItem(duplicate);await loadMenuAvailability();}catch(e){alert("Could not duplicate that menu item.");}}
-async function moveMenuItem(id,direction){const current=editableMenuItems.find(x=>x.id===id);if(!current)return;const same=editableMenuItems.filter(x=>x.category===current.category).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));const index=same.findIndex(x=>x.id===id),swap=same[index+direction];if(!swap)return;const old=current.sort_order;current.sort_order=swap.sort_order;swap.sort_order=old;try{await bdSaveMenuItem(current);await bdSaveMenuItem(swap);await loadMenuAvailability();}catch(e){alert("Could not move that menu item.");}}
+async function duplicateMenuItem(id,button){
+ const item=editableMenuItems.find(entry=>entry.id===id);
+ if(!item||button.disabled)return;
+ button.disabled=true;
+ button.textContent="DUPLICATING…";
+ try{
+  const current=await bdGetMenuItems();
+  const names=new Set(current.filter(entry=>entry.category!=="Archived").map(entry=>entry.item_name));
+  const baseName=item.item_name+" Copy";
+  let name=baseName;
+  for(let number=2;names.has(name);number++)name=baseName+" "+number;
+  const sortOrder=Math.max(0,...current.filter(entry=>entry.category===item.category).map(entry=>entry.sort_order))+1;
+  await bdSaveMenuItem({...item,id:bdNewUuid(),item_name:name,sort_order:sortOrder});
+  await loadMenuAvailability();
+ }catch(error){
+  alert("Could not duplicate that menu item. "+(error.message||"Try again."));
+ }finally{
+  button.disabled=false;
+  button.textContent="DUPLICATE";
+ }
+}
+async function moveMenuItem(id,direction){const current=editableMenuItems.find(x=>x.id===id);if(!current)return;const same=editableMenuItems.filter(x=>x.category===current.category).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));const index=same.findIndex(x=>x.id===id),swap=same[index+direction];if(!swap)return;const old=current.sort_order;current.sort_order=swap.sort_order;swap.sort_order=old;try{await bdSaveMenuItem(current,true);await bdSaveMenuItem(swap,true);await loadMenuAvailability();}catch(e){alert("Could not move that menu item.");}}
 async function restoreSampleMenu(button){
  if(!button.dataset.confirmRestore){
   button.dataset.confirmRestore="1";
@@ -1172,7 +1192,7 @@ function openMenuItemEditor(id=""){
    if(!bdHasSavedSession()||!await bdRefreshSession())throw new Error("Your staff session has expired. Sign in again, then save the menu item.");
    await bdCurrentStaffUser();
    if(saveButton)saveButton.textContent="SAVING…";
-   await bdSaveMenuItem(item);
+   await bdSaveMenuItem(item,Boolean(id));
 
    // Read the exact row back so the admin never reports success unless the
    // database actually contains the new/updated item.
