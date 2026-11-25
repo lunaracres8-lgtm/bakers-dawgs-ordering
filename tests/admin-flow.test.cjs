@@ -132,3 +132,35 @@ test('new orders alert on initial load, acknowledgement reads all tickets, accep
  await w.changeStatus('order-1234','Accepted');assert.equal(spoken.length,2);assert.match(spoken[1],/Slaw, mustard, chili, onions/);
  assert.equal(w.document.querySelector('#annaSlawDrawer'),null);
 });
+
+test('window hot dog builder sends separate plain and customized dogs to the kitchen',async t=>{
+ const h=harness();cleanup(t,h);const {w,orders}=h;
+ w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
+ w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};
+ w.auditState.setMenu([{id:'classic',item_name:'Carolina Classic',price:3.28,category:'Hot Dawgs',available:true}]);
+ w.renderWindowOrder();
+ const addDog=toppings=>{
+  w.openWindowHotDogBuilder();
+  const form=w.document.querySelector('#windowHotDogBuilder form');
+  for(const input of form.querySelectorAll('input'))input.checked=toppings.includes(input.value);
+  form.requestSubmit();
+ };
+ addDog([]);
+ addDog(['Chili',"Anna's Homemade Slaw"]);
+ addDog(['Chili',"Anna's Homemade Slaw"]);
+ w.addWindowSaleItem('classic');
+ assert.deepEqual(Array.from(w.auditState.cart,line=>line.quantity),[1,2,1]);
+ await w.submitWindowSale(false);
+ assert.equal(orders[0].total,14.01);
+ assert.deepEqual(orders[0].items.map(line=>[line.name,line.quantity,line.options]),[
+  ['Carolina Classic',1,'Build a Hot Dog: Plain (no toppings)'],
+  ['Carolina Classic',2,"Build a Hot Dog: Chili, Anna's Homemade Slaw"],
+  ['Carolina Classic',1,'']
+ ]);
+ w.setAdminView("kitchen");
+ const tickets=w.document.querySelector('#kitchenDisplay').textContent;
+ assert.match(tickets,/Build a Hot Dog.*Plain \(no toppings\)/);
+ assert.match(tickets,/2 × Build a Hot Dog.*Chili, Anna's Homemade Slaw/);
+ w.repeatOrderAtWindow(orders[0].id);
+ assert.equal(w.auditState.cart[1].options,"Build a Hot Dog: Chili, Anna's Homemade Slaw");
+});

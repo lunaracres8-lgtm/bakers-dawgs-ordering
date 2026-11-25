@@ -229,10 +229,10 @@ function downloadSystemBackup(){
 function printOrderReceipt(id){
  const order=(window.bdCurrentOrders||[]).find(o=>String(o.id)===String(id));if(!order)return;
  if(window.BakersDawgsAndroid?.printText){
-  const lines=["Baker's Dawgs",`Receipt #${ticketCode(order)}`,order.customer_name||"Customer",order.pickup_time||"Now",order.status||"",...(order.items||[]).map(i=>`${Number(i.quantity||1)} × ${i.name}${i.options?" — "+i.options:""} — $${(Number(i.price||0)*Number(i.quantity||1)).toFixed(2)}`),`Total: $${Number(order.total||0).toFixed(2)}`,`Payment: ${order.payment_method||"Pay at pickup"}`];
+  const lines=["Baker's Dawgs",`Receipt #${ticketCode(order)}`,order.customer_name||"Customer",order.pickup_time||"Now",order.status||"",...(order.items||[]).map(i=>`${Number(i.quantity||1)} × ${windowTicketItemName(i)}${i.options?" — "+windowTicketItemOptions(i):""} — $${(Number(i.price||0)*Number(i.quantity||1)).toFixed(2)}`),`Total: $${Number(order.total||0).toFixed(2)}`,`Payment: ${order.payment_method||"Pay at pickup"}`];
   window.BakersDawgsAndroid.printText("Baker's Dawgs Receipt",lines.join("\n"));return;
  }
- const rows=(order.items||[]).map(i=>`<tr><td>${esc(i.name)}${i.options?`<br><small>${esc(i.options)}</small>`:""}</td><td>${Number(i.quantity||1)} × $${Number(i.price||0).toFixed(2)}</td></tr>`).join("");
+ const rows=(order.items||[]).map(i=>`<tr><td>${esc(windowTicketItemName(i))}${i.options?`<br><small>${esc(windowTicketItemOptions(i))}</small>`:""}</td><td>${Number(i.quantity||1)} × $${Number(i.price||0).toFixed(2)}</td></tr>`).join("");
  const win=window.open("","_blank");if(!win){alert("Allow pop-ups to print the receipt.");return;}
  win.document.write(`<main style="font:16px Arial;max-width:360px;margin:20px auto"><h1>Baker's Dawgs</h1><h2>Receipt #${ticketCode(order)}</h2><p>${esc(order.customer_name||"Customer")}<br>${esc(order.phone||"")}<br>${esc(order.pickup_time||"")} • ${esc(order.status||"")}</p><table style="width:100%;border-collapse:collapse">${rows}</table><hr><h2>Total: $${Number(order.total||0).toFixed(2)}</h2><p>Payment: ${esc(order.payment_method||"Pay at pickup")}</p></main>`);win.document.close();win.focus();win.print();
 }
@@ -247,6 +247,11 @@ function repeatOrderAtWindow(id){
  windowSaleCart=[];
  const menu=windowMenuItems();
  for(const line of order.items||[]){
+  if(isCustomWindowDog(line)){
+   const base=windowHotDogBase();
+   if(base)windowSaleCart.push({id:base.id,name:base.item_name,price:Number(base.price),quantity:Math.max(1,Number(line.quantity)||1),options:line.options});
+   continue;
+  }
   const canFlavor=windowCanFlavors.find(flavor=>line.name===flavor+" (12 oz can)"||(isWindowCan({item_name:line.name})&&line.options===flavor));
   const item=canFlavor?menu.find(isWindowCan):menu.find(entry=>entry.item_name===line.name);
   if(item)windowSaleCart.push({id:item.id,name:item.item_name,price:Number(item.price),quantity:Math.max(1,Number(line.quantity)||1),options:canFlavor});
@@ -796,11 +801,58 @@ function renderKitchenDisplay(){
  const box=document.getElementById("kitchenDisplay");if(!box)return;
  const active=(window.bdCurrentOrders||[]).filter(order=>!["Completed","Voided"].includes(order.status));
  const rank={New:0,Accepted:1,Cooking:2,Ready:3};active.sort((a,b)=>(rank[a.status]??9)-(rank[b.status]??9)||new Date(a.created_at)-new Date(b.created_at));
- const cards=active.map(order=>`<article class="kitchenTicket ${String(order.status||"").toLowerCase()}"><header><span>Ticket #${ticketCode(order)}</span><b>${esc(order.status)}</b></header><h2>${esc(order.customer_name||"Customer")}</h2><p>Pickup: ${esc(order.pickup_time||"Now")} • <span class="${isLate(order)?"lateTimer":""}">${isLate(order)?"OVERDUE • ":""}${waitTime(order.created_at)}</span></p><ul>${(order.items||[]).map(item=>`<li><b>${Number(item.quantity||1)>1?`${Number(item.quantity)} × `:""}${esc(item.name)}</b>${item.options?`<small>${esc(item.options)}</small>`:""}${item.notes?`<small>Note: ${esc(item.notes)}</small>`:""}</li>`).join("")}</ul>${order.notes?`<p class="kitchenNote">${esc(order.notes)}</p>`:""}${nextStatus(order.status)?`<button type="button" onclick="changeStatus('${order.id}','${nextStatus(order.status)}')">${statusActionLabel(order.status)}</button>`:""}</article>`).join("");
+ const cards=active.map(order=>`<article class="kitchenTicket ${String(order.status||"").toLowerCase()}"><header><span>Ticket #${ticketCode(order)}</span><b>${esc(order.status)}</b></header><h2>${esc(order.customer_name||"Customer")}</h2><p>Pickup: ${esc(order.pickup_time||"Now")} • <span class="${isLate(order)?"lateTimer":""}">${isLate(order)?"OVERDUE • ":""}${waitTime(order.created_at)}</span></p><ul>${(order.items||[]).map(item=>`<li><b>${Number(item.quantity||1)>1?`${Number(item.quantity)} × `:""}${esc(windowTicketItemName(item))}</b>${item.options?`<small>${esc(windowTicketItemOptions(item))}</small>`:""}${item.notes?`<small>Note: ${esc(item.notes)}</small>`:""}</li>`).join("")}</ul>${order.notes?`<p class="kitchenNote">${esc(order.notes)}</p>`:""}${nextStatus(order.status)?`<button type="button" onclick="changeStatus('${order.id}','${nextStatus(order.status)}')">${statusActionLabel(order.status)}</button>`:""}</article>`).join("");
  box.innerHTML=`<div class="kitchenHeader"><div><span class="eyebrow">KITCHEN DISPLAY</span><b>${active.length?`${active.length} active ticket${active.length===1?"":"s"}`:"Kitchen is clear"}</b><small>Large, simple tickets for cooking. This screen refreshes automatically.</small></div><button type="button" class="secondaryButton" onclick="setAdminView('orders')">ORDER BOARD</button></div><div class="kitchenTickets">${cards||"<div class='kitchenEmpty'>No active orders right now.</div>"}</div>`;
 }
 
 function windowMenuItems(){return editableMenuItems.filter(item=>item.category!=="Archived"&&item.available!==false&&menuAvailability[item.item_name]!==false);}
+const windowHotDogToppings=[
+ "Yellow Mustard","Spicy Mustard","Chili","Cheese","Fresh Onions",
+ "Anna's Homemade Slaw","Sauerkraut","Sweet Relish","Grilled Onions","BBQ Sauce"
+];
+// Keep the menu item name for existing loyalty credit and use the options
+// marker to identify the custom hot dog on staff tickets and receipts.
+const customWindowDogPrefix="Build a Hot Dog: ";
+function isCustomWindowDog(line){return (line.options||"").startsWith(customWindowDogPrefix);}
+function windowTicketItemName(line){return isCustomWindowDog(line)?"Build a Hot Dog":line.name;}
+function windowTicketItemOptions(line){return isCustomWindowDog(line)?line.options.slice(customWindowDogPrefix.length):line.options;}
+function windowHotDogBase(){
+ const dogs=regularHotDogStyles();
+ return dogs.find(item=>/^carolina classic/i.test(item.item_name))||dogs[0];
+}
+function openWindowHotDogBuilder(){
+ const base=windowHotDogBase();
+ if(!base||windowSaleSaving||document.getElementById("windowHotDogBuilder"))return;
+ const dialog=document.createElement("dialog");
+ dialog.id="windowHotDogBuilder";
+ dialog.className="windowHotDogBuilder";
+ dialog.setAttribute("aria-labelledby","windowHotDogTitle");
+ dialog.innerHTML=`<form>
+  <h2 id="windowHotDogTitle">Build a Hot Dog</h2>
+  <p>Starts plain. Tap any toppings the customer wants.</p>
+  <fieldset><legend>Toppings</legend><div class="windowHotDogToppings">${windowHotDogToppings.map(topping=>`<label><input type="checkbox" name="topping" value="${esc(topping)}"> ${esc(topping)}</label>`).join("")}</div></fieldset>
+  <div class="windowHotDogActions"><button type="button" class="secondaryButton">Cancel</button><button type="submit">Add to sale</button></div>
+ </form>`;
+ dialog.addEventListener("close",()=>dialog.remove());
+ dialog.querySelector('button[type="button"]').addEventListener("click",()=>dialog.close());
+ dialog.querySelector("form").addEventListener("submit",event=>{
+  event.preventDefault();
+  const currentBase=windowHotDogBase();
+  if(windowSaleSaving||!currentBase){dialog.close();return;}
+  const toppings=new FormData(event.currentTarget).getAll("topping");
+  const options=customWindowDogPrefix+(toppings.join(", ")||"Plain (no toppings)");
+  const price=Number(currentBase.price);
+  const line=windowSaleCart.find(line=>line.id===currentBase.id&&line.options===options&&line.price===price);
+  if(line)line.quantity++;
+  else windowSaleCart.push({id:currentBase.id,name:currentBase.item_name,price,quantity:1,options});
+  windowSaleLastAdded=options;
+  dialog.close();
+  renderWindowOrder();
+  document.getElementById("openWindowHotDogBuilder")?.focus();
+ });
+ document.body.append(dialog);
+ dialog.showModal();
+}
 function windowSubtotal(){return Math.max(0,windowSaleCart.reduce((sum,line)=>sum+Number(line.price||0)*Number(line.quantity||1),0)-Number(windowSaleDiscount.amount||0));}
 function saveWindowSaleDraft(){
  const name=document.getElementById("windowCustomerName"),phone=document.getElementById("windowCustomerPhone"),payment=document.getElementById("windowPayment");
@@ -813,6 +865,7 @@ function renderWindowOrder(preserveDraft=true){
  if(preserveDraft)saveWindowSaleDraft();
  const menuItems=windowMenuItems();
  const categories=[...new Set(menuItems.map(item=>item.category||"Menu"))];
+ const hotDogBase=windowHotDogBase();
  const items=menuItems.map(item=>{
   const itemId=encodeURIComponent(item.id).replace(/'/g,"%27");
   const price=`$${Number(item.price||0).toFixed(2)}`;
@@ -825,10 +878,10 @@ function renderWindowOrder(preserveDraft=true){
   return button(bdMenuLabel(item.item_name),price);
  }).join("");
  const subtotal=Number(windowSubtotal().toFixed(2)),tax=Number((subtotal*.0675).toFixed(2)),total=Number((subtotal+tax).toFixed(2));
- const cart=windowSaleCart.length?windowSaleCart.map((line,index)=>`<article class="windowCartLine"><div><b>${esc(line.name)}</b><small>${line.options?esc(line.options):`$${Number(line.price).toFixed(2)} each`}</small></div><div class="quantityControl"><button type="button" onclick="changeWindowSaleQuantity(${index},-1)">−</button><b>${line.quantity}</b><button type="button" onclick="changeWindowSaleQuantity(${index},1)" ${isWindowReward(line)?"disabled":""}>+</button></div><strong>$${(Number(line.price)*Number(line.quantity)).toFixed(2)}</strong><button type="button" class="removeWindowItem" onclick="removeWindowSaleItem(${index})">×</button></article>`).join(""):`<p class="windowEmpty">Add items from the menu to start a walk-up sale.</p>`;
+ const cart=windowSaleCart.length?windowSaleCart.map((line,index)=>`<article class="windowCartLine"><div><b>${esc(windowTicketItemName(line))}</b><small>${line.options?esc(windowTicketItemOptions(line)):`$${Number(line.price).toFixed(2)} each`}</small></div><div class="quantityControl"><button type="button" onclick="changeWindowSaleQuantity(${index},-1)">−</button><b>${line.quantity}</b><button type="button" onclick="changeWindowSaleQuantity(${index},1)" ${isWindowReward(line)?"disabled":""}>+</button></div><strong>$${(Number(line.price)*Number(line.quantity)).toFixed(2)}</strong><button type="button" class="removeWindowItem" onclick="removeWindowSaleItem(${index})">×</button></article>`).join(""):`<p class="windowEmpty">Add items from the menu to start a walk-up sale.</p>`;
  const hasReward=windowSaleCart.some(isWindowReward);
  const discount=windowSaleDiscount.amount?`<div class="discountLine"><span>Discount / comp — ${esc(windowSaleDiscount.reason)}</span><b>−$${Number(windowSaleDiscount.amount).toFixed(2)}</b><button type="button" onclick="clearWindowDiscount()">×</button></div>`:"";
- box.innerHTML=`<div class="windowTitle"><div><span class="eyebrow">COUNTER POS</span><b>Walk-up / window order</b><small>Cash and card sales are counted with online orders at closeout.</small></div><div class="windowTitleActions"><button type="button" class="secondaryButton" onclick="checkWindowLoyalty()">LOYALTY</button><button type="button" class="secondaryButton" onclick="addBirthdayReward()" ${windowSaleCart.some(line=>line.id==="birthday-reward")?"disabled":""}>BIRTHDAY REWARD</button><button type="button" class="secondaryButton" onclick="clearWindowSale()">CLEAR ORDER</button></div></div><div class="windowCustomer"><label>Customer name <input id="windowCustomerName" maxlength="70" value="${esc(windowSaleDraft.name)}" placeholder="Walk-in customer"></label><label>Phone <input id="windowCustomerPhone" inputmode="tel" maxlength="30" value="${esc(windowSaleDraft.phone)}" placeholder="Optional"></label><label>Payment <select id="windowPayment"><option value="">Choose at payment</option>${(typeof BD_PAYMENT_METHODS!=="undefined"?BD_PAYMENT_METHODS:["Cash","Square — Other / Contactless"]).map(method=>`<option value="${esc(method)}" ${windowSaleDraft.payment===method?"selected":""}>${esc(method)}</option>`).join("")}</select></label></div><section id="windowLoyaltyStatus" class="loyaltyResult" aria-live="polite" hidden></section><div class="windowPOSGrid"><div><div class="windowMenuHeader"><b>Menu items</b><small>${categories.map(category=>esc(category)).join(" · ")}</small></div><div class="windowMenuGrid">${items||"<p>Menu is loading. Open the Menu tab once if it does not appear.</p>"}</div><div class="windowAddedNotice">${windowSaleLastAdded?`Last added: <b>${esc(windowSaleLastAdded)}</b>`:"Tap an item to add it to this order."}<small>Tap adds one. Hold an item to remove it from the order.</small></div></div><div class="windowCart"><h2>Current sale <small>${windowSaleCart.reduce((n,line)=>n+Number(line.quantity||0),0)} item${windowSaleCart.reduce((n,line)=>n+Number(line.quantity||0),0)===1?"":"s"} • $${total.toFixed(2)}</small></h2><div class="windowCartLines">${cart}</div>${discount}<button type="button" class="discountButton" onclick="applyWindowDiscount()">ADD DISCOUNT / COMP</button><div class="windowTotals"><span>Items subtotal <b>${(subtotal+Number(windowSaleDiscount.amount||0)).toFixed(2)}</b></span>${windowSaleDiscount.amount?`<span class="discountLine">Manager discount — ${esc(windowSaleDiscount.reason)} <b>−${Number(windowSaleDiscount.amount).toFixed(2)}</b></span>`:""}<span>Subtotal after discount <b>${subtotal.toFixed(2)}</b></span><span>NC tax (6.75%) <b>$${tax.toFixed(2)}</b></span><strong>Total <b>$${total.toFixed(2)}</b></strong></div><div class="windowActions"><button type="button" class="secondaryButton" onclick="submitWindowSale(false)" ${windowSaleCart.length&&!hasReward?"":"disabled"}>SEND TO KITCHEN</button><button type="button" onclick="submitWindowSale(true)" ${windowSaleCart.length?"":"disabled"}>COMPLETE SALE</button></div><small>Send to Kitchen creates a new kitchen ticket. Use Complete Sale to redeem a reward and record payment for any items that carry a charge.</small></div></div>`;
+ box.innerHTML=`<div class="windowTitle"><div><span class="eyebrow">COUNTER POS</span><b>Walk-up / window order</b><small>Cash and card sales are counted with online orders at closeout.</small></div><div class="windowTitleActions"><button type="button" class="secondaryButton" onclick="checkWindowLoyalty()">LOYALTY</button><button type="button" class="secondaryButton" onclick="addBirthdayReward()" ${windowSaleCart.some(line=>line.id==="birthday-reward")?"disabled":""}>BIRTHDAY REWARD</button><button type="button" class="secondaryButton" onclick="clearWindowSale()">CLEAR ORDER</button></div></div><div class="windowCustomer"><label>Customer name <input id="windowCustomerName" maxlength="70" value="${esc(windowSaleDraft.name)}" placeholder="Walk-in customer"></label><label>Phone <input id="windowCustomerPhone" inputmode="tel" maxlength="30" value="${esc(windowSaleDraft.phone)}" placeholder="Optional"></label><label>Payment <select id="windowPayment"><option value="">Choose at payment</option>${(typeof BD_PAYMENT_METHODS!=="undefined"?BD_PAYMENT_METHODS:["Cash","Square — Other / Contactless"]).map(method=>`<option value="${esc(method)}" ${windowSaleDraft.payment===method?"selected":""}>${esc(method)}</option>`).join("")}</select></label></div><section id="windowLoyaltyStatus" class="loyaltyResult" aria-live="polite" hidden></section><div class="windowPOSGrid"><div><div class="windowMenuHeader"><b>Menu items</b><small>${categories.map(category=>esc(category)).join(" · ")}</small></div><div class="windowMenuGrid">${hotDogBase?`<button type="button" id="openWindowHotDogBuilder" class="windowMenuItem windowHotDogButton" onclick="openWindowHotDogBuilder()"><span>Build a Hot Dog</span><b>\$${Number(hotDogBase.price).toFixed(2)}</b><small>Plain or choose toppings</small></button>`:""}${items||"<p>Menu is loading. Open the Menu tab once if it does not appear.</p>"}</div><div class="windowAddedNotice">${windowSaleLastAdded?`Last added: <b>${esc(windowSaleLastAdded)}</b>`:"Tap an item to add it to this order."}<small>Tap adds one. Hold an item to remove it from the order.</small></div></div><div class="windowCart"><h2>Current sale <small>${windowSaleCart.reduce((n,line)=>n+Number(line.quantity||0),0)} item${windowSaleCart.reduce((n,line)=>n+Number(line.quantity||0),0)===1?"":"s"} • $${total.toFixed(2)}</small></h2><div class="windowCartLines">${cart}</div>${discount}<button type="button" class="discountButton" onclick="applyWindowDiscount()">ADD DISCOUNT / COMP</button><div class="windowTotals"><span>Items subtotal <b>${(subtotal+Number(windowSaleDiscount.amount||0)).toFixed(2)}</b></span>${windowSaleDiscount.amount?`<span class="discountLine">Manager discount — ${esc(windowSaleDiscount.reason)} <b>−${Number(windowSaleDiscount.amount).toFixed(2)}</b></span>`:""}<span>Subtotal after discount <b>${subtotal.toFixed(2)}</b></span><span>NC tax (6.75%) <b>$${tax.toFixed(2)}</b></span><strong>Total <b>$${total.toFixed(2)}</b></strong></div><div class="windowActions"><button type="button" class="secondaryButton" onclick="submitWindowSale(false)" ${windowSaleCart.length&&!hasReward?"":"disabled"}>SEND TO KITCHEN</button><button type="button" onclick="submitWindowSale(true)" ${windowSaleCart.length?"":"disabled"}>COMPLETE SALE</button></div><small>Send to Kitchen creates a new kitchen ticket. Use Complete Sale to redeem a reward and record payment for any items that carry a charge.</small></div></div>`;
  box.querySelector("#windowCustomerPhone").addEventListener("input",scheduleWindowLoyaltyLookup);
  renderWindowLoyalty();
  const notice=document.createElement("div");notice.className="windowSaleConfirmation";notice.setAttribute("role","status");notice.setAttribute("aria-live","polite");notice.textContent=windowSaleNotice;box.prepend(notice);
@@ -1340,8 +1393,8 @@ async function loadOrders(){
     <div class="items">
      ${(o.items||[]).map(i=>`
       <div class="orderItem">
-       <b>${Number(i.quantity)>1?`${Number(i.quantity)} × `:""}${esc(i.name)}</b>
-       ${i.options?`<small>${esc(i.options)}</small>`:""}
+       <b>${Number(i.quantity)>1?`${Number(i.quantity)} × `:""}${esc(windowTicketItemName(i))}</b>
+       ${i.options?`<small>${esc(windowTicketItemOptions(i))}</small>`:""}
        ${i.notes?`<small>Note: ${esc(i.notes)}</small>`:""}
        <span>$${(Number(i.price||0)*Math.max(1,Number(i.quantity)||1)).toFixed(2)}</span>
       </div>
@@ -1391,7 +1444,7 @@ function orderSpeechText(o, itemIndex=null){
  const chosen=itemIndex===null?items:(items[itemIndex]?[items[itemIndex]]:[]);
  const lines=chosen.map((i,n)=>{
   const label=itemIndex===null?`Item ${n+1}`:`Item ${itemIndex+1}`;
-  return [label, Number(i.quantity||1)>1?`Quantity ${i.quantity}`:"", i.name, i.options?`with ${i.options}`:"", i.notes?`Note: ${i.notes}`:""].filter(Boolean).join(". ");
+  return [label, Number(i.quantity||1)>1?`Quantity ${i.quantity}`:"", windowTicketItemName(i), i.options?windowTicketItemOptions(i):"", i.notes?`Note: ${i.notes}`:""].filter(Boolean).join(". ");
  });
  return [itemIndex===null?`Order ${ticketCode(o)} for ${o.customer_name||"customer"}.`:"", ...lines, itemIndex===null&&o.notes?`Order note: ${o.notes}`:""].filter(Boolean).join(". ");
 }
