@@ -297,14 +297,9 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #ff
 
 .windowCanGroup{display:grid;align-content:start;gap:6px;padding:8px;border:1px solid #53575a;border-radius:9px}.windowCanGroup .windowMenuItem{min-height:0}
 
-.windowMenuItem.windowHotDogButton{background:#ffc21a;color:#17110b;border:2px solid #ffc21a}
-.windowHotDogButton small{color:inherit}
-.windowHotDogBuilder{width:min(480px,calc(100% - 24px));box-sizing:border-box;padding:20px;border:2px solid #ffc21a;border-radius:14px;background:#1a1c1e;color:#fff}
-.windowHotDogBuilder::backdrop{background:#000a}
-.windowHotDogBuilder h2{margin:0}
-.windowHotDogBuilder fieldset{margin:0;padding:8px;border:1px solid #666;border-radius:8px}
-.windowHotDogToppings{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(155px,100%),1fr));gap:4px 10px}
-.windowHotDogToppings label{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer}
-.windowHotDogToppings input{width:20px;height:20px;margin:0;flex:none;accent-color:#ffc21a}
-.windowHotDogActions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:15px}
-.windowHotDogActions button{min-height:44px}
+.windowHotDogBuilder{display:grid;gap:8px;margin-bottom:14px;padding:12px;border:2px solid #ffc21a;border-radius:12px;background:#1a1c1e;color:#fff}
+.windowHotDogBuilder h2,.windowHotDogBuilder p{margin:0}
+.windowHotDogToppings{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(110px,100%),1fr));gap:6px}
+.windowHotDogBuilder button{min-height:44px}
+.windowHotDogToppings button{padding:7px 5px;line-height:1.15;touch-action:manipulation}
+.windowHotDogToppings button[aria-pressed="true"]{background:#ffc21a;color:#17110b;border-color:#ffc21a}

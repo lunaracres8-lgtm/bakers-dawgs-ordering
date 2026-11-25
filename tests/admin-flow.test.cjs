@@ -135,15 +135,20 @@ test('new orders alert on initial load, acknowledgement reads all tickets, accep
 
 test('window hot dog builder sends separate plain and customized dogs to the kitchen',async t=>{
  const h=harness();cleanup(t,h);const {w,orders}=h;
- w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
- w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};
  w.auditState.setMenu([{id:'classic',item_name:'Carolina Classic',price:3.28,category:'Hot Dawgs',available:true}]);
  w.renderWindowOrder();
+ const buttons=()=>Array.from(w.document.querySelectorAll('#windowHotDogBuilder [data-window-topping]'));
+ assert.equal(buttons().length,10);
+ buttons()[0].click();
+ assert.equal(buttons()[0].getAttribute('aria-pressed'),'true');
+ w.renderWindowOrder();
+ assert.equal(buttons()[0].getAttribute('aria-pressed'),'true');
+ buttons()[0].click();
+ assert.equal(buttons()[0].getAttribute('aria-pressed'),'false');
  const addDog=toppings=>{
-  w.openWindowHotDogBuilder();
-  const form=w.document.querySelector('#windowHotDogBuilder form');
-  for(const input of form.querySelectorAll('input'))input.checked=toppings.includes(input.value);
-  form.requestSubmit();
+  for(const button of buttons())if(toppings.includes(button.dataset.windowTopping))button.click();
+  w.document.querySelector('#addWindowHotDog').click();
+  assert.ok(buttons().every(button=>button.getAttribute('aria-pressed')==='false'));
  };
  addDog([]);
  addDog(['Chili',"Anna's Homemade Slaw"]);
