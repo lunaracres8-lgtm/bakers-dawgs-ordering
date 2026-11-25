@@ -146,6 +146,11 @@ test('window hot dog builder sends separate plain and customized dogs to the kit
  assert.equal(buttons()[0].getAttribute('aria-pressed'),'true');
  buttons()[0].click();
  assert.equal(buttons()[0].getAttribute('aria-pressed'),'false');
+ for(const button of buttons().slice(0,5))button.click();
+ assert.match(w.document.querySelector('#addWindowHotDog').textContent,/4\.25/);
+ buttons()[4].click();
+ assert.match(w.document.querySelector('#addWindowHotDog').textContent,/3\.28/);
+ for(const button of buttons().slice(0,4))button.click();
  const addDog=toppings=>{
   for(const button of buttons())if(toppings.includes(button.dataset.windowTopping))button.click();
   w.document.querySelector('#addWindowHotDog').click();
@@ -157,7 +162,8 @@ test('window hot dog builder sends separate plain and customized dogs to the kit
  w.addWindowSaleItem('classic');
  assert.deepEqual(Array.from(w.auditState.cart,line=>line.quantity),[1,2,1]);
  await w.submitWindowSale(false);
- assert.equal(orders[0].total,14.01);
+ assert.equal(orders[0].total,16.08);
+ assert.deepEqual(orders[0].items.map(line=>line.price),[3.28,4.25,3.28]);
  assert.deepEqual(orders[0].items.map(line=>[line.name,line.quantity,line.options]),[
   ['Carolina Classic',1,'Build a Hot Dog: Plain (no toppings)'],
   ['Carolina Classic',2,"Build a Hot Dog: Chili, Anna's Homemade Slaw, Ketchup, Mayonnaise, Hot Sauce"],
@@ -168,5 +174,6 @@ test('window hot dog builder sends separate plain and customized dogs to the kit
  assert.match(tickets,/Build a Hot Dog.*Plain \(no toppings\)/);
  assert.match(tickets,/2 × Build a Hot Dog.*Chili, Anna's Homemade Slaw, Ketchup, Mayonnaise, Hot Sauce/);
  w.repeatOrderAtWindow(orders[0].id);
+ assert.equal(w.auditState.cart[1].price,4.25);
  assert.equal(w.auditState.cart[1].options,"Build a Hot Dog: Chili, Anna's Homemade Slaw, Ketchup, Mayonnaise, Hot Sauce");
 });

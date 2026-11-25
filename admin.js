@@ -251,7 +251,7 @@ function repeatOrderAtWindow(id){
  for(const line of order.items||[]){
   if(isCustomWindowDog(line)){
    const base=windowHotDogBase();
-   if(base)windowSaleCart.push({id:base.id,name:base.item_name,price:Number(base.price),quantity:Math.max(1,Number(line.quantity)||1),options:line.options});
+   if(base)windowSaleCart.push({id:base.id,name:base.item_name,price:windowHotDogPrice(base,windowTicketItemOptions(line).split(", ").length),quantity:Math.max(1,Number(line.quantity)||1),options:line.options});
    continue;
   }
   const canFlavor=windowCanFlavors.find(flavor=>line.name===flavor+" (12 oz can)"||(isWindowCan({item_name:line.name})&&line.options===flavor));
@@ -823,6 +823,7 @@ function windowHotDogBase(){
  const dogs=regularHotDogStyles();
  return dogs.find(item=>/^carolina classic/i.test(item.item_name))||dogs[0];
 }
+function windowHotDogPrice(base,toppingCount){return toppingCount>=5?4.25:Number(base.price);}
 function renderWindowHotDogBuilder(base){
  return `<section id="windowHotDogBuilder" class="windowHotDogBuilder" aria-labelledby="windowHotDogTitle">
   <h2 id="windowHotDogTitle">Build a Hot Dog</h2>
@@ -830,7 +831,7 @@ function renderWindowHotDogBuilder(base){
    ${windowHotDogToppings.map(topping=>`<button type="button" class="secondaryButton" data-window-topping="${esc(topping)}" aria-pressed="${windowHotDogSelected.has(topping)}">${esc(topping)}</button>`).join("")}
   </div>
   <p id="windowHotDogSelection" aria-live="polite">${esc(windowHotDogSelection())}</p>
-  <button type="button" id="addWindowHotDog">Add hot dog · $${Number(base.price).toFixed(2)}</button>
+  <button type="button" id="addWindowHotDog">Add hot dog · $${windowHotDogPrice(base,windowHotDogSelected.size).toFixed(2)}</button>
  </section>`;
 }
 function windowHotDogSelection(){
@@ -842,12 +843,14 @@ function toggleWindowHotDogTopping(button){
  else windowHotDogSelected.add(topping);
  button.setAttribute("aria-pressed",String(windowHotDogSelected.has(topping)));
  document.getElementById("windowHotDogSelection").textContent=windowHotDogSelection();
+ const price=windowHotDogPrice(windowHotDogBase(),windowHotDogSelected.size);
+ document.getElementById("addWindowHotDog").textContent=`Add hot dog · $${price.toFixed(2)}`;
 }
 function addWindowHotDog(){
  const base=windowHotDogBase();
  if(windowSaleSaving||!base)return;
  const options=customWindowDogPrefix+windowHotDogSelection();
- const price=Number(base.price);
+ const price=windowHotDogPrice(base,windowHotDogSelected.size);
  const line=windowSaleCart.find(line=>line.id===base.id&&line.options===options&&line.price===price);
  if(line)line.quantity++;
  else windowSaleCart.push({id:base.id,name:base.item_name,price,quantity:1,options});
