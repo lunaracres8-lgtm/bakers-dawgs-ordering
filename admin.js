@@ -839,12 +839,15 @@ function windowHotDogSelection(){
 }
 function toggleWindowHotDogTopping(button){
  const topping=button.dataset.windowTopping;
+ const firstTopping=windowHotDogSelected.size===0;
  if(windowHotDogSelected.has(topping))windowHotDogSelected.delete(topping);
  else windowHotDogSelected.add(topping);
  button.setAttribute("aria-pressed",String(windowHotDogSelected.has(topping)));
  document.getElementById("windowHotDogSelection").textContent=windowHotDogSelection();
  const price=windowHotDogPrice(windowHotDogBase(),windowHotDogSelected.size);
- document.getElementById("addWindowHotDog").textContent=`Add hot dog · $${price.toFixed(2)}`;
+ const addButton=document.getElementById("addWindowHotDog");
+ addButton.textContent=`Add hot dog · $${price.toFixed(2)}`;
+ if(firstTopping)addButton.scrollIntoView({block:"nearest",inline:"nearest"});
 }
 function addWindowHotDog(){
  const base=windowHotDogBase();
