@@ -303,3 +303,46 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #ff
 .windowHotDogBuilder button{min-height:44px}
 .windowHotDogToppings button{padding:7px 5px;line-height:1.15;touch-action:manipulation}
 .windowHotDogToppings button[aria-pressed="true"]{background:#ffc21a;color:#17110b;border-color:#ffc21a}
+
+/* Staff controls for tablet and phone */
+.adminViewTabs{gap:6px}
+.adminViewTabs button{border-radius:9px}
+.windowSale{padding:clamp(12px,2vw,20px);border-color:#72523d;background:#1b1714}
+.windowTitleActions button,.windowActions button,.discountButton{min-height:44px}
+.windowCustomer input,.windowCustomer select{min-height:46px;font-size:16px}
+.windowHotDogBuilder{padding:clamp(10px,2vw,16px);background:#211813;border-color:#c78f36}
+.windowHotDogBuilder h2{font-size:clamp(20px,3vw,26px);line-height:1.2}
+.windowHotDogBuilder .windowHotDogToppings button{
+ color:#fff6e9;background:#382c24;border:1px solid #816450;border-radius:8px;
+ line-height:1.2;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer
+}
+.windowHotDogBuilder .windowHotDogToppings button[aria-pressed="true"]{
+ color:#241408;background:#ffd05a;border-color:#ffe6a5;
+ box-shadow:inset 0 -3px #b7751b
+}
+.windowHotDogToppings button[aria-pressed="true"]::before{content:"✓ ";font-weight:900}
+#windowHotDogSelection{min-height:1.5em;color:#eed1ae;font-size:14px;overflow-wrap:anywhere}
+#addWindowHotDog{background:#ffd05a;color:#241408;border:1px solid #ffe6a5;border-radius:9px;font:800 16px/1.25 system-ui,sans-serif;padding:10px;cursor:pointer}
+#addWindowHotDog:disabled{opacity:.5;cursor:default}
+.windowCart{min-width:0;border-color:#72523d;background:#161310}
+.windowCart h2{display:grid;gap:3px}
+.windowCart h2 small{color:#b0e7bc;font-size:14px}
+.quantityControl button,.removeWindowItem{min-width:36px;min-height:36px}
+.windowCartLine small{overflow-wrap:anywhere}
+#windowLoyaltyStatus:not([hidden]){display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+#windowLoyaltyStatus select,#windowLoyaltyStatus button{min-height:44px}
+@media(min-width:851px){
+ .windowCart{position:sticky;top:76px;align-self:start}
+}
+@media(max-width:850px) and (min-width:721px){
+ .windowPOSGrid{grid-template-columns:minmax(0,1fr) minmax(270px,.9fr)}
+}
+@media(max-width:540px){
+ .adminViewTabs{grid-template-columns:repeat(5,minmax(0,1fr));padding-inline:4px!important}
+ .adminViewTabs button{font-size:clamp(9px,2.5vw,13px);padding:7px 2px;white-space:normal;line-height:1.15}
+ .windowSale{margin:8px}
+ .windowTitleActions{justify-content:flex-start}
+ .windowTitleActions button{font-size:12px}
+ .windowHotDogToppings{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .windowHotDogBuilder .windowHotDogToppings button{font-size:13px;overflow-wrap:anywhere}
+}

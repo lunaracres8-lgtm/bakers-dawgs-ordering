@@ -184,3 +184,40 @@ footer{background:#371c17;color:#f0d6c3;margin-top:28px;padding:36px 24px}.large
 
 /* Responsive launch polish */
 .siteHero{background:radial-gradient(ellipse at 15% 0,#743b23,#371c17 65%);padding:clamp(20px,4vw,48px) clamp(14px,4vw,36px)}.heroLayout{gap:clamp(18px,4vw,48px)}.siteHero h1{font-size:clamp(36px,6vw,76px);overflow-wrap:normal}.classicSpotlight{border:2px solid #e4ad65}.classicCopy .add,.siteHero .heroActions .hero,.siteHero .directions,.menuCategories button,.item .add{min-height:48px;touch-action:manipulation}.classicCopy .add{font-weight:900}.heroCopy,.classicCopy,.item{min-width:0}.siteHero .heroActions{align-items:stretch}.siteHero .directions{display:grid;place-items:center;text-align:center}.cartbar{min-height:56px}.sheet{overscroll-behavior:contain}.field{min-height:48px}.item .desc{line-height:1.45}@media(max-width:700px){.siteHero h1{font-size:clamp(32px,8.5vw,54px)}.classicSpotlight{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}.classicCopy{padding:14px}.heroLayout{gap:18px}}@media(max-width:360px){.classicSpotlight{grid-template-columns:1fr}.classicPhoto{min-height:150px;aspect-ratio:2;background-size:200% 100%}.siteHero .heroActions{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Customer menu and pickup controls */
+.siteHero h1{font-style:normal;text-shadow:0 3px 0 #160906}
+.siteHero h1 span{color:#ff6d65;text-shadow:0 3px 0 #160906}
+.siteHero h2{color:#ffdbac}
+.heroCopy .pickupStatus{display:inline-block;padding:5px 10px;border:1px solid #99765f;border-radius:8px;background:#21100c}
+.classicSpotlight{background:#fffaf3}
+.classicCopy h2{letter-spacing:-.025em}
+.classicCopy .add{width:100%;margin:0}
+.pickupPerks{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 24px;padding:12px 20px;background:#ffebce;border-bottom:1px solid #e6c9a9;color:#542f24;font-size:14px;text-align:center}
+.pickupPerks b{display:inline;color:#94111c;font-size:inherit}
+.pickupPerks span{margin:0}
+.customerTools{padding-top:10px;padding-bottom:12px}
+.customerTools button{font-size:13px;letter-spacing:.02em}
+.menuCategories{scrollbar-width:thin}
+.menuCategories button{flex:0 0 auto}
+.item{box-shadow:0 2px 10px #321b1510}
+.item .add{font-weight:800}
+.item .add:disabled{background:#75635b;color:#fff;opacity:1}
+.item:focus-within{border-color:#bd1825}
+.cartbar{border-radius:14px}
+body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+.sheet{max-height:calc(92dvh - env(safe-area-inset-bottom,0px))}
+@media(max-width:700px){
+ .siteHero .heroActions{margin:12px 0 8px}
+ .heroCopy .heroAddress{margin:8px 0 0}
+ .classicPhoto{min-height:180px}
+ .classicCopy h2{margin:0}
+ .classicCopy p{margin:6px 0 10px}
+}
+@media(max-width:480px){
+ .pickupPerks{gap:4px;padding:10px 14px}
+ .customerTools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .customerTools button{min-width:0;padding:5px;font-size:11px;line-height:1.25}
+ .menuCategories{padding-block:7px}
+ .menuCategories button{padding-inline:12px}
+}
