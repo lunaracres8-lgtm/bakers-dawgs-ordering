@@ -325,10 +325,22 @@ function renderWindowLoyalty(){
  const panel=document.getElementById("windowLoyaltyStatus");
  if(!panel)return;
  const phone=loyaltyPhoneKey(document.getElementById("windowCustomerPhone")?.value);
- const status=windowLoyalty?.phone===phone?windowLoyalty.status:null;
- panel.hidden=!status;
+ const lookup=windowLoyalty?.phone===phone?windowLoyalty:null;
+ panel.hidden=!lookup;
  panel.replaceChildren();
- if(!status)return;
+ if(!lookup)return;
+ const {status,error}=lookup;
+ if(!status){
+  panel.textContent=error?"Could not check rewards.":"Checking rewards…";
+  if(error){
+   const retry=document.createElement("button");
+   retry.type="button";
+   retry.textContent="Retry rewards";
+   retry.onclick=()=>scheduleWindowLoyaltyLookup(true);
+   panel.append(retry);
+  }
+  return;
+ }
  const title=document.createElement("b");
  title.textContent=status.rewards?"FREE HOT DOG AVAILABLE":"BAKER'S DAWGS REWARDS";
  const progress=document.createElement("span");
@@ -345,18 +357,18 @@ function renderWindowLoyalty(){
  redeem.onclick=()=>{saveWindowSaleDraft();addLoyaltyReward(phone,select.value);};
  panel.append(select,redeem);
 }
-function scheduleWindowLoyaltyLookup(){
- clearTimeout(windowLoyaltyTimer);
+function scheduleWindowLoyaltyLookup(retry=false){
  const phone=loyaltyPhoneKey(document.getElementById("windowCustomerPhone")?.value);
+ if(retry!==true&&windowLoyalty?.phone===phone){renderWindowLoyalty();return;}
+ clearTimeout(windowLoyaltyTimer);
+ const lookup=phone?{phone,status:null,error:false}:null;
+ windowLoyalty=lookup;
  renderWindowLoyalty();
- if(!phone)return;
+ if(!lookup)return;
  windowLoyaltyTimer=setTimeout(async()=>{
-  try{
-   const status=await bdGetLoyaltyStatus(phone);
-   if(loyaltyPhoneKey(document.getElementById("windowCustomerPhone")?.value)!==phone)return;
-   windowLoyalty={phone,status};
-   renderWindowLoyalty();
-  }catch(_){}
+  try{lookup.status=await bdGetLoyaltyStatus(phone);}
+  catch(_){lookup.error=true;}
+  if(windowLoyalty===lookup)renderWindowLoyalty();
  },350);
 }
 function checkWindowLoyalty(){
@@ -390,11 +402,12 @@ function checkWindowLoyalty(){
  phoneInput.addEventListener("keydown",event=>{if(event.key==="Enter")check();});
  setTimeout(()=>phoneInput.focus(),40);
 }
-async function availableLoyaltyReward(phone){
+async function availableLoyaltyReward(phone,includeProgress=false){
  const key=loyaltyPhoneKey(phone);
  if(!key)return "";
  try{
   const status=await bdGetLoyaltyStatus(key);
+  if(includeProgress)return ` • ${loyaltySummary(status)}.`;
   return status.rewards?` • ${status.rewards} free hot dog${status.rewards===1?"":"s"} available.`:"";
  }catch(_){return "";}
 }
@@ -897,7 +910,7 @@ function renderWindowOrder(preserveDraft=true){
   if(button)toggleWindowHotDogTopping(button);
  });
  box.querySelector("#windowCustomerPhone").addEventListener("input",scheduleWindowLoyaltyLookup);
- renderWindowLoyalty();
+ scheduleWindowLoyaltyLookup();
  const notice=document.createElement("div");notice.className="windowSaleConfirmation";notice.setAttribute("role","status");notice.setAttribute("aria-live","polite");notice.textContent=windowSaleNotice;box.prepend(notice);
  if(windowSaleSaving)box.querySelectorAll("button,input,select").forEach(control=>control.disabled=true);
 }
@@ -1032,7 +1045,7 @@ async function submitWindowSale(completeNow){
   windowSaleCart=[];
   windowHotDogSelected.clear();windowSaleDraft={name:"",phone:"",payment:""};windowSaleDiscount={amount:0,reason:""};windowSaleLastAdded="";windowSalePending=null;
   windowSaleNotice=completeNow?`Sale completed • Ticket #${ticketCode(order)} • $${total.toFixed(2)} • ${payment||(rewards.some(line=>line.id==="birthday-reward")?"Birthday reward":"Loyalty reward")}. Saved to daily sales.`:`Ticket #${ticketCode(order)} sent to the kitchen.`;
-  if(completeNow)windowSaleNotice+=await availableLoyaltyReward(phone);
+  if(completeNow)windowSaleNotice+=await availableLoyaltyReward(phone,true);
   windowLoyalty=null;
   await loadOrders();
  }catch(e){

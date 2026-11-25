@@ -182,3 +182,27 @@ test('window hot dog builder sends separate plain and customized dogs to the kit
  assert.equal(w.auditState.cart[1].price,4.25);
  assert.equal(w.auditState.cart[1].options,"Build a Hot Dog: Chili, Anna's Homemade Slaw, Ketchup, Mayonnaise, Hot Sauce");
 });
+
+test('regular Window Sale phone shows rewards and confirms points after payment',async t=>{
+ const h=harness();cleanup(t,h);const {w,orders}=h;
+ w.auditState.setMenu([{id:'classic',item_name:'Carolina Classic',price:3.28,category:'Hot Dawgs',available:true}]);
+ w.renderWindowOrder();
+ w.bdGetLoyaltyStatus=async phone=>{
+  assert.equal(phone,'8285551234');
+  return orders.length?{progress:1,rewards:0}:{progress:0,rewards:1};
+ };
+ const phone=w.document.querySelector('#windowCustomerPhone');
+ phone.value='+1 (828) 555-1234';
+ phone.dispatchEvent(new w.Event('input'));
+ assert.match(w.document.querySelector('#windowLoyaltyStatus').textContent,/Checking rewards/);
+ await new Promise(resolve=>setTimeout(resolve,400));
+ const panel=w.document.querySelector('#windowLoyaltyStatus');
+ assert.match(panel.textContent,/FREE HOT DOG AVAILABLE/);
+ panel.querySelector('button').click();
+ w.addWindowSaleItem('classic');
+ w.document.querySelector('#windowPayment').value='Cash';
+ await w.submitWindowSale(true);
+ assert.equal(orders[0].phone,'+1 (828) 555-1234');
+ assert.equal(orders[0].items[0].name,'Free Hot Dawg (Loyalty)');
+ assert.match(w.document.querySelector('.windowSaleConfirmation').textContent,/1 of 5 paid hot dogs/);
+});
