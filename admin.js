@@ -810,7 +810,8 @@ function renderKitchenDisplay(){
 function windowMenuItems(){return editableMenuItems.filter(item=>item.category!=="Archived"&&item.available!==false&&menuAvailability[item.item_name]!==false);}
 const windowHotDogToppings=[
  "Yellow Mustard","Spicy Mustard","Chili","Cheese","Fresh Onions",
- "Anna's Homemade Slaw","Sauerkraut","Sweet Relish","Grilled Onions","BBQ Sauce"
+ "Anna's Homemade Slaw","Sauerkraut","Sweet Relish","Grilled Onions","BBQ Sauce",
+ "Ketchup","Mayonnaise","Hot Sauce"
 ];
 // Keep the menu item name for existing loyalty credit and use the options
 // marker to identify the custom hot dog on staff tickets and receipts.

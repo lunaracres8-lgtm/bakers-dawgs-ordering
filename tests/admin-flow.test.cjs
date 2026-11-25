@@ -138,7 +138,8 @@ test('window hot dog builder sends separate plain and customized dogs to the kit
  w.auditState.setMenu([{id:'classic',item_name:'Carolina Classic',price:3.28,category:'Hot Dawgs',available:true}]);
  w.renderWindowOrder();
  const buttons=()=>Array.from(w.document.querySelectorAll('#windowHotDogBuilder [data-window-topping]'));
- assert.equal(buttons().length,10);
+ assert.equal(buttons().length,13);
+ for(const topping of ["Ketchup","Mayonnaise","Hot Sauce"])assert.ok(buttons().some(button=>button.dataset.windowTopping===topping));
  buttons()[0].click();
  assert.equal(buttons()[0].getAttribute('aria-pressed'),'true');
  w.renderWindowOrder();
@@ -151,21 +152,21 @@ test('window hot dog builder sends separate plain and customized dogs to the kit
   assert.ok(buttons().every(button=>button.getAttribute('aria-pressed')==='false'));
  };
  addDog([]);
- addDog(['Chili',"Anna's Homemade Slaw"]);
- addDog(['Chili',"Anna's Homemade Slaw"]);
+ addDog(['Chili',"Anna's Homemade Slaw","Ketchup","Mayonnaise","Hot Sauce"]);
+ addDog(['Chili',"Anna's Homemade Slaw","Ketchup","Mayonnaise","Hot Sauce"]);
  w.addWindowSaleItem('classic');
  assert.deepEqual(Array.from(w.auditState.cart,line=>line.quantity),[1,2,1]);
  await w.submitWindowSale(false);
  assert.equal(orders[0].total,14.01);
  assert.deepEqual(orders[0].items.map(line=>[line.name,line.quantity,line.options]),[
   ['Carolina Classic',1,'Build a Hot Dog: Plain (no toppings)'],
-  ['Carolina Classic',2,"Build a Hot Dog: Chili, Anna's Homemade Slaw"],
+  ['Carolina Classic',2,"Build a Hot Dog: Chili, Anna's Homemade Slaw, Ketchup, Mayonnaise, Hot Sauce"],
   ['Carolina Classic',1,'']
  ]);
  w.setAdminView("kitchen");
  const tickets=w.document.querySelector('#kitchenDisplay').textContent;
  assert.match(tickets,/Build a Hot Dog.*Plain \(no toppings\)/);
- assert.match(tickets,/2 × Build a Hot Dog.*Chili, Anna's Homemade Slaw/);
+ assert.match(tickets,/2 × Build a Hot Dog.*Chili, Anna's Homemade Slaw, Ketchup, Mayonnaise, Hot Sauce/);
  w.repeatOrderAtWindow(orders[0].id);
- assert.equal(w.auditState.cart[1].options,"Build a Hot Dog: Chili, Anna's Homemade Slaw");
+ assert.equal(w.auditState.cart[1].options,"Build a Hot Dog: Chili, Anna's Homemade Slaw, Ketchup, Mayonnaise, Hot Sauce");
 });
