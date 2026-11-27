@@ -1365,11 +1365,26 @@ async function toggleOrdering(){
  }
 }
 
+let orderSessionRefresh=null;
+async function getOrdersWithSessionRefresh(){
+ const accessToken=bdToken();
+ try{
+  return await bdGetOrders();
+ }catch(error){
+  if(error.status!==401||!bdHasSavedSession())throw error;
+  if(bdToken()===accessToken){
+   orderSessionRefresh??=bdRefreshSession().finally(()=>{orderSessionRefresh=null;});
+   if(!await orderSessionRefresh)throw error;
+  }
+  return bdGetOrders();
+ }
+}
+
 async function loadOrders(){
  const list=document.querySelector("#orders");
 
  try{
-  const orders=await bdGetOrders();
+  const orders=await getOrdersWithSessionRefresh();
   window.bdCurrentOrders=orders;
   const newIds=orders.filter(o=>o.status==="New"&&!knownOrderIds.has(o.id)).map(o=>o.id);
   if(newIds.length){ newIds.forEach(id=>bdUnacknowledgedOrderIds.add(id));bdUpdateOrderAlert(); }
@@ -1450,13 +1465,13 @@ async function loadOrders(){
   `).join("");
 
  }catch(e){
-  if(e.status===401||e.status===403){
+  if(e.status===401&&!bdHasSavedSession()){
    bdSignOut();
    alert("Your staff session expired. Please sign in again.");
    location.reload();
    return;
   }
-  list.innerHTML="<p>Could not load orders. Check the connection.</p>";
+  list.innerHTML=e.status===403?"<p>This staff account does not have access to orders.</p>":"<p>Could not load orders. Check the connection.</p>";
  }
 }
 
