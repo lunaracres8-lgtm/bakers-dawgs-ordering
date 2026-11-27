@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const {JSDOM}=require('jsdom');
 function harness(t){
  const dom=new JSDOM(fs.readFileSync('index.html','utf8'),{url:'https://bakersdawgs.com/',runScripts:'outside-only'});t.after(()=>dom.window.close());
- const w=dom.window;w.alert=()=>{};w.bdGetBusinessBranding=async()=>null;w.bdGetRestaurantSettings=async()=>({ordering_open:true,prep_minutes:20});w.bdGetMenuAvailability=async()=>[];w.bdGetMenuItems=async()=>[];w.bdNewUuid=()=> '12345678-1234-4234-8234-123456789012';w.bdCreateOrder=async o=>({id:o.id});
+ const w=dom.window;w.alert=()=>{};w.bdMenuLabel=String;w.bdGetBusinessBranding=async()=>null;w.bdGetRestaurantSettings=async()=>({ordering_open:true,prep_minutes:20});w.bdGetMenuAvailability=async()=>[];w.bdGetMenuItems=async()=>[];w.bdNewUuid=()=> '12345678-1234-4234-8234-123456789012';w.bdCreateOrder=async o=>({id:o.id});
  w.eval(fs.readFileSync('app.js','utf8')+'\nwindow.customerState={get menu(){return menu},get cart(){return cart},setMenu(v){menu=v;cats=[...new Set(menu.map(x=>x[0]))]},setCart(v){cart=v}}');
  return w;
 }
@@ -25,8 +25,19 @@ test('rapid checkout taps create one ticket and keep toppings in the submitted r
  let calls=0,submitted;w.bdCreateOrder=async order=>{calls++;submitted=order;return {id:'12345678-1234-4234-8234-123456780099'}};
  await Promise.all([w.placeOrder(),w.placeOrder()]);assert.equal(calls,1);assert.match(submitted.items[0].options,/Slaw/);assert.match(w.document.querySelector('.orderNumber').textContent,/#0099/);assert.equal(w.customerState.cart.length,0);
 });
-test('background menu refresh does not change the identity of a cart item',async t=>{
- const w=harness(t);w.customerState.setCart([{i:0,tops:[],extra:0}]);let called=false;w.bdGetMenuItems=async()=>{called=true;return []};await w.loadEditableMenu();assert.equal(called,false);assert.equal(w.customerState.menu[w.customerState.cart[0].i][1],'Carolina Classic Hot Dawg');
+test('background menu refresh adds new choices without changing an existing cart line',async t=>{
+ const w=harness(t);await new Promise(resolve=>setImmediate(resolve));
+ const original=['Hot Dawgs','Carolina Classic','',3.28];
+ w.customerState.setMenu([original]);
+ w.customerState.setCart([{i:0,tops:[],extra:0}]);
+ w.bdGetMenuItems=async()=>[
+  {category:'Drinks & Sides',item_name:'Sweet Tea',price:1.75},
+  {category:'Hot Dawgs',item_name:'Carolina Classic',price:4}
+ ];
+ await w.loadEditableMenu();
+ assert.deepEqual(w.customerState.menu[w.customerState.cart[0].i],original);
+ assert.equal(w.customerState.menu.find(item=>item[1]==='Sweet Tea')?.[3],1.75);
+ assert.equal(JSON.parse(w.localStorage.getItem('bdCartMenu'))[1][1],'Sweet Tea');
 });
 test('category selection survives background refresh and checkout rejects fractional quantities',async t=>{
  const w=harness(t);w.document.querySelector('#menu').scrollIntoView=()=>{};

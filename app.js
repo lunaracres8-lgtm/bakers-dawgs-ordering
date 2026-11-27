@@ -292,10 +292,10 @@ function canonicalCategory(category){
 }
 async function loadEditableMenu(){
  try{
-  if(window.bdCustomerOrderSubmitting||cart.length||active!==null)return;
+  if(window.bdCustomerOrderSubmitting||active!==null)return;
   const rows=await bdGetMenuItems();
-  if(window.bdCustomerOrderSubmitting||cart.length||active!==null)return;
-  menu=rows.filter(item=>canonicalCategory(item.category)!=="Archived")
+  if(window.bdCustomerOrderSubmitting||active!==null)return;
+  const latestMenu=rows.filter(item=>canonicalCategory(item.category)!=="Archived")
    .sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))
    .flatMap(item=>{
     const category=canonicalCategory(item.category);
@@ -304,15 +304,20 @@ async function loadEditableMenu(){
      return /^12 oz can$/i.test(item.item_name)?canNames.map(name=>[category,name,"Ice cold",price]):[];
     }
     return [[category,item.item_name,item.description||"",price]];
-   });
-  menu=menu.map(x=>{
+   }).map(x=>{
    const included=includedToppings(x[1]);
    if(!included.length)return x;
    const description=included.join(", ")+(x[0]==="Hot Dawg Combos"?" • With chips & a canned drink":"");
    return [x[0],x[1],description,x[3]];
   });
   const rank={"Hot Dawgs":0,"Hot Dawg Combos":1,"Drinks & Sides":2,"Desserts":3};
-  menu.sort((a,b)=>(rank[a[0]]??9)-(rank[b[0]]??9)||Number(/carolina classic/i.test(b[1]))-Number(/carolina classic/i.test(a[1])));
+  latestMenu.sort((a,b)=>(rank[a[0]]??9)-(rank[b[0]]??9)||Number(/carolina classic/i.test(b[1]))-Number(/carolina classic/i.test(a[1])));
+  if(cart.length){
+   // Saved cart lines point at menu indexes, so add new choices without moving existing rows.
+   const existingNames=new Set(menu.map(item=>item[1]));
+   menu.push(...latestMenu.filter(item=>!existingNames.has(item[1])));
+   localStorage.setItem("bdCartMenu",JSON.stringify(menu));
+  }else menu=latestMenu;
   cats=[...new Set(menu.map(x=>x[0]))];
   menuAvailability=Object.fromEntries(rows.filter(x=>canonicalCategory(x.category)!=="Archived").map(x=>[x.item_name,x.available!==false]));
   if(Object.hasOwn(menuAvailability,"Carolina Classic"))menuAvailability["Carolina Classic Hot Dawg"]=menuAvailability["Carolina Classic"];
