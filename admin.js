@@ -705,7 +705,7 @@ function switchEmployee(){
 }
 
 let adminLockTimer=null;
-const ADMIN_AUTO_LOCK_MS=5*60*1000;
+const ADMIN_AUTO_LOCK_MS=15*60*1000;
 // Manager approval is required for destructive order deletion.
 // This prevents an accidental double-tap from permanently removing a live ticket.
 const DEFAULT_STAFF_PIN_HASH="f3e055913a0b1eb0f07317896f9a1bc466b9a50db85a7f882f3ffde9ffb23aca";
