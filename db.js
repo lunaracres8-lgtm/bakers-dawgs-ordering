@@ -94,9 +94,15 @@ async function bdUpdatePassword(accessToken,password){
  return r.json();
 }
 
-async function bdRefreshSession(){
- const refreshToken=localStorage.getItem("bdRefreshToken") || sessionStorage.getItem("bdRefreshToken");
- if(!refreshToken) return false;
+let bdSessionRefresh=null;
+function bdRefreshSession(){
+ if(bdSessionRefresh)return bdSessionRefresh;
+ const refreshToken=localStorage.getItem("bdRefreshToken")||sessionStorage.getItem("bdRefreshToken");
+ if(!refreshToken)return Promise.resolve(false);
+ bdSessionRefresh=bdRenewSession(refreshToken).finally(()=>{bdSessionRefresh=null;});
+ return bdSessionRefresh;
+}
+async function bdRenewSession(refreshToken){
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),8000);
  try{
@@ -104,8 +110,15 @@ async function bdRefreshSession(){
    method:"POST",headers:{"apikey":BD_KEY,"Content-Type":"application/json"},
    body:JSON.stringify({refresh_token:refreshToken}),signal:controller.signal
   });
-  if(!r.ok){ bdSignOut(); return false; }
   const data=await r.json();
+  // A sign-out or a newer sign-in may have happened during this request.
+  const currentToken=localStorage.getItem("bdRefreshToken")||sessionStorage.getItem("bdRefreshToken");
+  if(currentToken!==refreshToken)return !!currentToken;
+  if(!r.ok){
+   const code=data.error_code||data.code;
+   if(["refresh_token_not_found","refresh_token_already_used","session_not_found","session_expired"].includes(code))bdSignOut();
+   return false;
+  }
   if(!data.access_token) return false;
   localStorage.setItem("bdAccessToken",data.access_token);
   if(data.refresh_token) localStorage.setItem("bdRefreshToken",data.refresh_token);
